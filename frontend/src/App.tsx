@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Project } from '../../../shared/types';
 import { fetchProjects } from './services/api';
 import { ProblemsList } from './components/ProblemsList';
+import { ThemeToggle } from './components/ThemeToggle';
 
 function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -45,11 +46,16 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div style={{ padding: '20px' }}>
-        <h1>POKRABS</h1>
-        {selectedProjectId && (
-          <ProblemsList projectId={selectedProjectId} />
-        )}
+      <div className="app">
+        <header className="app-header">
+          <h1 className="app-title">POKRABS</h1>
+          <ThemeToggle />
+        </header>
+        <main className="app-main">
+          {selectedProjectId && (
+            <ProblemsList projectId={selectedProjectId} />
+          )}
+        </main>
       </div>
       <Routes>
         <Route path="/:problemId" element={<div>Problem Detail - Coming Soon</div>} />

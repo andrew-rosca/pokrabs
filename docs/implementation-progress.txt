@@ -355,3 +355,81 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 **Next Steps:**
 - Frontend implementation to consume API endpoints
 - Optional: F030 (decompose endpoint) if needed
+
+### 2024-12-31 - MVP Frontend Implementation and UI Enhancements
+
+**Completed:**
+- **Database Seeding (F070-F071)**: 
+  - Created seed script with Default project and sample problem chain
+  - Removed hardcoded IDs - now uses LCG-based auto-generation
+  - Seed script deletes existing Default project before reseeding
+  - Integrated into database setup workflow
+
+- **F037**: React Router Setup
+  - React Router already configured in App.tsx
+  - Routes for home page and problem detail page
+  - Deep linking support via /:problemId route
+
+- **F038**: API Service Layer
+  - Created `frontend/src/services/api.ts` with fetch-based API client
+  - Functions for all API endpoints (projects, problems)
+  - Error handling and response parsing
+  - Uses VITE_API_URL environment variable
+
+- **F040**: Main Table Component Structure
+  - Created `ProblemsList` component
+  - Table with columns: ID, Problem, Objective, Status, Votes
+  - Displays problems in table rows
+  - Loading, error, and empty states
+
+- **F041**: Visual Hierarchy with Indentation
+  - Calculates depth from idPath (counts dashes)
+  - Applies indentation styling: 24px per depth level
+  - Root problems: no indent, children: 1 level, etc.
+  - Hierarchical sorting by idPath ensures parent-child order
+
+- **F046**: Color Coding for Status
+  - Status badges with color coding
+  - Blocked = red, In Progress = cyan/blue, Resolved = green, Not Started = gray
+  - Colors adapt to light/dark mode
+  - Visual status indicators
+
+**UI Enhancements:**
+- **Light/Dark Mode Toggle**
+  - Theme toggle button in top-right corner
+  - Persists preference in localStorage
+  - Respects system preference on first load
+  - Smooth theme transitions
+  - Comprehensive CSS variables for theming
+
+- **Enhanced Styling**
+  - Modern, clean design with improved typography
+  - Responsive layout with max-width container
+  - Sticky header with shadow
+  - Hover effects on table rows
+  - Professional color scheme
+  - Smooth transitions and animations
+
+- **Hierarchical Sorting**
+  - Problems sorted by idPath for natural hierarchical order
+  - Ensures parent problems appear before children
+  - Maintains tree structure visually
+
+**Files Created:**
+- `backend/src/database/seed.ts` - Database seeding script
+- `frontend/src/services/api.ts` - API service layer
+- `frontend/src/components/ProblemsList.tsx` - Problems table component
+- `frontend/src/components/ThemeToggle.tsx` - Theme toggle component
+- `frontend/src/index.css` - Comprehensive styling with light/dark mode
+
+**Technical Details:**
+- Seed script uses repository pattern for ID generation
+- Frontend sorts problems by idPath for hierarchical display
+- Theme system uses CSS variables for easy customization
+- All styling is responsive and mobile-friendly
+
+**Next Steps:**
+- Inline editing for table cells (F042)
+- Summary/detail view toggle (F043)
+- Status dropdown (F044)
+- Vote increment button (F045)

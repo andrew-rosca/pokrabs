@@ -475,7 +475,7 @@
         "Test validation rejects invalid input",
         "Test validation allows valid input"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F037",
@@ -489,7 +489,7 @@
         "Test routing works correctly",
         "Test deep linking navigates to correct problem"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F038",
@@ -517,7 +517,7 @@
         "Test state updates correctly",
         "Test state persists across navigation"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F040",
@@ -531,7 +531,7 @@
         "Test table renders correctly",
         "Test table displays all required columns"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F041",
@@ -603,7 +603,7 @@
         "Test voting increments count correctly",
         "Test vote count updates in UI"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F046",
