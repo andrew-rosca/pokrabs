@@ -259,3 +259,99 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 
 **Next Steps:**
 - Continue with API endpoints (F021-F025: REST API implementation)
+
+### 2024-12-31 - API Endpoints Implementation (F021-F029)
+
+**Completed:**
+- **F021**: Express Server Setup
+  - Enhanced server with comprehensive error handling middleware
+  - Prisma error handling (404 for not found, 409 for conflicts)
+  - 404 handler for unknown routes
+  - Health check endpoint at `/health`
+  - CORS and JSON body parser middleware configured
+
+- **F022**: GET /api/projects endpoint
+  - Lists all non-deleted projects
+  - Returns JSON array of projects
+  - Automatically excludes soft-deleted records
+  - Error handling for database failures
+
+- **F023**: POST /api/projects endpoint
+  - Creates new project with UUID generation
+  - Input validation (name required, non-empty)
+  - Trims whitespace from project name
+  - Returns 201 with created project
+
+- **F024**: GET /api/projects/:id endpoint
+  - Retrieves project by ID
+  - Returns 404 if project not found or soft-deleted
+  - Error handling for invalid IDs
+
+- **F025**: GET /api/projects/:projectId/problems endpoint
+  - Lists all problems for a project
+  - Verifies project exists before querying problems
+  - Excludes soft-deleted problems
+  - Returns 404 if project not found
+
+- **F026**: POST /api/projects/:projectId/problems endpoint
+  - Creates new problem in a project
+  - Validates required fields (problem, objective)
+  - Validates status enum values
+  - Validates parentId (if provided) exists and belongs to same project
+  - Generates unique ID using LCG generator
+  - Sets default values (status: NotStarted, votes: 0, priority: 0)
+  - Computes idPath for hierarchical problems
+  - Returns 201 with created problem
+
+- **F027**: GET /api/problems/:id endpoint
+  - Retrieves problem by ID
+  - Returns 404 if problem not found or soft-deleted
+  - Error handling for invalid IDs
+
+- **F028**: PATCH /api/problems/:id endpoint
+  - Updates problem with partial updates
+  - Validates status enum values
+  - Validates votes and priority are numbers
+  - Updates only provided fields
+  - Automatically updates updatedAt timestamp
+  - Returns 404 if problem not found
+
+- **F029**: DELETE /api/problems/:id endpoint
+  - Soft deletes problem (sets deletedAt timestamp)
+  - Returns 404 if problem not found
+  - Returns 204 No Content on success
+  - Deleted problems excluded from all list queries
+
+**Implementation Details:**
+- Routes support dependency injection for testing via Prisma client attached to request
+- All endpoints use repository pattern for data access
+- Comprehensive input validation on all endpoints
+- Consistent error response format
+- Soft delete exclusion in all queries
+- Proper HTTP status codes (200, 201, 204, 400, 404, 409, 500)
+
+**Testing:**
+- 30 comprehensive API tests, all passing
+- Tests use isolated databases via middleware
+- Covers success cases, validation errors, 404s, and soft delete behavior
+- Test files: `backend/src/api/projects.test.ts` (21 tests), `backend/src/api/problems.test.ts` (9 tests)
+
+**Files Created:**
+- `backend/src/api/projects.ts` - Project routes (GET, POST, project-specific problem routes)
+- `backend/src/api/problems.ts` - Problem routes (GET, PATCH, DELETE)
+- `backend/src/api/projects.test.ts` - Project API tests
+- `backend/src/api/problems.test.ts` - Problem API tests
+
+**Dependencies Added:**
+- `uuid` and `@types/uuid` for project ID generation
+- `supertest` and `@types/supertest` for API testing
+
+**Technical Details:**
+- Routes check for Prisma client in request object (for testing) or use default
+- TypeScript types extended to include optional Prisma client on Express Request
+- Error middleware handles Prisma-specific errors (P2025, P2002)
+- Route ordering: specific routes (/:projectId/problems) before generic routes (/:id)
+
+**Next Steps:**
+- Frontend implementation to consume API endpoints
+- Optional: F030 (decompose endpoint) if needed

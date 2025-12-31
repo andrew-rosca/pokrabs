@@ -263,7 +263,7 @@
         "Configure server to listen on configurable port",
         "Test server starts and responds to health check"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F022",
@@ -276,7 +276,7 @@
         "Test endpoint returns correct data",
         "Test endpoint handles errors gracefully"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F023",
@@ -290,7 +290,7 @@
         "Test endpoint creates project successfully",
         "Test validation rejects invalid input"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F024",
@@ -303,7 +303,7 @@
         "Test endpoint returns correct project",
         "Test endpoint handles missing project correctly"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F025",
@@ -317,7 +317,7 @@
         "Test endpoint returns correct problems",
         "Test endpoint handles missing project correctly"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F026",
@@ -333,7 +333,7 @@
         "Test endpoint creates problem successfully",
         "Test validation rejects invalid input"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F027",
@@ -346,7 +346,7 @@
         "Test endpoint returns correct problem",
         "Test endpoint handles missing problem correctly"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F028",
@@ -361,7 +361,7 @@
         "Test endpoint updates problem successfully",
         "Test validation rejects invalid input"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F029",
