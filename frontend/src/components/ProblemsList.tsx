@@ -238,7 +238,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
         return 'status-in-progress';
       case 'Resolved':
         return 'status-resolved';
-      case 'Not Started':
+      case 'Actionable':
       default:
         return 'status-not-started';
     }
@@ -327,7 +327,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                         minWidth: '100px',
                       }}
                     >
-                      <option value={Status.NotStarted}>Not Started</option>
+                      <option value={Status.NotStarted}>Actionable</option>
                       <option value={Status.InProgress}>In Progress</option>
                       <option value={Status.Blocked}>Blocked</option>
                       <option value={Status.Resolved}>Resolved</option>

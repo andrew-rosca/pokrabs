@@ -120,7 +120,7 @@ model Problem {
 /// Problem Status Enum
 /// Values match the Status enum in shared/types.ts
 enum ProblemStatus {
-  NotStarted @map("Not Started")
+  NotStarted @map("Actionable")
   InProgress @map("In Progress")
   Blocked
   Resolved

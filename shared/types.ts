@@ -1,7 +1,7 @@
 // Shared TypeScript types between frontend and backend
 
 export enum Status {
-  NotStarted = 'Not Started',
+  NotStarted = 'Actionable',
   InProgress = 'In Progress',
   Blocked = 'Blocked',
   Resolved = 'Resolved',
