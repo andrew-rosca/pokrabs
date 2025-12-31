@@ -93,7 +93,6 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
 
   return (
     <div className="problems-list">
-      <h2 className="problems-title">Problems ({problems.length})</h2>
       <div className="table-container">
         <table className="problems-table">
           <thead>
