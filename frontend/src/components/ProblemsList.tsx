@@ -110,7 +110,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
               return (
                 <tr key={problem.id} className={`problem-row depth-${depth}`}>
                   <td className="problem-id">
-                    <span className="id-path" style={{ paddingLeft: `${depth * 24}px` }}>
+                    <span className="id-path" style={{ paddingLeft: `${depth * 16}px` }}>
                       {problem.idPath}
                     </span>
                   </td>
