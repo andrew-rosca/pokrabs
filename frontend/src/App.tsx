@@ -47,21 +47,33 @@ function App() {
   const selectedProject = projects.find(p => p.id === selectedProjectId);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <div className="app">
         <header className="app-header">
           <h1 className="app-title">{selectedProject?.name || 'POKRABS'}</h1>
           <ThemeToggle />
         </header>
         <main className="app-main">
-          {selectedProjectId && (
-            <ProblemsList projectId={selectedProjectId} />
-          )}
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                selectedProjectId ? (
+                  <ProblemsList projectId={selectedProjectId} />
+                ) : (
+                  <div>No project selected</div>
+                )
+              } 
+            />
+            <Route path="/:problemId" element={<div>Problem Detail - Coming Soon</div>} />
+          </Routes>
         </main>
       </div>
-      <Routes>
-        <Route path="/:problemId" element={<div>Problem Detail - Coming Soon</div>} />
-      </Routes>
     </BrowserRouter>
   );
 }
