@@ -44,11 +44,13 @@ function App() {
     return <div>No projects found. Please seed the database.</div>;
   }
 
+  const selectedProject = projects.find(p => p.id === selectedProjectId);
+
   return (
     <BrowserRouter>
       <div className="app">
         <header className="app-header">
-          <h1 className="app-title">POKRABS</h1>
+          <h1 className="app-title">{selectedProject?.name || 'POKRABS'}</h1>
           <ThemeToggle />
         </header>
         <main className="app-main">

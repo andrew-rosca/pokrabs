@@ -35,7 +35,7 @@ export async function seedDatabase(): Promise<void> {
     // Create Default project
     const project = await projectRepo.create({
       id: 'default-project-1',
-      name: 'Default',
+      name: 'Default Project',
     });
 
     console.log('Created Default project');
