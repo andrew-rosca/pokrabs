@@ -91,7 +91,7 @@
         "Run migration and verify table is created",
         "Test table structure matches specification"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F008",
@@ -104,7 +104,7 @@
         "Run migration and verify table is created",
         "Test table structure matches specification"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F009",
@@ -130,7 +130,7 @@
         "Configure test scripts in package.json files",
         "Create sample test to verify test setup works"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F011",

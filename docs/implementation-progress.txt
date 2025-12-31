@@ -157,3 +157,40 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 **Next Steps:**
 - Continue with F007 (Create Projects table migration) and F008 (Create Problems table migration)
 
+
+### 2024-12-31 - Database Migrations and Test Framework Setup
+
+**Completed:**
+- **F007**: Projects table migration
+  - Migration already existed in `20251231201033_init/migration.sql`
+  - Creates `projects` table with: id (TEXT PRIMARY KEY), name (TEXT), createdAt (DATETIME), deletedAt (DATETIME nullable)
+  - Includes index on `deletedAt` for soft delete queries
+  - Verified schema matches Prisma model definition
+
+- **F008**: Problems table migration
+  - Migration already existed in `20251231201033_init/migration.sql`
+  - Creates `problems` table with all required fields:
+    - Core: id, idPath, problem, objective, keyResults, actions, blockers
+    - Metadata: status (enum), votes, priority, labels
+    - Relationships: parentId (nullable), projectId (required)
+    - Timestamps: createdAt, updatedAt, deletedAt
+  - Foreign keys: parentId → problems(id) RESTRICT, projectId → projects(id) CASCADE
+  - Indexes: projectId, parentId, deletedAt, projectId+deletedAt, status, priority, votes
+  - Verified schema matches Prisma model definition
+
+- **F010**: Test framework setup
+  - Backend: Vitest already configured with test scripts
+  - Frontend: Installed React Testing Library, @testing-library/jest-dom, @testing-library/user-event, jsdom
+  - Created `frontend/vitest.config.ts` with jsdom environment
+  - Created `frontend/src/test-setup.ts` for test configuration
+  - Created sample test `frontend/src/App.test.tsx` to verify setup
+  - All tests passing: backend (38 tests), frontend (1 test)
+
+**Implementation Details:**
+- Migrations use Prisma Migrate for database-agnostic schema management
+- All migrations verified to match Prisma schema definitions
+- Test framework ready for both unit and component testing
+- Frontend test setup includes jsdom for DOM simulation
+
+**Next Steps:**
+- Continue with API implementation (F015-F020: Models and API endpoints)
