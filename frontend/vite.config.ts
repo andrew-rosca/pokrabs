@@ -4,6 +4,10 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    extensions: ['.ts', '.tsx', '.mjs', '.js', '.jsx'],
+    mainFields: ['module', 'main'],
+  },
   server: {
     port: 3000,
     proxy: {
