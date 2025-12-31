@@ -1,0 +1,1077 @@
+{
+  "features": [
+    {
+      "id": "F001",
+      "category": "infrastructure",
+      "priority": 1,
+      "description": "Initialize Node.js backend project with TypeScript, Express, and basic project structure",
+      "steps": [
+        "Create backend/ directory with package.json",
+        "Install Express, TypeScript, and necessary type definitions",
+        "Set up TypeScript configuration (tsconfig.json)",
+        "Create basic src/ directory structure (api, models, services, database, utils)",
+        "Verify project builds successfully"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F002",
+      "category": "infrastructure",
+      "priority": 1,
+      "description": "Initialize React frontend project with TypeScript and Vite",
+      "steps": [
+        "Create frontend/ directory with package.json",
+        "Set up Vite with React and TypeScript template",
+        "Configure TypeScript for frontend",
+        "Create basic src/ directory structure (components, pages, hooks, services, types)",
+        "Verify frontend dev server starts successfully"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F003",
+      "category": "infrastructure",
+      "priority": 1,
+      "description": "Set up shared TypeScript types between frontend and backend",
+      "steps": [
+        "Create shared/ directory or types export in backend",
+        "Define Problem, Project, and other core interfaces",
+        "Export types for frontend consumption",
+        "Verify types can be imported in both frontend and backend"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F004",
+      "category": "infrastructure",
+      "priority": 1,
+      "description": "Configure environment variables and .env.example files",
+      "steps": [
+        "Create .env.example in backend with DATABASE_TYPE, DATABASE_URL",
+        "Create .env.example in frontend with API_URL",
+        "Set up dotenv configuration in both projects",
+        "Verify environment variables load correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F005",
+      "category": "infrastructure",
+      "priority": 2,
+      "description": "Set up SQLite database connection and client",
+      "steps": [
+        "Install SQLite3 or better-sqlite3 package",
+        "Create database client singleton with dynamic configuration",
+        "Implement connection string checking and client recreation",
+        "Test database connection can be established"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F006",
+      "category": "infrastructure",
+      "priority": 2,
+      "description": "Create database migration system",
+      "steps": [
+        "Set up migration directory structure",
+        "Create migration runner script",
+        "Implement migration version tracking in database",
+        "Test migration system can create and run migrations"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F007",
+      "category": "infrastructure",
+      "priority": 2,
+      "description": "Create Projects table migration",
+      "steps": [
+        "Create migration file for projects table",
+        "Define schema: id (UUID), name (string), createdAt (timestamp), deletedAt (nullable timestamp)",
+        "Run migration and verify table is created",
+        "Test table structure matches specification"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F008",
+      "category": "infrastructure",
+      "priority": 2,
+      "description": "Create Problems table migration",
+      "steps": [
+        "Create migration file for problems table",
+        "Define schema: id (string), idPath (string), problem (text), objective (text), keyResults (text), actions (text), blockers (text), status (enum), votes (integer), priority (integer), labels (text/json), parentId (string nullable), projectId (string), createdAt (timestamp), updatedAt (timestamp), deletedAt (nullable timestamp)",
+        "Run migration and verify table is created",
+        "Test table structure matches specification"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F009",
+      "category": "infrastructure",
+      "priority": 3,
+      "description": "Set up Docker configuration for single container deployment",
+      "steps": [
+        "Create Dockerfile that packages frontend and backend",
+        "Create docker-compose.yml with volume mount for SQLite",
+        "Configure environment variables in Docker",
+        "Test container builds and runs successfully"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F010",
+      "category": "infrastructure",
+      "priority": 3,
+      "description": "Set up test framework and configuration",
+      "steps": [
+        "Install Vitest for backend testing",
+        "Install Vitest and React Testing Library for frontend",
+        "Configure test scripts in package.json files",
+        "Create sample test to verify test setup works"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F011",
+      "category": "data",
+      "priority": 3,
+      "description": "Implement random alphanumeric ID generator (2-char, expandable)",
+      "steps": [
+        "Create function to generate random 2-character alphanumeric codes (lowercase + numbers)",
+        "Implement expansion logic to 3-4 characters if space exhausted",
+        "Test ID generation produces valid codes",
+        "Test expansion logic when collisions occur"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F012",
+      "category": "data",
+      "priority": 3,
+      "description": "Implement ID uniqueness checker within project scope",
+      "steps": [
+        "Create function to check if ID exists in database for given project",
+        "Handle database queries efficiently",
+        "Test uniqueness checking works correctly",
+        "Test with multiple projects to ensure isolation"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F013",
+      "category": "data",
+      "priority": 3,
+      "description": "Implement hierarchical ID generation (parent + child)",
+      "steps": [
+        "Create function to generate child ID from parent ID",
+        "Format: parentId + '-' + new random code",
+        "Test child ID generation creates valid hierarchical paths",
+        "Test multiple levels of nesting"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F014",
+      "category": "data",
+      "priority": 3,
+      "description": "Implement idPath computation (full hierarchical path)",
+      "steps": [
+        "Create function to compute full path from parent chain",
+        "Handle root problems (no parent)",
+        "Cache or pre-compute for efficiency",
+        "Test idPath generation for various depths"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F015",
+      "category": "data",
+      "priority": 4,
+      "description": "Create Project model/interface with TypeScript types",
+      "steps": [
+        "Define Project interface: id, name, createdAt",
+        "Create Project type in shared types",
+        "Verify type can be used in both frontend and backend",
+        "Test type checking works correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F016",
+      "category": "data",
+      "priority": 4,
+      "description": "Create Problem model/interface with all POKRABS fields",
+      "steps": [
+        "Define Problem interface with all fields: id, idPath, problem, objective, keyResults, actions, blockers, status, votes, priority, labels, parentId, projectId, timestamps",
+        "Define Status enum: Not Started, In Progress, Blocked, Resolved",
+        "Create Problem type in shared types",
+        "Test type checking works correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F017",
+      "category": "data",
+      "priority": 4,
+      "description": "Implement Project repository with abstract interface",
+      "steps": [
+        "Create IProjectRepository interface with CRUD methods",
+        "Implement SQLiteProjectRepository",
+        "Methods: create, findById, findAll, update, softDelete",
+        "Test repository methods work correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F018",
+      "category": "data",
+      "priority": 4,
+      "description": "Implement Problem repository with abstract interface",
+      "steps": [
+        "Create IProblemRepository interface with CRUD methods",
+        "Implement SQLiteProblemRepository",
+        "Methods: create, findById, findByProjectId, findByParentId, update, softDelete, checkIdExists",
+        "Test repository methods work correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F019",
+      "category": "data",
+      "priority": 4,
+      "description": "Implement repository factory pattern for testability",
+      "steps": [
+        "Create repository factory that returns appropriate implementation",
+        "Support dependency injection for testing",
+        "Handle database client singleton with connection string checking",
+        "Test factory creates correct repository instances"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F020",
+      "category": "data",
+      "priority": 5,
+      "description": "Implement soft delete functionality in repositories",
+      "steps": [
+        "Update delete methods to set deletedAt timestamp instead of removing records",
+        "Update find methods to exclude soft-deleted records",
+        "Test soft delete works correctly",
+        "Test deleted records are excluded from queries"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F021",
+      "category": "api",
+      "priority": 5,
+      "description": "Set up Express server with basic middleware",
+      "steps": [
+        "Create Express app with CORS, JSON body parser, error handling middleware",
+        "Set up basic health check endpoint",
+        "Configure server to listen on configurable port",
+        "Test server starts and responds to health check"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F022",
+      "category": "api",
+      "priority": 5,
+      "description": "Create GET /api/projects endpoint",
+      "steps": [
+        "Implement endpoint to list all non-deleted projects",
+        "Return projects as JSON array",
+        "Test endpoint returns correct data",
+        "Test endpoint handles errors gracefully"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F023",
+      "category": "api",
+      "priority": 5,
+      "description": "Create POST /api/projects endpoint",
+      "steps": [
+        "Implement endpoint to create new project",
+        "Validate input (name required)",
+        "Generate UUID for project ID",
+        "Test endpoint creates project successfully",
+        "Test validation rejects invalid input"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F024",
+      "category": "api",
+      "priority": 5,
+      "description": "Create GET /api/projects/:id endpoint",
+      "steps": [
+        "Implement endpoint to get project by ID",
+        "Return 404 if project not found or deleted",
+        "Test endpoint returns correct project",
+        "Test endpoint handles missing project correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F025",
+      "category": "api",
+      "priority": 6,
+      "description": "Create GET /api/projects/:projectId/problems endpoint",
+      "steps": [
+        "Implement endpoint to list all problems for a project",
+        "Exclude soft-deleted problems",
+        "Return problems as JSON array",
+        "Test endpoint returns correct problems",
+        "Test endpoint handles missing project correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F026",
+      "category": "api",
+      "priority": 6,
+      "description": "Create POST /api/projects/:projectId/problems endpoint",
+      "steps": [
+        "Implement endpoint to create new problem",
+        "Validate required fields (problem, objective, projectId)",
+        "Generate unique ID using ID generator",
+        "Set default values (status: Not Started, votes: 0, priority: 0)",
+        "Compute idPath from parentId if provided",
+        "Test endpoint creates problem successfully",
+        "Test validation rejects invalid input"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F027",
+      "category": "api",
+      "priority": 6,
+      "description": "Create GET /api/problems/:id endpoint",
+      "steps": [
+        "Implement endpoint to get problem by ID",
+        "Return 404 if problem not found or deleted",
+        "Test endpoint returns correct problem",
+        "Test endpoint handles missing problem correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F028",
+      "category": "api",
+      "priority": 6,
+      "description": "Create PATCH /api/problems/:id endpoint",
+      "steps": [
+        "Implement endpoint to update problem",
+        "Validate input fields",
+        "Update only provided fields (partial update)",
+        "Update updatedAt timestamp",
+        "Test endpoint updates problem successfully",
+        "Test validation rejects invalid input"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F029",
+      "category": "api",
+      "priority": 6,
+      "description": "Create DELETE /api/problems/:id endpoint (soft delete)",
+      "steps": [
+        "Implement endpoint to soft delete problem",
+        "Set deletedAt timestamp",
+        "Return 404 if problem not found",
+        "Test endpoint soft deletes problem",
+        "Test deleted problem is excluded from list queries"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F030",
+      "category": "api",
+      "priority": 7,
+      "description": "Create POST /api/problems/:id/decompose endpoint",
+      "steps": [
+        "Implement endpoint to decompose blocker into child problem",
+        "Extract blocker text from parent problem",
+        "Create new child problem with blocker as problem field",
+        "Generate child ID (parent ID + '-' + new code)",
+        "Update parent's blocker to optionally reference child ID",
+        "Test decompose creates child problem correctly",
+        "Test hierarchical relationship is established"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F031",
+      "category": "api",
+      "priority": 7,
+      "description": "Create POST /api/problems/:id/vote endpoint",
+      "steps": [
+        "Implement endpoint to increment vote count",
+        "Increment votes field by 1",
+        "Return updated problem",
+        "Test voting increments count correctly",
+        "Test multiple votes accumulate"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F032",
+      "category": "api",
+      "priority": 7,
+      "description": "Create GET /api/problems endpoint with filtering by labels",
+      "steps": [
+        "Implement query parameter for label filtering",
+        "Support multiple labels (OR logic)",
+        "Filter problems that have any of the specified labels",
+        "Test filtering works with single label",
+        "Test filtering works with multiple labels"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F033",
+      "category": "api",
+      "priority": 7,
+      "description": "Create GET /api/problems endpoint with free text search",
+      "steps": [
+        "Implement query parameter for search",
+        "Search across all text fields (problem, objective, keyResults, actions, blockers)",
+        "Return matching problems",
+        "Test search finds problems by various fields",
+        "Test search is case-insensitive"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F034",
+      "category": "api",
+      "priority": 7,
+      "description": "Create GET /api/problems endpoint with sorting (manual vs votes)",
+      "steps": [
+        "Implement query parameter for sort order",
+        "Support 'manual' (by priority field) and 'votes' (by vote count descending)",
+        "Return problems in requested order",
+        "Test manual sorting works correctly",
+        "Test vote sorting works correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F035",
+      "category": "api",
+      "priority": 8,
+      "description": "Implement API error handling middleware",
+      "steps": [
+        "Create error handling middleware",
+        "Return consistent error response format",
+        "Handle validation errors, not found errors, server errors",
+        "Test error responses are properly formatted",
+        "Test different error types return appropriate status codes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F036",
+      "category": "api",
+      "priority": 8,
+      "description": "Implement input validation middleware",
+      "steps": [
+        "Create validation middleware for common fields",
+        "Validate required fields, data types, enum values",
+        "Return validation errors in consistent format",
+        "Test validation rejects invalid input",
+        "Test validation allows valid input"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F037",
+      "category": "frontend",
+      "priority": 8,
+      "description": "Set up React Router for navigation and deep linking",
+      "steps": [
+        "Install and configure React Router",
+        "Set up routes for home page and problem detail page",
+        "Create route for /:problemId to support deep linking",
+        "Test routing works correctly",
+        "Test deep linking navigates to correct problem"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F038",
+      "category": "frontend",
+      "priority": 8,
+      "description": "Create API service layer for backend communication",
+      "steps": [
+        "Create API service module with fetch/axios",
+        "Implement functions for all API endpoints",
+        "Handle errors and response parsing",
+        "Test API service can communicate with backend",
+        "Test error handling works correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F039",
+      "category": "frontend",
+      "priority": 8,
+      "description": "Create state management for problems and projects",
+      "steps": [
+        "Set up React Context or Zustand for global state",
+        "Create state management for problems list",
+        "Create state management for current project",
+        "Test state updates correctly",
+        "Test state persists across navigation"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F040",
+      "category": "frontend",
+      "priority": 9,
+      "description": "Create main table component structure",
+      "steps": [
+        "Create ProblemsTable component",
+        "Set up table with columns: ID, Problem, Objective, Key Results, Actions, Blockers, Status, Votes",
+        "Display problems in table rows",
+        "Test table renders correctly",
+        "Test table displays all required columns"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F041",
+      "category": "frontend",
+      "priority": 9,
+      "description": "Implement visual hierarchy with indentation based on depth",
+      "steps": [
+        "Calculate depth from ID (count dashes)",
+        "Apply indentation styling based on depth",
+        "Root problems: no indent, children: 1 level, etc.",
+        "Test indentation displays correctly for various depths",
+        "Test visual hierarchy is clear"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F042",
+      "category": "frontend",
+      "priority": 9,
+      "description": "Implement inline editing for table cells",
+      "steps": [
+        "Make table cells editable on click",
+        "Show input/textarea when editing",
+        "Save changes on blur or Enter key",
+        "Call API to update problem",
+        "Test inline editing works for all editable fields",
+        "Test auto-save triggers correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F043",
+      "category": "frontend",
+      "priority": 9,
+      "description": "Implement summary/detail view toggle for fields",
+      "steps": [
+        "Display brief summary by default",
+        "Show expand/collapse button for detailed view",
+        "Display full text with markdown support in detail view",
+        "Test summary view shows abbreviated text",
+        "Test detail view shows full content"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F044",
+      "category": "frontend",
+      "priority": 9,
+      "description": "Implement status dropdown in table",
+      "steps": [
+        "Create dropdown with options: Not Started, In Progress, Blocked, Resolved",
+        "Update status on selection change",
+        "Call API to update problem status",
+        "Test status dropdown works correctly",
+        "Test status updates persist"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F045",
+      "category": "frontend",
+      "priority": 9,
+      "description": "Implement vote increment button",
+      "steps": [
+        "Make vote count clickable",
+        "Increment vote count on click",
+        "Call API to update votes",
+        "Update UI optimistically",
+        "Test voting increments count correctly",
+        "Test vote count updates in UI"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F046",
+      "category": "frontend",
+      "priority": 9,
+      "description": "Implement color coding for status",
+      "steps": [
+        "Apply color styling based on status",
+        "Blocked = red, In Progress = yellow/blue, Resolved = green, Not Started = gray",
+        "Test color coding displays correctly",
+        "Test colors update when status changes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F047",
+      "category": "frontend",
+      "priority": 10,
+      "description": "Implement drag and drop row reordering",
+      "steps": [
+        "Install drag and drop library (react-beautiful-dnd or dnd-kit)",
+        "Make table rows draggable",
+        "Update priority field based on new position",
+        "Call API to update priorities",
+        "Test drag and drop reorders rows correctly",
+        "Test priority updates persist"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F048",
+      "category": "frontend",
+      "priority": 10,
+      "description": "Implement right-click context menu",
+      "steps": [
+        "Create context menu component",
+        "Add options: Move to Top, Move to Bottom, Decompose Blockers",
+        "Show menu on right-click",
+        "Implement menu actions",
+        "Test context menu appears on right-click",
+        "Test menu actions work correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F049",
+      "category": "frontend",
+      "priority": 10,
+      "description": "Implement 'Move to Top' context menu action",
+      "steps": [
+        "Set priority to highest value in current view",
+        "Call API to update priority",
+        "Refresh table to show new order",
+        "Test move to top works correctly",
+        "Test priority updates correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F050",
+      "category": "frontend",
+      "priority": 10,
+      "description": "Implement 'Move to Bottom' context menu action",
+      "steps": [
+        "Set priority to lowest value in current view",
+        "Call API to update priority",
+        "Refresh table to show new order",
+        "Test move to bottom works correctly",
+        "Test priority updates correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F051",
+      "category": "frontend",
+      "priority": 10,
+      "description": "Implement 'Decompose Blockers' context menu action",
+      "steps": [
+        "Extract blockers from problem",
+        "Call decompose API endpoint",
+        "Create child problem(s) from blockers",
+        "Refresh table to show new problems",
+        "Test decompose creates child problems correctly",
+        "Test hierarchical relationship is visible"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F052",
+      "category": "frontend",
+      "priority": 10,
+      "description": "Implement label filtering with clickable chips",
+      "steps": [
+        "Extract all unique labels from problems",
+        "Display labels as clickable chips/buttons above table",
+        "Filter table to show only problems with selected labels",
+        "Support multiple label selection (OR logic)",
+        "Test label filtering works with single label",
+        "Test label filtering works with multiple labels"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F053",
+      "category": "frontend",
+      "priority": 10,
+      "description": "Implement free text search across all fields",
+      "steps": [
+        "Create search input field",
+        "Search across problem, objective, keyResults, actions, blockers fields",
+        "Filter table to show matching problems",
+        "Test search finds problems by various fields",
+        "Test search is case-insensitive",
+        "Test search updates results in real-time"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F054",
+      "category": "frontend",
+      "priority": 10,
+      "description": "Implement sort toggle (manual vs votes)",
+      "steps": [
+        "Create toggle button for sort mode",
+        "Switch between 'manual' (priority) and 'votes' (vote count) sorting",
+        "Update table order based on selected mode",
+        "Test manual sorting works correctly",
+        "Test vote sorting works correctly",
+        "Test toggle switches between modes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F055",
+      "category": "frontend",
+      "priority": 10,
+      "description": "Implement 'Auto-resort by votes' button",
+      "steps": [
+        "Create button to auto-resort by votes",
+        "Switch to vote sorting mode",
+        "Update table order",
+        "Test button switches to vote sorting",
+        "Test table reorders correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F056",
+      "category": "frontend",
+      "priority": 11,
+      "description": "Implement copy ID to clipboard functionality",
+      "steps": [
+        "Make ID cell clickable or add copy icon",
+        "Copy problem ID to clipboard on click",
+        "Show visual feedback (toast/notification)",
+        "Test ID copies to clipboard correctly",
+        "Test feedback is shown to user"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F057",
+      "category": "frontend",
+      "priority": 11,
+      "description": "Implement shareable URL generation and copying",
+      "steps": [
+        "Add link icon next to ID",
+        "Generate shareable URL: /{problemId}",
+        "Copy URL to clipboard on click",
+        "Show visual feedback",
+        "Test URL generation is correct",
+        "Test URL copies to clipboard"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F058",
+      "category": "frontend",
+      "priority": 11,
+      "description": "Implement deep linking to specific problem",
+      "steps": [
+        "Handle route parameter for problemId",
+        "Navigate to problem when URL is accessed",
+        "Auto-expand/highlight problem in table",
+        "Scroll to problem if needed",
+        "Test deep linking navigates correctly",
+        "Test problem is highlighted when linked"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F059",
+      "category": "frontend",
+      "priority": 11,
+      "description": "Implement markdown rendering in detail views",
+      "steps": [
+        "Install markdown rendering library (react-markdown)",
+        "Parse and render markdown in detail views",
+        "Support hyperlinks in markdown",
+        "Test markdown renders correctly",
+        "Test hyperlinks work in rendered markdown"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F060",
+      "category": "frontend",
+      "priority": 11,
+      "description": "Implement keyboard shortcuts for power users",
+      "steps": [
+        "Define keyboard shortcuts (e.g., Enter to edit, Esc to cancel, etc.)",
+        "Handle keyboard events in table",
+        "Document shortcuts for users",
+        "Test keyboard shortcuts work correctly",
+        "Test shortcuts don't interfere with normal editing"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F061",
+      "category": "frontend",
+      "priority": 11,
+      "description": "Implement create new problem functionality",
+      "steps": [
+        "Add 'New Problem' button",
+        "Create form/modal for new problem",
+        "Validate required fields",
+        "Call API to create problem",
+        "Refresh table to show new problem",
+        "Test new problem creation works correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F062",
+      "category": "frontend",
+      "priority": 11,
+      "description": "Implement delete problem functionality (soft delete)",
+      "steps": [
+        "Add delete button/action",
+        "Confirm deletion with user",
+        "Call API to soft delete problem",
+        "Remove problem from table view",
+        "Test deletion works correctly",
+        "Test deleted problem doesn't appear in list"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F063",
+      "category": "frontend",
+      "priority": 12,
+      "description": "Implement project selection/switcher",
+      "steps": [
+        "Create project selector component",
+        "Load list of projects",
+        "Allow switching between projects",
+        "Update table to show problems for selected project",
+        "Test project switching works correctly",
+        "Test problems filter by selected project"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F064",
+      "category": "frontend",
+      "priority": 12,
+      "description": "Implement create new project functionality",
+      "steps": [
+        "Add 'New Project' button",
+        "Create form/modal for new project",
+        "Validate project name",
+        "Call API to create project",
+        "Switch to new project",
+        "Test new project creation works correctly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F065",
+      "category": "ui",
+      "priority": 12,
+      "description": "Implement responsive design for desktop and mobile",
+      "steps": [
+        "Design responsive layout",
+        "Adapt table for smaller screens",
+        "Test layout works on desktop",
+        "Test layout works on mobile devices",
+        "Test table is usable on all screen sizes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F066",
+      "category": "ui",
+      "priority": 12,
+      "description": "Implement loading states for API calls",
+      "steps": [
+        "Show loading indicators during API calls",
+        "Disable interactions while loading",
+        "Test loading states display correctly",
+        "Test UI doesn't freeze during loading"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F067",
+      "category": "ui",
+      "priority": 12,
+      "description": "Implement error handling and user-friendly error messages",
+      "steps": [
+        "Display error messages for failed API calls",
+        "Show user-friendly messages (not technical details)",
+        "Allow retry for failed operations",
+        "Test error messages display correctly",
+        "Test retry functionality works"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F068",
+      "category": "ui",
+      "priority": 12,
+      "description": "Implement optimistic UI updates",
+      "steps": [
+        "Update UI immediately on user actions",
+        "Revert if API call fails",
+        "Test optimistic updates feel responsive",
+        "Test rollback works on failure"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F069",
+      "category": "ui",
+      "priority": 12,
+      "description": "Implement visual feedback for user actions",
+      "steps": [
+        "Show success messages/toasts for completed actions",
+        "Show visual feedback for clicks, hovers",
+        "Test feedback is clear and helpful",
+        "Test feedback doesn't obstruct workflow"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F070",
+      "category": "data",
+      "priority": 13,
+      "description": "Create data seeding script for default project",
+      "steps": [
+        "Create seed script that creates 'Default' project",
+        "Create sample problem chain (a3x9m2 and children)",
+        "Insert all problems with correct hierarchical relationships",
+        "Test seed script creates all problems correctly",
+        "Test hierarchical relationships are correct"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F071",
+      "category": "data",
+      "priority": 13,
+      "description": "Integrate seeding into database setup",
+      "steps": [
+        "Run seed script as part of database initialization",
+        "Only seed if database is empty",
+        "Test seeding runs on fresh database",
+        "Test seeding doesn't run on existing database"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F072",
+      "category": "testing",
+      "priority": 14,
+      "description": "Write unit tests for ID generation functions",
+      "steps": [
+        "Test random ID generation",
+        "Test ID uniqueness checking",
+        "Test hierarchical ID generation",
+        "Test idPath computation",
+        "Verify all tests pass"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F073",
+      "category": "testing",
+      "priority": 14,
+      "description": "Write unit tests for repository methods",
+      "steps": [
+        "Test Project repository CRUD operations",
+        "Test Problem repository CRUD operations",
+        "Test soft delete functionality",
+        "Test filtering and querying",
+        "Verify all tests pass"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F074",
+      "category": "testing",
+      "priority": 14,
+      "description": "Write integration tests for API endpoints",
+      "steps": [
+        "Test all project endpoints",
+        "Test all problem endpoints",
+        "Test decompose endpoint",
+        "Test voting endpoint",
+        "Test filtering and search endpoints",
+        "Verify all tests pass"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F075",
+      "category": "testing",
+      "priority": 14,
+      "description": "Write E2E tests for core user workflows",
+      "steps": [
+        "Test creating a new problem",
+        "Test editing a problem",
+        "Test decomposing a blocker",
+        "Test voting on a problem",
+        "Test filtering and searching",
+        "Verify all tests pass"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F076",
+      "category": "testing",
+      "priority": 14,
+      "description": "Set up test database isolation",
+      "steps": [
+        "Create unique test database per test run",
+        "Use temporary database files",
+        "Clean up test databases after tests",
+        "Test isolation works correctly",
+        "Test no data pollution between test runs"
+      ],
+      "passes": false
+    },
+    {
+      "id": "F077",
+      "category": "testing",
+      "priority": 14,
+      "description": "Set up test server pattern for E2E tests",
+      "steps": [
+        "Start actual application server for E2E tests",
+        "Use random port to avoid conflicts",
+        "Wait for server to be ready",
+        "Clean up server after tests",
+        "Test server starts and stops correctly"
+      ],
+      "passes": false
+    }
+  ]
+}
+

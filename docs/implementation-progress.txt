@@ -1,0 +1,67 @@
+# POKRABS Implementation Progress Log
+
+## Project Overview
+
+POKRABS is a web application for hierarchical problem decomposition using the POKRABS framework (Problem → Objective → Key Results → Actions → Blockers → Status). The system recursively breaks down problems until actionable work is identified.
+
+## Architecture Decisions
+
+### Technology Stack
+- **Frontend**: React 18+ with TypeScript
+- **Backend**: Node.js with Express and TypeScript
+- **Database**: SQLite (MVP), with abstraction layer for future PostgreSQL/MySQL support
+- **Build Tool**: Vite for frontend (fast HMR, modern tooling)
+- **Testing**: Vitest for unit tests, React Testing Library for component tests
+- **Containerization**: Docker with single container for MVP
+
+### Project Structure
+- **Monorepo approach**: Separate `backend/` and `frontend/` directories
+- **Shared types**: TypeScript interfaces/types shared between frontend and backend
+- **API-first design**: All business logic implemented in backend API layer
+- **Crisp architecture**: Clear separation between UI, API, and persistence layers
+
+### Database Design
+- **Repository pattern**: Abstract data access layer for testability and future database support
+- **Migration system**: Schema versioning with migration files
+- **Soft delete**: All deletions are soft (deletedAt field) to support future undo functionality
+- **Hierarchical IDs**: Problems use parent chain IDs (e.g., "a2-df-7f") stored as strings
+- **Data isolation**: All queries filter by projectId (and userId in Phase 2)
+
+### ID Generation Strategy
+- **Random codes**: 2-character alphanumeric (lowercase letters + numbers)
+- **Expandable**: Automatically grows to 3-4 characters if 2-char space exhausted
+- **Uniqueness**: Checked within project scope before assignment
+- **Hierarchical**: Child IDs = parent ID + "-" + new random code
+- **Efficient lookup**: Maintain pool of available IDs or use collision detection
+
+### API Design
+- **RESTful endpoints**: Standard CRUD operations for problems and projects
+- **Special operations**: Dedicated endpoint for "decompose blocker" functionality
+- **Error handling**: Consistent error response format
+- **Validation**: Input validation on all endpoints
+- **User isolation**: Prepare for Phase 2 authentication (user-scoped queries)
+
+### Frontend Architecture
+- **Component structure**: Modular, reusable components
+- **State management**: React Context API or Zustand for global state
+- **Routing**: React Router for deep linking to specific problems
+- **Inline editing**: Table cells editable with auto-save on blur/Enter
+- **Real-time updates**: Optimistic UI updates with server sync
+
+### Testing Strategy
+- **Unit tests**: Business logic, utilities, ID generation
+- **Integration tests**: API endpoints, database operations
+- **E2E tests**: Full user workflows (create problem, decompose blocker, etc.)
+- **Test isolation**: Each test uses ephemeral database/data
+- **TDD approach**: Write tests first, then implement functionality
+
+### Development Workflow
+- **Hot reload**: Fast development with HMR for both frontend and backend
+- **Environment variables**: Separate configs for dev/test/prod
+- **Docker support**: Single container for easy deployment
+- **Database persistence**: SQLite file mounted as volume in Docker
+
+## Session Log
+
+_This section will be updated by coding agents as they work on features._
+
