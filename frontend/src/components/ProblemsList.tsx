@@ -100,6 +100,9 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
               <th>ID</th>
               <th>Problem</th>
               <th>Objective</th>
+              <th>Key Results</th>
+              <th>Actions</th>
+              <th>Blockers</th>
               <th>Status</th>
               <th>Votes</th>
             </tr>
@@ -116,6 +119,9 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                   </td>
                   <td className="problem-text">{parseField(problem.problem)}</td>
                   <td className="problem-text">{parseField(problem.objective)}</td>
+                  <td className="problem-text">{parseField(problem.keyResults)}</td>
+                  <td className="problem-text">{parseField(problem.actions)}</td>
+                  <td className="problem-text">{parseField(problem.blockers)}</td>
                   <td>
                     <span className={`status-badge ${getStatusClass(problem.status)}`}>
                       {problem.status}
