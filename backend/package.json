@@ -9,13 +9,17 @@
     "start": "node dist/index.js",
     "test": "vitest",
     "test:watch": "vitest watch",
-    "db:setup": "tsx src/database/setup.ts",
-    "db:migrate": "tsx src/database/migrate.ts"
+    "db:setup": "prisma migrate deploy && prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:push": "prisma db push"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^7.2.0",
     "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^12.5.0",
     "cors": "^2.8.5",
@@ -26,6 +30,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.10.5",
+    "prisma": "^7.2.0",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "vitest": "^1.0.4"

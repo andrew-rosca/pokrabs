@@ -1,0 +1,127 @@
+// POKRABS Prisma Schema
+// 
+// This schema is database-agnostic and works with SQLite, PostgreSQL, MySQL, etc.
+// Prisma will generate the appropriate migrations based on the provider specified.
+//
+// To change databases, just change the `provider` in the datasource block.
+// Prisma handles all the database-specific SQL generation.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // Can be changed to "postgresql" or "mysql"
+  // Note: Connection URL is configured in prisma.config.ts for Prisma 7+
+}
+
+/**
+ * Projects Table
+ * Projects are top-level containers for problems.
+ * Each problem belongs to exactly one project.
+ */
+model Project {
+  /// Unique identifier for the project (UUID)
+  id String @id
+
+  /// Project name
+  name String
+
+  /// Timestamp when project was created
+  createdAt DateTime @default(now())
+
+  /// Soft delete timestamp (null means not deleted)
+  deletedAt DateTime?
+
+  /// Related problems
+  problems Problem[]
+
+  @@index([deletedAt])
+  @@map("projects")
+}
+
+/**
+ * Problems Table
+ * Problems are the core entities in POKRABS.
+ * They form a hierarchical tree structure within a project.
+ */
+model Problem {
+  /// Unique identifier for the problem (2+ chars, e.g., "a2", "df", "7f1")
+  /// Does NOT contain the hierarchical path (that's in idPath)
+  id String @id
+
+  /// Full hierarchical path from root (e.g., "a2-df-7f")
+  /// Root: idPath = id, Child: idPath = parent's idPath + "-" + id
+  idPath String
+
+  /// Problem definition as JSON: { summary: string, detail: string }
+  /// summary: Brief summary, detail: Detailed description with markdown
+  problem String @default("{\"summary\": \"\", \"detail\": \"\"}")
+
+  /// Objective definition as JSON: { summary: string, detail: string }
+  /// summary: Brief summary, detail: Detailed description with markdown
+  objective String @default("{\"summary\": \"\", \"detail\": \"\"}")
+
+  /// Key Results - JSON array of measurable, objective success criteria
+  keyResults String @default("[]")
+
+  /// Actions - JSON array of action items (can contain hyperlinks)
+  actions String @default("[]")
+
+  /// Blockers - JSON array of blockers (can reference child problems)
+  /// Empty array = no blockers = actionable
+  blockers String @default("[]")
+
+  /// Status enum (values match shared/types.ts Status enum)
+  /// Note: Prisma stores enum names, but we map them to match shared/types.ts values
+  status ProblemStatus @default(NotStarted)
+
+  /// Vote count
+  votes Int @default(0)
+
+  /// Priority for manual sorting (lower = higher priority)
+  priority Int @default(0)
+
+  /// Labels - JSON array
+  labels String @default("[]")
+
+  /// Parent Problem ID (null for root problems)
+  parentId String?
+
+  /// Project ID (required - every problem belongs to a project)
+  projectId String
+
+  /// Timestamp when problem was created
+  createdAt DateTime @default(now())
+
+  /// Timestamp when problem was last updated
+  updatedAt DateTime @updatedAt
+
+  /// Soft delete timestamp (null means not deleted)
+  deletedAt DateTime?
+
+  /// Self-referential relationship: parent problem
+  parent   Problem?  @relation("ProblemHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children Problem[] @relation("ProblemHierarchy")
+
+  /// Relationship to project
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([parentId])
+  @@index([deletedAt])
+  @@index([projectId, deletedAt])
+  @@index([status])
+  @@index([priority])
+  @@index([votes])
+  @@map("problems")
+}
+
+/// Problem Status Enum
+/// Values match the Status enum in shared/types.ts
+enum ProblemStatus {
+  NotStarted @map("Not Started")
+  InProgress @map("In Progress")
+  Blocked
+  Resolved
+}
