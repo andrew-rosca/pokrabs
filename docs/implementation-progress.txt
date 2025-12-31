@@ -579,5 +579,26 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 - Error recovery with automatic reversion
 - Comprehensive test coverage ensures reliability
 
+---
+
+## Session: Fix Status Formatting in Dropdown (Latest)
+
+**Date**: Current Session
+
+**Issue Fixed:**
+- Status dropdown lost color formatting after implementation
+
+**Root Cause:**
+- Inline styles (`backgroundColor: 'transparent'` and `color: 'inherit'`) were overriding CSS classes
+- CSS classes for status colors were defined but not applying due to style specificity
+
+**Solution:**
+- Removed conflicting inline styles from status select element
+- Kept only width-related inline styles that don't interfere with colors
+- Status dropdown now properly displays color-coded backgrounds and text
+
+**Files Modified:**
+- `frontend/src/components/ProblemsList.tsx` - Removed conflicting inline styles from status select
+
 **Next Steps:**
 - Summary/detail view toggle (F043)

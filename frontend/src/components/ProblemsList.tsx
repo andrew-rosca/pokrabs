@@ -323,14 +323,6 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       onChange={(e) => handleStatusChange(problem.id, e.target.value as Status)}
                       className={`status-select ${getStatusClass(problem.status)}`}
                       style={{
-                        fontSize: '0.6875rem',
-                        padding: '0.25rem 0.5rem',
-                        border: '1px solid transparent',
-                        borderRadius: '4px',
-                        backgroundColor: 'transparent',
-                        color: 'inherit',
-                        cursor: 'pointer',
-                        fontFamily: 'inherit',
                         width: '100%',
                         minWidth: '100px',
                       }}
