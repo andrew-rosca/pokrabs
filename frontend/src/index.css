@@ -195,6 +195,7 @@ code {
   vertical-align: top;
   overflow: hidden;
   text-overflow: ellipsis;
+  position: relative;
 }
 
 .problem-id {

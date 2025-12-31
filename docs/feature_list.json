@@ -560,7 +560,7 @@
         "Test inline editing works for all editable fields",
         "Test auto-save triggers correctly"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F043",

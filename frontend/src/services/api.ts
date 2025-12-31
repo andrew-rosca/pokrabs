@@ -41,3 +41,33 @@ export async function fetchProblem(problemId: string): Promise<Problem> {
   return response.json();
 }
 
+/**
+ * Update a problem
+ */
+export async function updateProblem(
+  problemId: string,
+  updates: {
+    problem?: string;
+    objective?: string;
+    keyResults?: string;
+    actions?: string;
+    blockers?: string;
+    status?: string;
+    votes?: number;
+    priority?: number;
+    labels?: string[];
+  }
+): Promise<Problem> {
+  const response = await fetch(`${API_URL}/api/problems/${problemId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updates),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to update problem: ${response.statusText}`);
+  }
+  return response.json();
+}
+

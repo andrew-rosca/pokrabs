@@ -114,6 +114,126 @@ describe('Problems API', () => {
       expect(response.body.problem).toBe('Original problem');
     });
 
+    it('should update problem text field', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const created = await problemRepo.create({
+        projectId,
+        problem: JSON.stringify({ summary: 'Original problem', detail: 'Original detail' }),
+        objective: 'Original objective',
+      });
+
+      const newProblem = JSON.stringify({ summary: 'Updated problem', detail: 'Updated detail' });
+      const response = await request(app)
+        .patch(`/api/problems/${created.id}`)
+        .send({ problem: newProblem });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.problem).toBe(newProblem);
+    });
+
+    it('should update objective field', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const created = await problemRepo.create({
+        projectId,
+        problem: 'Test problem',
+        objective: JSON.stringify({ summary: 'Original objective', detail: 'Original detail' }),
+      });
+
+      const newObjective = JSON.stringify({ summary: 'Updated objective', detail: 'Updated detail' });
+      const response = await request(app)
+        .patch(`/api/problems/${created.id}`)
+        .send({ objective: newObjective });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.objective).toBe(newObjective);
+    });
+
+    it('should update keyResults field', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const created = await problemRepo.create({
+        projectId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+        keyResults: JSON.stringify(['Result 1', 'Result 2']),
+      });
+
+      const newKeyResults = JSON.stringify(['Result 1', 'Result 2', 'Result 3']);
+      const response = await request(app)
+        .patch(`/api/problems/${created.id}`)
+        .send({ keyResults: newKeyResults });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.keyResults).toBe(newKeyResults);
+    });
+
+    it('should update actions field', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const created = await problemRepo.create({
+        projectId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+        actions: JSON.stringify(['Action 1']),
+      });
+
+      const newActions = JSON.stringify(['Action 1', 'Action 2']);
+      const response = await request(app)
+        .patch(`/api/problems/${created.id}`)
+        .send({ actions: newActions });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.actions).toBe(newActions);
+    });
+
+    it('should update blockers field', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const created = await problemRepo.create({
+        projectId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+        blockers: JSON.stringify([]),
+      });
+
+      const newBlockers = JSON.stringify(['Blocker 1', 'Blocker 2']);
+      const response = await request(app)
+        .patch(`/api/problems/${created.id}`)
+        .send({ blockers: newBlockers });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.blockers).toBe(newBlockers);
+    });
+
+    it('should update multiple fields at once', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const created = await problemRepo.create({
+        projectId,
+        problem: 'Original problem',
+        objective: 'Original objective',
+        status: Status.NotStarted,
+        votes: 0,
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${created.id}`)
+        .send({
+          problem: JSON.stringify({ summary: 'Updated problem', detail: 'Updated detail' }),
+          objective: JSON.stringify({ summary: 'Updated objective', detail: 'Updated detail' }),
+          keyResults: JSON.stringify(['KR1', 'KR2']),
+          actions: JSON.stringify(['Action 1']),
+          blockers: JSON.stringify(['Blocker 1']),
+          status: Status.InProgress,
+          votes: 10,
+        });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.problem).toContain('Updated problem');
+      expect(response.body.objective).toContain('Updated objective');
+      expect(response.body.keyResults).toContain('KR1');
+      expect(response.body.actions).toContain('Action 1');
+      expect(response.body.blockers).toContain('Blocker 1');
+      expect(response.body.status).toBe(Status.InProgress);
+      expect(response.body.votes).toBe(10);
+    });
+
     it('should return 404 for non-existent problem', async () => {
       const response = await request(app)
         .patch('/api/problems/non-existent')
@@ -152,6 +272,22 @@ describe('Problems API', () => {
       
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Votes must be a number');
+    });
+
+    it('should reject non-number priority', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const created = await problemRepo.create({
+        projectId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${created.id}`)
+        .send({ priority: 'not-a-number' });
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Priority must be a number');
     });
   });
 

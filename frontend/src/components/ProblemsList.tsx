@@ -6,7 +6,8 @@
 
 import { useEffect, useState } from 'react';
 import { Problem } from '../../../shared/types';
-import { fetchProblems } from '../services/api';
+import { fetchProblems, updateProblem } from '../services/api';
+import { EditableCell } from './EditableCell';
 
 interface ProblemsListProps {
   projectId: string;
@@ -59,6 +60,89 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
       return field;
     } catch {
       return field;
+    }
+  };
+
+  // Parse JSON fields for editing (get full content)
+  const parseFieldForEdit = (field: string) => {
+    try {
+      const parsed = JSON.parse(field);
+      if (typeof parsed === 'object' && parsed.summary) {
+        // For editing, show the summary (we'll update the JSON structure)
+        return parsed.summary;
+      }
+      if (Array.isArray(parsed)) {
+        return parsed.join('\n');
+      }
+      return field;
+    } catch {
+      return field;
+    }
+  };
+
+  // Format value back to JSON for saving
+  const formatFieldForSave = (problem: Problem, fieldName: string, value: string): string => {
+    // For problem and objective, they're stored as JSON with summary/detail
+    if (fieldName === 'problem' || fieldName === 'objective') {
+      try {
+        const currentValue = fieldName === 'problem' ? problem.problem : problem.objective;
+        const existing = JSON.parse(currentValue);
+        if (typeof existing === 'object' && existing.summary !== undefined) {
+          // Update summary, keep detail
+          return JSON.stringify({ ...existing, summary: value });
+        }
+      } catch {
+        // If parsing fails, create new structure
+      }
+      return JSON.stringify({ summary: value, detail: value });
+    }
+    
+    // For arrays (keyResults, actions, blockers), split by newlines
+    if (fieldName === 'keyResults' || fieldName === 'actions' || fieldName === 'blockers') {
+      const items = value.split('\n').filter(item => item.trim().length > 0);
+      return JSON.stringify(items);
+    }
+    
+    return value;
+  };
+
+  // Handle saving a field
+  const handleSaveField = async (problemId: string, fieldName: string, value: string) => {
+    const problem = problems.find(p => p.id === problemId);
+    if (!problem) return;
+    
+    const formattedValue = formatFieldForSave(problem, fieldName, value);
+    
+    // Optimistically update the UI
+    setProblems(prevProblems =>
+      prevProblems.map(p =>
+        p.id === problemId
+          ? { ...p, [fieldName]: formattedValue }
+          : p
+      )
+    );
+
+    try {
+      // Save to backend
+      const updated = await updateProblem(problemId, { [fieldName]: formattedValue });
+      
+      // Update with server response
+      setProblems(prevProblems =>
+        prevProblems.map(p =>
+          p.id === problemId ? updated : p
+        )
+      );
+    } catch (error) {
+      // Revert on error
+      const originalProblem = problems.find(p => p.id === problemId);
+      if (originalProblem) {
+        setProblems(prevProblems =>
+          prevProblems.map(p =>
+            p.id === problemId ? originalProblem : p
+          )
+        );
+      }
+      throw error;
     }
   };
 
@@ -117,11 +201,44 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       {problem.idPath}
                     </span>
                   </td>
-                  <td className="problem-text">{parseField(problem.problem)}</td>
-                  <td className="problem-text">{parseField(problem.objective)}</td>
-                  <td className="problem-text">{parseField(problem.keyResults)}</td>
-                  <td className="problem-text">{parseField(problem.actions)}</td>
-                  <td className="problem-text">{parseField(problem.blockers)}</td>
+                  <td className="problem-text">
+                    <EditableCell
+                      value={parseFieldForEdit(problem.problem)}
+                      onSave={(value) => handleSaveField(problem.id, 'problem', value)}
+                      className="problem-text"
+                    />
+                  </td>
+                  <td className="problem-text">
+                    <EditableCell
+                      value={parseFieldForEdit(problem.objective)}
+                      onSave={(value) => handleSaveField(problem.id, 'objective', value)}
+                      className="problem-text"
+                    />
+                  </td>
+                  <td className="problem-text">
+                    <EditableCell
+                      value={parseFieldForEdit(problem.keyResults)}
+                      onSave={(value) => handleSaveField(problem.id, 'keyResults', value)}
+                      multiline
+                      className="problem-text"
+                    />
+                  </td>
+                  <td className="problem-text">
+                    <EditableCell
+                      value={parseFieldForEdit(problem.actions)}
+                      onSave={(value) => handleSaveField(problem.id, 'actions', value)}
+                      multiline
+                      className="problem-text"
+                    />
+                  </td>
+                  <td className="problem-text">
+                    <EditableCell
+                      value={parseFieldForEdit(problem.blockers)}
+                      onSave={(value) => handleSaveField(problem.id, 'blockers', value)}
+                      multiline
+                      className="problem-text"
+                    />
+                  </td>
                   <td>
                     <span className={`status-badge ${getStatusClass(problem.status)}`}>
                       {problem.status}
