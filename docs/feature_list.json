@@ -588,7 +588,7 @@
         "Test status dropdown works correctly",
         "Test status updates persist"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F045",
@@ -616,7 +616,7 @@
         "Test color coding displays correctly",
         "Test colors update when status changes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F047",

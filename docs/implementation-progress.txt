@@ -519,7 +519,65 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 - Error recovery with automatic reversion
 - Full test coverage ensures reliability
 
+---
+
+## Session: Status Dropdown and Vote Increment Implementation (Latest)
+
+**Date**: Current Session
+
+**Completed Features:**
+- F044: Status dropdown in table
+- F045: Vote increment button
+- F046: Color coding for status (already implemented, now marked complete)
+
+**Implementation Details:**
+
+### Status Dropdown (F044)
+- **Replaced static badges**: Status badges replaced with interactive dropdown selects
+- **All status options**: Dropdown includes Not Started, In Progress, Blocked, Resolved
+- **Color-coded styling**: Dropdown maintains status color coding from badges
+- **Optimistic updates**: UI updates immediately on selection change
+- **Error handling**: Reverts to original status on API failure
+- **Accessible**: Proper select element with keyboard navigation support
+- **Hover effects**: Visual feedback on hover and focus states
+
+### Vote Increment Button (F045)
+- **Clickable votes**: Vote count displayed as clickable button
+- **One-click increment**: Single click increments vote count by 1
+- **Optimistic updates**: UI updates immediately before API confirmation
+- **Error handling**: Reverts to original vote count on API failure
+- **Visual feedback**: Hover effects indicate clickability
+- **Tooltip**: Title attribute provides user guidance
+
+### Test Coverage
+
+**Frontend UI Tests (20 tests passing):**
+- **Status Dropdown Tests (3 tests)**:
+  - Display status dropdowns with correct values
+  - Change status via dropdown selection
+  - Handle status change errors gracefully
+
+- **Vote Increment Tests (2 tests)**:
+  - Increment votes on button click
+  - Handle vote increment errors gracefully
+
+- All existing tests maintained and passing
+
+**Backend Tests (106 tests passing):**
+- All existing API tests maintained
+- Status and votes update endpoints already tested
+
+**Files Modified:**
+- `frontend/src/components/ProblemsList.tsx` - Added status dropdown and vote increment handlers
+- `frontend/src/index.css` - Added styling for status-select dropdown
+- `frontend/src/components/ProblemsList.test.tsx` - Added tests for status and vote features
+
+**Technical Highlights:**
+- Status dropdown uses native select element for accessibility
+- Color coding maintained through CSS classes on select element
+- Optimistic UI updates for responsive user experience
+- Error recovery with automatic reversion
+- Comprehensive test coverage ensures reliability
+
 **Next Steps:**
 - Summary/detail view toggle (F043)
-- Status dropdown (F044)
-- Vote increment button (F045)

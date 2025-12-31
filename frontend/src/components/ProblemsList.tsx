@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Problem } from '../../../shared/types';
+import { Problem, Status } from '../../../shared/types';
 import { fetchProblems, updateProblem } from '../services/api';
 import { EditableCell } from './EditableCell';
 
@@ -146,6 +146,84 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     }
   };
 
+  // Handle status change
+  const handleStatusChange = async (problemId: string, newStatus: Status) => {
+    const problem = problems.find(p => p.id === problemId);
+    if (!problem) return;
+    
+    // Optimistically update the UI
+    setProblems(prevProblems =>
+      prevProblems.map(p =>
+        p.id === problemId
+          ? { ...p, status: newStatus }
+          : p
+      )
+    );
+
+    try {
+      // Save to backend
+      const updated = await updateProblem(problemId, { status: newStatus });
+      
+      // Update with server response
+      setProblems(prevProblems =>
+        prevProblems.map(p =>
+          p.id === problemId ? updated : p
+        )
+      );
+    } catch (error) {
+      // Revert on error
+      const originalProblem = problems.find(p => p.id === problemId);
+      if (originalProblem) {
+        setProblems(prevProblems =>
+          prevProblems.map(p =>
+            p.id === problemId ? originalProblem : p
+          )
+        );
+      }
+      throw error;
+    }
+  };
+
+  // Handle vote increment
+  const handleVoteIncrement = async (problemId: string) => {
+    const problem = problems.find(p => p.id === problemId);
+    if (!problem) return;
+    
+    const newVoteCount = problem.votes + 1;
+    
+    // Optimistically update the UI
+    setProblems(prevProblems =>
+      prevProblems.map(p =>
+        p.id === problemId
+          ? { ...p, votes: newVoteCount }
+          : p
+      )
+    );
+
+    try {
+      // Save to backend
+      const updated = await updateProblem(problemId, { votes: newVoteCount });
+      
+      // Update with server response
+      setProblems(prevProblems =>
+        prevProblems.map(p =>
+          p.id === problemId ? updated : p
+        )
+      );
+    } catch (error) {
+      // Revert on error
+      const originalProblem = problems.find(p => p.id === problemId);
+      if (originalProblem) {
+        setProblems(prevProblems =>
+          prevProblems.map(p =>
+            p.id === problemId ? originalProblem : p
+          )
+        );
+      }
+      throw error;
+    }
+  };
+
   // Calculate depth from idPath (count dashes)
   const getDepth = (idPath: string): number => {
     return (idPath.match(/-/g) || []).length;
@@ -240,11 +318,53 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                     />
                   </td>
                   <td>
-                    <span className={`status-badge ${getStatusClass(problem.status)}`}>
-                      {problem.status}
-                    </span>
+                    <select
+                      value={problem.status}
+                      onChange={(e) => handleStatusChange(problem.id, e.target.value as Status)}
+                      className={`status-select ${getStatusClass(problem.status)}`}
+                      style={{
+                        fontSize: '0.6875rem',
+                        padding: '0.25rem 0.5rem',
+                        border: '1px solid transparent',
+                        borderRadius: '4px',
+                        backgroundColor: 'transparent',
+                        color: 'inherit',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        width: '100%',
+                        minWidth: '100px',
+                      }}
+                    >
+                      <option value={Status.NotStarted}>Not Started</option>
+                      <option value={Status.InProgress}>In Progress</option>
+                      <option value={Status.Blocked}>Blocked</option>
+                      <option value={Status.Resolved}>Resolved</option>
+                    </select>
                   </td>
-                  <td className="problem-votes">{problem.votes}</td>
+                  <td className="problem-votes">
+                    <button
+                      onClick={() => handleVoteIncrement(problem.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'inherit',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '4px',
+                        transition: 'background-color 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-hover, rgba(0,0,0,0.05))';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                      title="Click to increment votes"
+                    >
+                      {problem.votes}
+                    </button>
+                  </td>
                 </tr>
               );
             })}

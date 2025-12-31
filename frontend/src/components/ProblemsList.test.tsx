@@ -92,14 +92,21 @@ describe('ProblemsList', () => {
     expect(screen.getByText('i0-i5')).toBeInTheDocument();
   });
 
-  it('should display status badges', async () => {
+  it('should display status dropdowns', async () => {
     render(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
-      expect(screen.getByText('Not Started')).toBeInTheDocument();
+      const selects = screen.getAllByRole('combobox');
+      expect(selects.length).toBeGreaterThan(0);
     });
     
-    expect(screen.getByText('In Progress')).toBeInTheDocument();
+    // Verify status values are present in dropdowns
+    const selects = screen.getAllByRole('combobox') as HTMLSelectElement[];
+    const notStartedSelect = selects.find(s => s.value === Status.NotStarted);
+    const inProgressSelect = selects.find(s => s.value === Status.InProgress);
+    
+    expect(notStartedSelect).toBeInTheDocument();
+    expect(inProgressSelect).toBeInTheDocument();
   });
 
   it('should display votes', async () => {
@@ -441,6 +448,120 @@ describe('ProblemsList', () => {
       expect(rows[1]).toHaveTextContent('i0');
       expect(rows[2]).toHaveTextContent('i0-i5');
     });
+  });
+
+  it('should allow changing status via dropdown', async () => {
+    const user = userEvent.setup();
+    const updatedProblem = { ...mockProblems[0], status: Status.InProgress };
+    mockUpdateProblem.mockResolvedValue(updatedProblem);
+    
+    render(<ProblemsList projectId={projectId} />);
+    
+    await waitFor(() => {
+      const selects = screen.getAllByRole('combobox');
+      expect(selects.length).toBeGreaterThan(0);
+    });
+    
+    // Find the status dropdown for the first problem (i0)
+    const selects = screen.getAllByRole('combobox') as HTMLSelectElement[];
+    const statusSelect = selects.find(
+      select => select.value === Status.NotStarted
+    ) as HTMLSelectElement;
+    
+    expect(statusSelect).toBeInTheDocument();
+    
+    // Change status to In Progress
+    await user.selectOptions(statusSelect, Status.InProgress);
+    
+    await waitFor(() => {
+      expect(mockUpdateProblem).toHaveBeenCalledWith('i0', {
+        status: Status.InProgress,
+      });
+    });
+    
+    // Verify UI updated
+    await waitFor(() => {
+      expect(statusSelect.value).toBe(Status.InProgress);
+    });
+  });
+
+  it('should handle status change errors gracefully', async () => {
+    const user = userEvent.setup();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockUpdateProblem.mockRejectedValue(new Error('Update failed'));
+    
+    render(<ProblemsList projectId={projectId} />);
+    
+    await waitFor(() => {
+      const selects = screen.getAllByRole('combobox');
+      expect(selects.length).toBeGreaterThan(0);
+    });
+    
+    const selects = screen.getAllByRole('combobox') as HTMLSelectElement[];
+    const statusSelect = selects.find(
+      select => select.value === Status.NotStarted
+    ) as HTMLSelectElement;
+    
+    await user.selectOptions(statusSelect, Status.InProgress);
+    
+    // Should revert to original status on error
+    await waitFor(() => {
+      expect(statusSelect.value).toBe(Status.NotStarted);
+    });
+    
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should allow incrementing votes on click', async () => {
+    const user = userEvent.setup();
+    const updatedProblem = { ...mockProblems[0], votes: 1 };
+    mockUpdateProblem.mockResolvedValue(updatedProblem);
+    
+    render(<ProblemsList projectId={projectId} />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('0')).toBeInTheDocument();
+    });
+    
+    // Find the vote button
+    const voteButton = screen.getByText('0').closest('button');
+    expect(voteButton).toBeInTheDocument();
+    
+    // Click to increment
+    await user.click(voteButton!);
+    
+    await waitFor(() => {
+      expect(mockUpdateProblem).toHaveBeenCalledWith('i0', {
+        votes: 1,
+      });
+    });
+    
+    // Verify UI updated optimistically
+    await waitFor(() => {
+      expect(screen.getByText('1')).toBeInTheDocument();
+    });
+  });
+
+  it('should handle vote increment errors gracefully', async () => {
+    const user = userEvent.setup();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockUpdateProblem.mockRejectedValue(new Error('Update failed'));
+    
+    render(<ProblemsList projectId={projectId} />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('0')).toBeInTheDocument();
+    });
+    
+    const voteButton = screen.getByText('0').closest('button');
+    await user.click(voteButton!);
+    
+    // Should revert to original vote count on error
+    await waitFor(() => {
+      expect(screen.getByText('0')).toBeInTheDocument();
+    });
+    
+    consoleErrorSpy.mockRestore();
   });
 });
 
