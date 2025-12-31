@@ -11,6 +11,7 @@ import {
   getIdCounterState,
   resetIdCounter
 } from './id-generator';
+import { setupTestDatabase, cleanupTestDatabase } from '../test-helpers/database';
 import { getPrismaClient } from '../database/prisma-client';
 
 describe('ID Generator - Pure Functions', () => {
@@ -157,14 +158,20 @@ describe('ID Generator - Pure Functions', () => {
 });
 
 describe('ID Generator - Database Integration', () => {
+  let databaseUrl: string;
+
   beforeEach(async () => {
+    // Create isolated database for this test file
+    const { databaseUrl: url } = await setupTestDatabase();
+    databaseUrl = url;
+    
     // Reset counter before each test
     await resetIdCounter();
   });
 
   afterAll(async () => {
     const prisma = getPrismaClient();
-    await prisma.$disconnect();
+    await cleanupTestDatabase(prisma, databaseUrl);
   });
 
   describe('generateProblemId', () => {

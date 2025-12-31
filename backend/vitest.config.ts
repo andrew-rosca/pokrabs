@@ -1,9 +1,6 @@
 import { defineConfig } from 'vitest/config';
-import path from 'path';
 
-// Set environment variables before tests run
-// Use absolute path for the test database
-process.env.DATABASE_URL = `file:${path.join(__dirname, 'prisma/data/test.db')}`;
+// Set test environment
 process.env.NODE_ENV = 'test';
 
 export default defineConfig({
@@ -11,6 +8,15 @@ export default defineConfig({
     environment: 'node',
     globals: false,
     setupFiles: ['./src/test-setup.ts'],
+    // Run tests sequentially to avoid any potential shared state issues
+    // Each test file uses its own in-memory database, but this ensures
+    // no interference from parallel execution
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true, // Run tests sequentially
+      },
+    },
   },
 });
 

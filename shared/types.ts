@@ -11,6 +11,7 @@ export interface Project {
   id: string;
   name: string;
   createdAt: string;
+  deletedAt?: string | null;
 }
 
 export interface Problem {
@@ -29,6 +30,7 @@ export interface Problem {
   projectId: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
 }
 
 export interface CreateProblemRequest {

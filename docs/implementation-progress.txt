@@ -194,3 +194,68 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 
 **Next Steps:**
 - Continue with API implementation (F015-F020: Models and API endpoints)
+
+### 2024-12-31 - Repository Implementation and Test Isolation
+
+**Completed:**
+- **F015 & F016**: Updated shared types
+  - Added `deletedAt` fields to Project and Problem interfaces
+  - Types already existed in `shared/types.ts`, just needed to add soft delete support
+
+- **F017**: Project Repository Implementation
+  - Created `IProjectRepository` interface with CRUD methods
+  - Implemented `PrismaProjectRepository` using Prisma Client
+  - Methods: create, findById, findAll, update, softDelete
+  - All queries automatically exclude soft-deleted records (deletedAt IS NULL)
+  - 12 comprehensive tests, all passing
+
+- **F018**: Problem Repository Implementation
+  - Created `IProblemRepository` interface with CRUD methods
+  - Implemented `PrismaProblemRepository` using Prisma Client
+  - Methods: create, findById, findByProjectId, findByParentId, update, softDelete, checkIdExists
+  - Integrates with LCG ID generator for automatic ID generation
+  - Computes idPath for hierarchical problems
+  - Maps Prisma enums to shared Status enum
+  - 19 comprehensive tests, all passing
+
+- **F019**: Repository Factory Pattern
+  - Created `repository-factory.ts` with `getProjectRepository()` and `getProblemRepository()`
+  - Supports dependency injection for testing (can pass Prisma client)
+  - Singleton pattern for production, new instances for testing
+  - Includes `resetRepositories()` utility for test cleanup
+
+- **F020**: Soft Delete Functionality
+  - All delete operations set `deletedAt` timestamp instead of removing records
+  - All find/query methods automatically filter `deletedAt IS NULL`
+  - Tested in both Project and Problem repositories
+  - No hard deletes - all deletions are soft
+
+**Test Isolation Solution:**
+- Created `backend/src/test-helpers/database.ts` with isolated database utilities
+- Each test file gets its own unique database file
+- `setupTestDatabase()` creates isolated database and sets `DATABASE_URL` env var
+- `cleanupTestDatabase()` removes database files after tests
+- Updated all repository tests to use isolated databases
+- Updated ID generator tests to use isolated databases
+- All 69 tests now pass when run together (previously had interference issues)
+
+**Files Created:**
+- `backend/src/models/project-repository.ts` - Interface
+- `backend/src/models/prisma-project-repository.ts` - Implementation
+- `backend/src/models/problem-repository.ts` - Interface
+- `backend/src/models/prisma-problem-repository.ts` - Implementation
+- `backend/src/models/repository-factory.ts` - Factory pattern
+- `backend/src/models/project-repository.test.ts` - 12 tests
+- `backend/src/models/problem-repository.test.ts` - 19 tests
+- `backend/src/test-helpers/database.ts` - Test isolation utilities
+- `backend/src/test-helpers/README.md` - Usage documentation
+
+**Technical Details:**
+- Repositories use Prisma Client for database-agnostic operations
+- Automatic enum mapping between Prisma and shared types
+- ID generation integrated with LCG-based generator
+- idPath computation for hierarchical problems
+- Complete test coverage with isolated databases
+
+**Next Steps:**
+- Continue with API endpoints (F021-F025: REST API implementation)
