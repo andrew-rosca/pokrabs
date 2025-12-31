@@ -275,7 +275,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
               return (
                 <tr key={problem.id} className={`problem-row depth-${depth}`}>
                   <td className="problem-id">
-                    <span className="id-path" style={{ paddingLeft: `${depth * 16}px` }}>
+                    <span className="id-path" style={{ paddingLeft: `${depth * 8}px` }}>
                       {problem.idPath}
                     </span>
                   </td>
@@ -322,10 +322,6 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       value={problem.status}
                       onChange={(e) => handleStatusChange(problem.id, e.target.value as Status)}
                       className={`status-select ${getStatusClass(problem.status)}`}
-                      style={{
-                        width: '100%',
-                        minWidth: '100px',
-                      }}
                     >
                       <option value={Status.NotStarted}>Actionable</option>
                       <option value={Status.InProgress}>In Progress</option>

@@ -153,7 +153,7 @@ code {
   border-collapse: collapse;
   background-color: var(--bg-primary);
   font-size: 0.75rem;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .problems-table thead {
@@ -203,7 +203,7 @@ code {
   font-size: 0.6875rem;
   color: var(--text-secondary);
   white-space: nowrap;
-  width: 10%;
+  overflow: visible;
 }
 
 .id-path {
@@ -221,13 +221,38 @@ code {
   overflow-wrap: break-word;
 }
 
-.problems-table td:nth-child(2) { width: 15%; } /* Problem */
-.problems-table td:nth-child(3) { width: 15%; } /* Objective */
-.problems-table td:nth-child(4) { width: 15%; } /* Key Results */
-.problems-table td:nth-child(5) { width: 15%; } /* Actions */
-.problems-table td:nth-child(6) { width: 15%; } /* Blockers */
-.problems-table td:nth-child(7) { width: 8%; }  /* Status */
-.problems-table td:nth-child(8) { width: 7%; }  /* Votes */
+/* Column widths - apply to both th and td */
+.problems-table th:nth-child(1),
+.problems-table td:nth-child(1) { 
+  width: auto;
+  min-width: 60px;
+  max-width: 200px;
+}  /* ID - auto size to fit content, with reasonable limits */
+
+.problems-table th:nth-child(2),
+.problems-table td:nth-child(2) { width: 17%; } /* Problem */
+
+.problems-table th:nth-child(3),
+.problems-table td:nth-child(3) { width: 17%; } /* Objective */
+
+.problems-table th:nth-child(4),
+.problems-table td:nth-child(4) { width: 17%; } /* Key Results */
+
+.problems-table th:nth-child(5),
+.problems-table td:nth-child(5) { width: 17%; } /* Actions */
+
+.problems-table th:nth-child(6),
+.problems-table td:nth-child(6) { width: 16%; } /* Blockers */
+
+.problems-table th:nth-child(7),
+.problems-table td:nth-child(7) { 
+  width: auto;
+  min-width: 90px;
+  white-space: nowrap;
+}  /* Status - auto size to fit "Actionable" and other statuses */
+
+.problems-table th:nth-child(8),
+.problems-table td:nth-child(8) { width: 60px; }  /* Votes - fixed small width */
 
 .problem-votes {
   text-align: center;
@@ -278,6 +303,9 @@ code {
   border: 1px solid transparent;
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s;
+  width: 100%;
+  min-width: fit-content;
+  box-sizing: border-box;
 }
 
 .status-select:hover {

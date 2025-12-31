@@ -142,7 +142,7 @@ export function EditableCell({ value, onSave, multiline = false, className = '' 
       }}
       title="Click to edit"
     >
-      {value || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Click to edit</span>}
+      {value || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>[none]</span>}
     </div>
   );
 }

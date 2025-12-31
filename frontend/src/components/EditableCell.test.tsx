@@ -21,7 +21,7 @@ describe('EditableCell', () => {
 
   it('should show placeholder when value is empty', () => {
     render(<EditableCell value="" onSave={mockOnSave} />);
-    expect(screen.getByText('Click to edit')).toBeInTheDocument();
+    expect(screen.getByText('[none]')).toBeInTheDocument();
   });
 
   it('should enter edit mode when clicked', async () => {
