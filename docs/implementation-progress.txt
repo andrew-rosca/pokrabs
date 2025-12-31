@@ -28,11 +28,14 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 - **Data isolation**: All queries filter by projectId (and userId in Phase 2)
 
 ### ID Generation Strategy
-- **Random codes**: 2-character alphanumeric (lowercase letters + numbers)
-- **Expandable**: Automatically grows to 3-4 characters if 2-char space exhausted
-- **Uniqueness**: Checked within project scope before assignment
-- **Hierarchical**: Child IDs = parent ID + "-" + new random code
-- **Efficient lookup**: Maintain pool of available IDs or use collision detection
+- **LCG-based**: Linear Congruential Generator traverses ID space non-sequentially
+- **Globally unique**: Single global counter ensures no duplicates across all projects
+- **Non-sequential**: IDs appear random (e.g., i0, i5, na, xf) but deterministic
+- **Full coverage**: Every ID in space generated exactly once before repeating
+- **Expandable**: Automatically grows to 3-4 characters when space exhausted
+- **O(1) generation**: No database lookups needed - just increment counter and apply LCG
+- **Start offset**: Begins at middle of space (648/1296) for less predictable first IDs
+- **Hierarchical**: Child IDs use same generation; hierarchy maintained via idPath field
 
 ### API Design
 - **RESTful endpoints**: Standard CRUD operations for problems and projects
@@ -109,6 +112,47 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 - Migration system supports both running from project root and backend directory
 - Migration files use format: `{version}_{name}.sql` with optional `-- DOWN` section for rollbacks
 - All features tested and verified to work correctly
+
+**Next Steps:**
+- Continue with F007 (Create Projects table migration) and F008 (Create Problems table migration)
+
+### 2024-12-31 - LCG-Based ID Generator Implementation
+
+**Completed:**
+- **F011 (Updated)**: Implemented LCG-based ID generator
+  - Replaced random ID generation with Linear Congruential Generator (LCG)
+  - Uses formula: `next = (value * 37 + 5) mod space_size` for full period coverage
+  - Global counter stored in `IdCounter` table (singleton pattern)
+  - IDs start from middle of space (offset 648/1296) for less predictable first IDs
+  - Automatic expansion to 3-char when 2-char space (1,296 IDs) is exhausted
+  - All 1,296 two-character IDs generated exactly once before expansion
+  - O(1) generation - no database uniqueness checks needed
+
+**Database Changes:**
+- Added `IdCounter` model to Prisma schema
+- Migration: `20251231202955_add_id_counter` creates `id_counter` table
+- Table stores: `id` (singleton key "global"), `counter` (current value), `length` (current ID length)
+
+**Code Changes:**
+- Created `backend/src/utils/id-generator.ts` with:
+  - `generateProblemId()` - main ID generation function
+  - `lcgNth()` - optimized LCG calculation with modular exponentiation for large n
+  - `numberToBase36()` - converts numbers to base36 strings
+  - `calculateSpaceSize()` - computes ID space size
+  - `getIdCounterState()` - monitoring/debugging helper
+  - `resetIdCounter()` - test utility
+- Removed `generateChildProblemId()` - redundant wrapper, use `generateProblemId()` directly
+- Removed `backend/src/utils/id-checker.ts` and tests - obsolete (LCG guarantees uniqueness)
+
+**Testing:**
+- 23 tests covering LCG math, ID generation, space expansion, full 2-char space uniqueness
+- All tests pass (38 total across all utils)
+
+**Technical Details:**
+- LCG parameters: multiplier=37, increment=5 (satisfies full period requirements for base36)
+- Initial offset: 648 (middle of 1,296 space) for less predictable first IDs
+- Space sizes: 2-char=1,296, 3-char=46,656, 4-char=1,679,616
+- Prisma 6 used (downgraded from 7 due to adapter configuration issues)
 
 **Next Steps:**
 - Continue with F007 (Create Projects table migration) and F008 (Create Problems table migration)

@@ -3,25 +3,53 @@
  * 
  * Provides a database-agnostic client that works with SQLite, PostgreSQL, MySQL, etc.
  * The client is generated from the Prisma schema and adapts to the database type
- * specified in the DATABASE_URL.
+ * specified in the DATABASE_URL environment variable.
  */
 
 import { PrismaClient } from '@prisma/client';
 
+// Export the PrismaClient type for use in other modules
+export type PrismaClientType = PrismaClient;
+
+// Transaction client type (subset of PrismaClient used in transactions)
+export type TransactionClient = Omit<
+  PrismaClient,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;
+
 let prismaClient: PrismaClient | null = null;
+
+/**
+ * Get database URL based on environment
+ */
+function getDatabaseUrl(): string {
+  // Use environment variable if set
+  if (process.env.DATABASE_URL) {
+    return process.env.DATABASE_URL;
+  }
+  
+  // In test mode, use in-memory database
+  const isTestMode = process.env.TEST_MODE === 'true' || process.env.NODE_ENV === 'test';
+  if (isTestMode) {
+    return 'file::memory:';
+  }
+  
+  // Default to file-based database
+  return 'file:./data/pokrabs.db';
+}
 
 /**
  * Get or create Prisma client instance
  * In test mode, creates a new client for each test to ensure isolation
- * 
- * Note: Prisma reads DATABASE_URL from environment variables automatically
  */
 export function getPrismaClient(): PrismaClient {
   const isTestMode = process.env.TEST_MODE === 'true' || process.env.NODE_ENV === 'test';
+  const databaseUrl = getDatabaseUrl();
 
   // In test mode, always create a new client for test isolation
   if (isTestMode) {
     return new PrismaClient({
+      datasourceUrl: databaseUrl,
       log: process.env.DEBUG ? ['query', 'error', 'warn'] : ['error'],
     });
   }
@@ -29,6 +57,7 @@ export function getPrismaClient(): PrismaClient {
   // In production/dev, use singleton pattern
   if (!prismaClient) {
     prismaClient = new PrismaClient({
+      datasourceUrl: databaseUrl,
       log: process.env.DEBUG ? ['query', 'error', 'warn'] : ['error'],
     });
   }
@@ -46,4 +75,3 @@ export async function disconnectPrisma(): Promise<void> {
     prismaClient = null;
   }
 }
-

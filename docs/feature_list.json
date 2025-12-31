@@ -136,14 +136,16 @@
       "id": "F011",
       "category": "data",
       "priority": 3,
-      "description": "Implement random alphanumeric ID generator (2-char, expandable)",
+      "description": "Implement LCG-based ID generator (2-char, expandable, globally unique)",
       "steps": [
-        "Create function to generate random 2-character alphanumeric codes (lowercase + numbers)",
-        "Implement expansion logic to 3-4 characters if space exhausted",
-        "Test ID generation produces valid codes",
-        "Test expansion logic when collisions occur"
+        "Create Linear Congruential Generator (LCG) to traverse ID space non-sequentially",
+        "Implement global counter with IdCounter table in database",
+        "Generate IDs starting from middle of space for less predictable first IDs",
+        "Implement automatic expansion to 3-4 characters when space exhausted",
+        "Test ID generation produces valid codes and full space coverage",
+        "Test expansion logic when 2-char space is exhausted"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F012",
@@ -156,7 +158,8 @@
         "Test uniqueness checking works correctly",
         "Test with multiple projects to ensure isolation"
       ],
-      "passes": false
+      "passes": false,
+      "notes": "Obsolete - LCG guarantees global uniqueness, no checking needed. Removed id-checker.ts"
     },
     {
       "id": "F014",
@@ -169,7 +172,7 @@
         "Cache or pre-compute for efficiency",
         "Test idPath generation for various depths"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F015",

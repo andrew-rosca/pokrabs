@@ -12,7 +12,7 @@ generator client {
 
 datasource db {
   provider = "sqlite" // Can be changed to "postgresql" or "mysql"
-  // Note: Connection URL is configured in prisma.config.ts for Prisma 7+
+  url      = env("DATABASE_URL")
 }
 
 /**
@@ -124,4 +124,22 @@ enum ProblemStatus {
   InProgress @map("In Progress")
   Blocked
   Resolved
+}
+
+/**
+ * ID Counter Table
+ * Stores the global counter for LCG-based ID generation.
+ * Single row table - only one counter exists.
+ */
+model IdCounter {
+  /// Singleton key (always "global")
+  id String @id @default("global")
+
+  /// Current counter value (increments with each ID generated)
+  counter Int @default(0)
+
+  /// Current ID length (starts at 2, expands when space exhausted)
+  length Int @default(2)
+
+  @@map("id_counter")
 }
