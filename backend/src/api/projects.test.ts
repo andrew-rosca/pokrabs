@@ -235,6 +235,54 @@ describe('Projects API', () => {
       expect(response.body.priority).toBe(0);
     });
 
+    it('should create a new problem with JSON stringified fields (as frontend sends)', async () => {
+      const projectRepo = getProjectRepository(prisma);
+      const project = await projectRepo.create({ id: 'project-1', name: 'Project 1' });
+
+      // Simulate exactly what the frontend sends - including how JSON.stringify handles enums
+      const requestBody = {
+        problem: JSON.stringify({ summary: 'New problem', detail: 'New problem' }),
+        objective: JSON.stringify({ summary: 'New objective', detail: 'New objective' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.NotStarted, // This will serialize to 'Actionable' string
+        labels: [],
+        parentId: null,
+      };
+
+      const response = await request(app)
+        .post(`/api/projects/${project.id}/problems`)
+        .send(requestBody);
+      
+      expect(response.status).toBe(201);
+      expect(response.body.id).toBeDefined();
+      expect(response.body.problem).toBe(JSON.stringify({ summary: 'New problem', detail: 'New problem' }));
+      expect(response.body.objective).toBe(JSON.stringify({ summary: 'New objective', detail: 'New objective' }));
+      expect(response.body.status).toBe(Status.NotStarted);
+    });
+
+    it('should create a new problem with null parentId (top-level)', async () => {
+      const projectRepo = getProjectRepository(prisma);
+      const project = await projectRepo.create({ id: 'project-1', name: 'Project 1' });
+
+      const response = await request(app)
+        .post(`/api/projects/${project.id}/problems`)
+        .send({
+          problem: JSON.stringify({ summary: 'New problem', detail: 'New problem' }),
+          objective: JSON.stringify({ summary: 'New objective', detail: 'New objective' }),
+          keyResults: JSON.stringify([]),
+          actions: JSON.stringify([]),
+          blockers: JSON.stringify([]),
+          status: Status.NotStarted,
+          labels: [],
+          parentId: null,
+        });
+      
+      expect(response.status).toBe(201);
+      expect(response.body.parentId).toBeNull();
+    });
+
     it('should reject request without problem field', async () => {
       const projectRepo = getProjectRepository(prisma);
       const project = await projectRepo.create({ id: 'project-1', name: 'Project 1' });

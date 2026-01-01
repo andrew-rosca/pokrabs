@@ -5,8 +5,9 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Problem, Status } from '../../../shared/types';
-import { fetchProblems, updateProblem } from '../services/api';
+import React from 'react';
+import { Problem, Status, CreateProblemRequest } from '../../../shared/types';
+import { fetchProblems, updateProblem, createProblem } from '../services/api';
 import { EditableCell } from './EditableCell';
 
 interface ProblemsListProps {
@@ -253,6 +254,53 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     return a.idPath.localeCompare(b.idPath);
   });
 
+  // Handle creating a new problem
+  const handleCreateProblem = async (insertAfterIndex: number | null) => {
+    try {
+      setError(null);
+      
+      // Determine parentId: if inserting after a problem, make it a child of that problem
+      // If inserting at the top (insertAfterIndex === null), no parent
+      let parentId: string | null = null;
+      if (insertAfterIndex !== null && insertAfterIndex >= 0 && insertAfterIndex < sortedProblems.length) {
+        parentId = sortedProblems[insertAfterIndex].id;
+      }
+
+      // Create new problem with default values
+      // Note: Status.NotStarted enum value is 'Actionable', which will serialize correctly
+      const newProblem: CreateProblemRequest = {
+        problem: JSON.stringify({ summary: 'New problem', detail: 'New problem' }),
+        objective: JSON.stringify({ summary: 'New objective', detail: 'New objective' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.NotStarted,
+        labels: [],
+        parentId: parentId || null,
+      };
+
+      // Debug: log what we're sending
+      console.log('Creating problem with:', {
+        projectId,
+        problem: newProblem.problem.substring(0, 50),
+        objective: newProblem.objective.substring(0, 50),
+        status: newProblem.status,
+        parentId: newProblem.parentId,
+      });
+
+      // Create the problem
+      await createProblem(projectId, newProblem);
+      
+      // Reload problems to get the new one with correct idPath and proper sorting
+      const data = await fetchProblems(projectId);
+      setProblems(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create problem';
+      setError(errorMessage);
+      console.error('Error creating problem:', err);
+    }
+  };
+
   return (
     <div className="problems-list">
       <div className="table-container">
@@ -270,11 +318,26 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
             </tr>
           </thead>
           <tbody>
-            {sortedProblems.map((problem) => {
+            {sortedProblems.map((problem, index) => {
               const depth = getDepth(problem.idPath);
               return (
                 <tr key={problem.id} className={`problem-row depth-${depth}`}>
                   <td className="problem-id">
+                    <div className="row-handle-container">
+                      <div className="row-handle" title="Row actions">
+                        <span className="handle-icon">⋮⋮</span>
+                      </div>
+                      <div className="row-actions-panel">
+                        <button
+                          className="row-action-button"
+                          onClick={() => handleCreateProblem(index)}
+                          title="Insert new problem here (as child of above)"
+                        >
+                          +
+                        </button>
+                        {/* Delete button will be added here soon */}
+                      </div>
+                    </div>
                     <span className="id-path" style={{ paddingLeft: `${depth * 8}px` }}>
                       {problem.idPath}
                     </span>
@@ -356,6 +419,18 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                 </tr>
               );
             })}
+            {/* Insert button row at bottom for top-level insertion */}
+            <tr className="insert-button-row">
+              <td colSpan={8} className="insert-button-cell">
+                <button
+                  className="row-action-button"
+                  onClick={() => handleCreateProblem(null)}
+                  title="Insert new problem at top level"
+                >
+                  +
+                </button>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>

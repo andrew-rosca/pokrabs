@@ -600,5 +600,58 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 **Files Modified:**
 - `frontend/src/components/ProblemsList.tsx` - Removed conflicting inline styles from status select
 
+---
+
+## Session: Create New Problem Feature (F061) Implementation
+
+**Date**: Current Session
+
+**Completed Features:**
+- F061: Create new problem functionality
+
+**Implementation Details:**
+
+### Row Handle and Actions Panel
+- **Row handle**: Added drag handle (⋮⋮ icon) that appears on hover for future drag-and-drop functionality
+- **Actions panel**: Panel slides in from left on row hover, containing action buttons
+- **Always visible bottom row**: Bottom row with + button always visible for creating top-level problems
+- **Hover interactions**: Handle and actions panel appear smoothly on row hover
+
+### Create Problem Functionality
+- **API service**: Added `createProblem` function to API service layer
+- **Handler logic**: 
+  - Clicking + on a problem row creates a child of that problem
+  - Clicking + on bottom row creates a top-level problem (no parent)
+- **Default values**: New problems created with default JSON structure for all fields
+- **Auto-refresh**: Problems list automatically refreshes after creation to show new problem with correct idPath
+
+### UI/UX Improvements
+- **Handle size**: 24px to match button size for better visibility
+- **Button positioning**: Buttons positioned at left edge of table (intersection of row border and table vertical border)
+- **Smooth animations**: Panel slides in with smooth transitions
+- **Error handling**: Improved error messages showing actual backend errors
+
+### Bug Fixes
+- **Status validation**: Fixed backend validation to accept 'Actionable' status value
+- **Database migration**: Created fix script to update old 'Not Started' values to 'Actionable' in database
+- **Test coverage**: Added comprehensive UI tests for create problem functionality
+
+### Files Created/Modified:
+- `frontend/src/services/api.ts` - Added createProblem function
+- `frontend/src/components/ProblemsList.tsx` - Added row handle, actions panel, and create handler
+- `frontend/src/index.css` - Added styles for row handle and actions panel
+- `frontend/src/components/ProblemsList.test.tsx` - Added create problem tests
+- `backend/src/api/projects.ts` - Improved status validation
+- `backend/src/database/fix-status-values.ts` - Script to fix old status values
+- `backend/src/api/projects.test.ts` - Added test for JSON stringified fields
+
+**Technical Details:**
+- Row handle uses `cursor: grab` for future drag-and-drop
+- Actions panel uses CSS transforms for smooth slide-in animation
+- Create handler determines parentId based on which row's button was clicked
+- Status enum correctly serializes to 'Actionable' string value
+- All tests passing: Backend (23), Frontend (36)
+
 **Next Steps:**
 - Summary/detail view toggle (F043)
+- Delete problem functionality (F062)

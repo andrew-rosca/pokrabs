@@ -130,8 +130,16 @@ router.post('/:projectId/problems', async (req: Request, res: Response) => {
     }
     
     // Validate status if provided
-    if (status && !Object.values(Status).includes(status)) {
-      return res.status(400).json({ error: 'Invalid status value' });
+    if (status) {
+      const validStatuses = Object.values(Status) as string[];
+      // Also check enum keys in case it's sent as the key name
+      const validStatusValues = ['Actionable', 'In Progress', 'Blocked', 'Resolved'];
+      const statusStr = String(status);
+      if (!validStatuses.includes(statusStr) && !validStatusValues.includes(statusStr)) {
+        return res.status(400).json({ 
+          error: `Invalid status value: ${status}. Valid values are: ${validStatusValues.join(', ')}` 
+        });
+      }
     }
     
     // Validate parentId if provided

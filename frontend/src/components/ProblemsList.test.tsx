@@ -6,17 +6,19 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ProblemsList } from './ProblemsList';
-import { fetchProblems, updateProblem } from '../services/api';
+import { fetchProblems, updateProblem, createProblem } from '../services/api';
 import { Problem, Status } from '../../../shared/types';
 
 // Mock the API service
 vi.mock('../services/api', () => ({
   fetchProblems: vi.fn(),
   updateProblem: vi.fn(),
+  createProblem: vi.fn(),
 }));
 
 const mockFetchProblems = fetchProblems as ReturnType<typeof vi.fn>;
 const mockUpdateProblem = updateProblem as ReturnType<typeof vi.fn>;
+const mockCreateProblem = createProblem as ReturnType<typeof vi.fn>;
 
 describe('ProblemsList', () => {
   const projectId = 'test-project-1';
@@ -61,6 +63,23 @@ describe('ProblemsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetchProblems.mockResolvedValue(mockProblems);
+    mockCreateProblem.mockResolvedValue({
+      id: 'new-id',
+      idPath: 'new-id',
+      problem: JSON.stringify({ summary: 'New problem', detail: 'New problem' }),
+      objective: JSON.stringify({ summary: 'New objective', detail: 'New objective' }),
+      keyResults: JSON.stringify([]),
+      actions: JSON.stringify([]),
+      blockers: JSON.stringify([]),
+      status: Status.NotStarted,
+      votes: 0,
+      priority: 0,
+      labels: [],
+      parentId: null,
+      projectId,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    });
   });
 
   it('should render loading state initially', () => {
@@ -562,6 +581,100 @@ describe('ProblemsList', () => {
     });
     
     consoleErrorSpy.mockRestore();
+  });
+
+  describe('Create Problem', () => {
+    it('should create a new problem when + button is clicked', async () => {
+      const user = userEvent.setup();
+      render(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      // Find the + button in the first row's actions panel
+      // The button should be in a row-actions-panel
+      const rows = screen.getAllByRole('row');
+      const firstDataRow = rows[1]; // Skip header row
+      
+      // Hover over the row to show the actions panel
+      await user.hover(firstDataRow);
+      
+      // Find the + button
+      const createButtons = screen.getAllByTitle(/Insert new problem/i);
+      expect(createButtons.length).toBeGreaterThan(0);
+      
+      // Click the first + button (creates child of first problem)
+      await user.click(createButtons[0]);
+      
+      // Verify createProblem was called with correct parameters
+      await waitFor(() => {
+        expect(mockCreateProblem).toHaveBeenCalledWith(
+          projectId,
+          expect.objectContaining({
+            problem: JSON.stringify({ summary: 'New problem', detail: 'New problem' }),
+            objective: JSON.stringify({ summary: 'New objective', detail: 'New objective' }),
+            status: 'Actionable', // Status.NotStarted serializes to 'Actionable'
+            parentId: 'i0', // Should be child of first problem
+          })
+        );
+      });
+      
+      // Verify fetchProblems was called again to refresh the list
+      expect(mockFetchProblems).toHaveBeenCalledTimes(2); // Once on mount, once after create
+    });
+
+    it('should create a top-level problem when + button is clicked on bottom row', async () => {
+      const user = userEvent.setup();
+      render(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      // Find the + button in the bottom insert row
+      const insertButtons = screen.getAllByTitle(/Insert new problem/i);
+      const bottomButton = insertButtons[insertButtons.length - 1]; // Last button is for top-level
+      
+      await user.click(bottomButton);
+      
+      // Verify createProblem was called with null parentId
+      await waitFor(() => {
+        expect(mockCreateProblem).toHaveBeenCalledWith(
+          projectId,
+          expect.objectContaining({
+            parentId: null, // Top-level problem
+          })
+        );
+      });
+    });
+
+    it('should handle create problem error gracefully', async () => {
+      const user = userEvent.setup();
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockCreateProblem.mockRejectedValue(new Error('Failed to create problem: Bad Request'));
+      
+      render(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      const rows = screen.getAllByRole('row');
+      const firstDataRow = rows[1];
+      await user.hover(firstDataRow);
+      
+      const createButtons = screen.getAllByTitle(/Insert new problem/i);
+      await user.click(createButtons[0]);
+      
+      // Should show error message
+      await waitFor(() => {
+        expect(screen.getByText(/Error:/i)).toBeInTheDocument();
+      });
+      
+      expect(mockCreateProblem).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
   });
 });
 

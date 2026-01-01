@@ -835,7 +835,7 @@
         "Refresh table to show new problem",
         "Test new problem creation works correctly"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F062",

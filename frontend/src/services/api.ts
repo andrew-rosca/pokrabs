@@ -42,6 +42,44 @@ export async function fetchProblem(problemId: string): Promise<Problem> {
 }
 
 /**
+ * Create a new problem
+ */
+export async function createProblem(
+  projectId: string,
+  problem: {
+    problem: string;
+    objective: string;
+    keyResults?: string;
+    actions?: string;
+    blockers?: string;
+    status?: string;
+    labels?: string[];
+    parentId?: string | null;
+  }
+): Promise<Problem> {
+  const response = await fetch(`${API_URL}/api/projects/${projectId}/problems`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(problem),
+  });
+  if (!response.ok) {
+    let errorMessage = `Failed to create problem: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // If response is not JSON, use the status text
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+}
+
+/**
  * Update a problem
  */
 export async function updateProblem(
