@@ -180,7 +180,8 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
                 cursor: 'pointer',
                 padding: '0.125rem 0.25rem',
                 fontSize: '0.625rem',
-                color: 'var(--text-muted)',
+                color: 'var(--text-secondary)',
+                opacity: 0.65,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -189,13 +190,13 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
               }}
               title={isExpanded ? 'Collapse detail' : 'Expand detail'}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--text-primary)';
+                e.currentTarget.style.opacity = '0.95';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--text-muted)';
+                e.currentTarget.style.opacity = '0.65';
               }}
             >
-              {isExpanded ? '▼' : '▶'}
+              {isExpanded ? '⌄' : '>'}
             </button>
           )}
         </div>
