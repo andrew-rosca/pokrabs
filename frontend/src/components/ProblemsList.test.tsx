@@ -207,6 +207,99 @@ describe('ProblemsList', () => {
     });
   });
 
+  it('should show expand button when detail exists', async () => {
+    render(<ProblemsList projectId={projectId} />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Problem 1')).toBeInTheDocument();
+    });
+    
+    // Should have expand buttons (one for problem, one for objective, for each problem)
+    // Each problem has both problem and objective fields with detail
+    await waitFor(() => {
+      const expandButtons = screen.getAllByTitle('Expand detail');
+      expect(expandButtons.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('should not show expand button when detail is empty', async () => {
+    const problemWithoutDetail = {
+      ...mockProblems[0],
+      problem: JSON.stringify({ summary: 'Problem 1', detail: '' }),
+      objective: JSON.stringify({ summary: 'Objective 1', detail: '' }),
+    };
+    mockFetchProblems.mockResolvedValue([problemWithoutDetail]);
+    
+    render(<ProblemsList projectId={projectId} />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Problem 1')).toBeInTheDocument();
+    });
+    
+    // Should not have expand buttons (both problem and objective have empty detail)
+    const expandButtons = screen.queryAllByTitle('Expand detail');
+    expect(expandButtons.length).toBe(0);
+  });
+
+  it('should expand and show detail when expand button is clicked', async () => {
+    const user = userEvent.setup();
+    
+    render(<ProblemsList projectId={projectId} />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Problem 1')).toBeInTheDocument();
+    });
+    
+    // Get all expand buttons and click the first one (for the problem field)
+    const expandButtons = await waitFor(() => {
+      const buttons = screen.getAllByTitle('Expand detail');
+      expect(buttons.length).toBeGreaterThan(0);
+      return buttons;
+    });
+    
+    await user.click(expandButtons[0]);
+    
+    // Detail should be visible (Detail 1 from mockProblems[0])
+    await waitFor(() => {
+      expect(screen.getByText('Detail 1')).toBeInTheDocument();
+    });
+    
+    // Button should now show collapse
+    expect(screen.getByTitle('Collapse detail')).toBeInTheDocument();
+  });
+
+  it('should collapse and hide detail when collapse button is clicked', async () => {
+    const user = userEvent.setup();
+    
+    render(<ProblemsList projectId={projectId} />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Problem 1')).toBeInTheDocument();
+    });
+    
+    // Expand first - get all expand buttons and click the first one
+    const expandButtons = await waitFor(() => {
+      const buttons = screen.getAllByTitle('Expand detail');
+      expect(buttons.length).toBeGreaterThan(0);
+      return buttons;
+    });
+    
+    await user.click(expandButtons[0]);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Detail 1')).toBeInTheDocument();
+    });
+    
+    // Collapse
+    const collapseButton = screen.getByTitle('Collapse detail');
+    await user.click(collapseButton);
+    
+    // Detail should be hidden
+    await waitFor(() => {
+      expect(screen.queryByText('Detail 1')).not.toBeInTheDocument();
+    });
+  });
+
   it('should allow editing objective field', async () => {
     const user = userEvent.setup();
     const updatedProblem = { ...mockProblems[0], objective: JSON.stringify({ summary: 'Updated Objective', detail: 'Updated Detail' }) };

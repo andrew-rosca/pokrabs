@@ -18,10 +18,11 @@ interface SummaryDetailCellProps {
 
 export function SummaryDetailCell({ value, onSave, className = '', autoOpen = false, onEditorOpened }: SummaryDetailCellProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [cellRect, setCellRect] = useState<DOMRect | null>(null);
   const cellRef = useRef<HTMLDivElement>(null);
 
-  // Parse the JSON to get the summary for display
+  // Parse the JSON to get summary and detail
   const getSummary = (): string => {
     try {
       const parsed = JSON.parse(value);
@@ -32,6 +33,23 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
     } catch {
       return value || '';
     }
+  };
+
+  const getDetail = (): string => {
+    try {
+      const parsed = JSON.parse(value);
+      if (typeof parsed === 'object' && parsed.detail !== undefined) {
+        return parsed.detail || '';
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  };
+
+  const hasDetail = (): boolean => {
+    const detail = getDetail();
+    return detail.trim().length > 0;
   };
 
   const openEditor = () => {
@@ -45,8 +63,17 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
     }
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    // Don't open editor if clicking on the expand button
+    if ((e.target as HTMLElement).closest('.expand-toggle')) {
+      return;
+    }
     openEditor();
+  };
+
+  const handleExpandToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
   };
 
   // Auto-open editor if requested
@@ -70,6 +97,8 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
   };
 
   const summary = getSummary();
+  const detail = getDetail();
+  const showDetail = hasDetail();
 
   return (
     <>
@@ -80,14 +109,62 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
         style={{
           cursor: 'text',
           width: '100%',
-          height: '100%',
+          minHeight: '100%',
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: 'column',
           position: 'relative',
+          padding: '0.25rem 0',
         }}
         title="Click to edit summary and detail"
       >
-        {summary || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>[none]</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', width: '100%' }}>
+          <span style={{ flex: 1 }}>
+            {summary || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>[none]</span>}
+          </span>
+          {showDetail && (
+            <button
+              className="expand-toggle"
+              onClick={handleExpandToggle}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0.125rem 0.25rem',
+                fontSize: '0.625rem',
+                color: 'var(--text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '16px',
+                height: '16px',
+              }}
+              title={isExpanded ? 'Collapse detail' : 'Expand detail'}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-muted)';
+              }}
+            >
+              {isExpanded ? '▼' : '▶'}
+            </button>
+          )}
+        </div>
+        {isExpanded && showDetail && (
+          <div
+            style={{
+              marginTop: '0.25rem',
+              paddingTop: '0.25rem',
+              borderTop: '1px solid var(--border-color)',
+              fontSize: '0.7rem',
+              color: 'var(--text-secondary)',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            {detail}
+          </div>
+        )}
       </div>
       {isEditing && cellRect && (
         <SummaryDetailEditor
