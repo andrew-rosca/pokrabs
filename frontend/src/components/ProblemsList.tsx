@@ -9,6 +9,7 @@ import React from 'react';
 import { Problem, Status, CreateProblemRequest } from '../../../shared/types';
 import { fetchProblems, updateProblem, createProblem, deleteProblem } from '../services/api';
 import { EditableCell } from './EditableCell';
+import { SummaryDetailCell } from './SummaryDetailCell';
 
 interface ProblemsListProps {
   projectId: string;
@@ -84,19 +85,10 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
 
   // Format value back to JSON for saving
   const formatFieldForSave = (problem: Problem, fieldName: string, value: string): string => {
-    // For problem and objective, they're stored as JSON with summary/detail
+    // For problem and objective, SummaryDetailCell handles the JSON formatting
+    // So we just pass through the value (it's already JSON)
     if (fieldName === 'problem' || fieldName === 'objective') {
-      try {
-        const currentValue = fieldName === 'problem' ? problem.problem : problem.objective;
-        const existing = JSON.parse(currentValue);
-        if (typeof existing === 'object' && existing.summary !== undefined) {
-          // Update summary, keep detail
-          return JSON.stringify({ ...existing, summary: value });
-        }
-      } catch {
-        // If parsing fails, create new structure
-      }
-      return JSON.stringify({ summary: value, detail: value });
+      return value; // Already JSON from SummaryDetailCell
     }
     
     // For arrays (keyResults, actions, blockers), split by newlines
@@ -403,15 +395,15 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                     </span>
                   </td>
                   <td className="problem-text">
-                    <EditableCell
-                      value={parseFieldForEdit(problem.problem)}
+                    <SummaryDetailCell
+                      value={problem.problem}
                       onSave={(value) => handleSaveField(problem.id, 'problem', value)}
                       className="problem-text"
                     />
                   </td>
                   <td className="problem-text">
-                    <EditableCell
-                      value={parseFieldForEdit(problem.objective)}
+                    <SummaryDetailCell
+                      value={problem.objective}
                       onSave={(value) => handleSaveField(problem.id, 'objective', value)}
                       className="problem-text"
                     />

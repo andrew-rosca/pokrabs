@@ -179,13 +179,22 @@ describe('ProblemsList', () => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
     });
     
+    // Click on the problem cell to open the editor
     const problemCell = screen.getByText('Problem 1');
     await user.click(problemCell);
     
-    const input = screen.getByDisplayValue('Problem 1') as HTMLInputElement;
-    await user.clear(input);
-    await user.type(input, 'Updated Problem');
-    await user.keyboard('{Enter}');
+    // Wait for the editor to appear and find the summary textarea
+    const summaryTextarea = await waitFor(() => {
+      return screen.getByPlaceholderText('Summary') as HTMLTextAreaElement;
+    });
+    
+    // Update the summary
+    await user.clear(summaryTextarea);
+    await user.type(summaryTextarea, 'Updated Problem');
+    
+    // Click the save button
+    const saveButton = screen.getByText('Save');
+    await user.click(saveButton);
     
     await waitFor(() => {
       expect(mockUpdateProblem).toHaveBeenCalledWith('i0', {
@@ -209,13 +218,22 @@ describe('ProblemsList', () => {
       expect(screen.getByText('Objective 1')).toBeInTheDocument();
     });
     
+    // Click on the objective cell to open the editor
     const objectiveCell = screen.getByText('Objective 1');
     await user.click(objectiveCell);
     
-    const input = screen.getByDisplayValue('Objective 1') as HTMLInputElement;
-    await user.clear(input);
-    await user.type(input, 'Updated Objective');
-    await user.keyboard('{Enter}');
+    // Wait for the editor to appear and find the summary textarea
+    const summaryTextarea = await waitFor(() => {
+      return screen.getByPlaceholderText('Summary') as HTMLTextAreaElement;
+    });
+    
+    // Update the summary
+    await user.clear(summaryTextarea);
+    await user.type(summaryTextarea, 'Updated Objective');
+    
+    // Click the save button
+    const saveButton = screen.getByText('Save');
+    await user.click(saveButton);
     
     await waitFor(() => {
       expect(mockUpdateProblem).toHaveBeenCalledWith('i0', {
