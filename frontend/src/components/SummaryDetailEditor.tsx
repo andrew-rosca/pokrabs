@@ -52,13 +52,16 @@ export function SummaryDetailEditor({
     }
   }, [value]);
 
-  // Focus summary field when editor opens
+  // Focus summary field when editor opens and select text if it's "New problem" or "New objective"
   useEffect(() => {
     if (summaryRef.current) {
       summaryRef.current.focus();
-      summaryRef.current.select();
+      // Select all text if it's a default "New" value, otherwise just focus
+      if (summary === 'New problem' || summary === 'New objective') {
+        summaryRef.current.select();
+      }
     }
-  }, []);
+  }, [summary]);
 
   const handleSave = async () => {
     if (isSaving) return;

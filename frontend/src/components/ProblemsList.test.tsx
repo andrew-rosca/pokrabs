@@ -68,8 +68,8 @@ describe('ProblemsList', () => {
     mockCreateProblem.mockResolvedValue({
       id: 'new-id',
       idPath: 'new-id',
-      problem: JSON.stringify({ summary: 'New problem', detail: 'New problem' }),
-      objective: JSON.stringify({ summary: 'New objective', detail: 'New objective' }),
+      problem: JSON.stringify({ summary: 'New problem', detail: '' }),
+      objective: JSON.stringify({ summary: 'New objective', detail: '' }),
       keyResults: JSON.stringify([]),
       actions: JSON.stringify([]),
       blockers: JSON.stringify([]),
@@ -632,8 +632,8 @@ describe('ProblemsList', () => {
         expect(mockCreateProblem).toHaveBeenCalledWith(
           projectId,
           expect.objectContaining({
-            problem: JSON.stringify({ summary: 'New problem', detail: 'New problem' }),
-            objective: JSON.stringify({ summary: 'New objective', detail: 'New objective' }),
+            problem: JSON.stringify({ summary: 'New problem', detail: '' }),
+            objective: JSON.stringify({ summary: 'New objective', detail: '' }),
             status: 'Actionable', // Status.NotStarted serializes to 'Actionable'
             parentId: 'i0', // Should be child of first problem
           })

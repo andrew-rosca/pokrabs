@@ -20,6 +20,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [autoOpenEditor, setAutoOpenEditor] = useState<{ problemId: string; field: 'problem' | 'objective' } | null>(null);
 
   useEffect(() => {
     async function loadProblems() {
@@ -296,8 +297,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
       // Create new problem with default values
       // Note: Status.NotStarted enum value is 'Actionable', which will serialize correctly
       const newProblem: CreateProblemRequest = {
-        problem: JSON.stringify({ summary: 'New problem', detail: 'New problem' }),
-        objective: JSON.stringify({ summary: 'New objective', detail: 'New objective' }),
+        problem: JSON.stringify({ summary: 'New problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'New objective', detail: '' }),
         keyResults: JSON.stringify([]),
         actions: JSON.stringify([]),
         blockers: JSON.stringify([]),
@@ -316,11 +317,14 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
       });
 
       // Create the problem
-      await createProblem(projectId, newProblem);
+      const created = await createProblem(projectId, newProblem);
       
       // Reload problems to get the new one with correct idPath and proper sorting
       const data = await fetchProblems(projectId);
       setProblems(data);
+      
+      // Auto-open the problem editor for the newly created problem
+      setAutoOpenEditor({ problemId: created.id, field: 'problem' });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create problem';
       setError(errorMessage);
@@ -399,6 +403,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       value={problem.problem}
                       onSave={(value) => handleSaveField(problem.id, 'problem', value)}
                       className="problem-text"
+                      autoOpen={autoOpenEditor?.problemId === problem.id && autoOpenEditor?.field === 'problem'}
+                      onEditorOpened={() => setAutoOpenEditor(null)}
                     />
                   </td>
                   <td className="problem-text">
@@ -406,6 +412,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       value={problem.objective}
                       onSave={(value) => handleSaveField(problem.id, 'objective', value)}
                       className="problem-text"
+                      autoOpen={autoOpenEditor?.problemId === problem.id && autoOpenEditor?.field === 'objective'}
+                      onEditorOpened={() => setAutoOpenEditor(null)}
                     />
                   </td>
                   <td className="problem-text">

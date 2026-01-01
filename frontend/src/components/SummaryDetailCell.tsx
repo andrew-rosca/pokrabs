@@ -12,9 +12,11 @@ interface SummaryDetailCellProps {
   value: string; // JSON string with { summary: string, detail: string }
   onSave: (newValue: string) => Promise<void>;
   className?: string;
+  autoOpen?: boolean; // If true, automatically open the editor
+  onEditorOpened?: () => void; // Callback when editor opens
 }
 
-export function SummaryDetailCell({ value, onSave, className = '' }: SummaryDetailCellProps) {
+export function SummaryDetailCell({ value, onSave, className = '', autoOpen = false, onEditorOpened }: SummaryDetailCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [cellRect, setCellRect] = useState<DOMRect | null>(null);
   const cellRef = useRef<HTMLDivElement>(null);
@@ -32,13 +34,31 @@ export function SummaryDetailCell({ value, onSave, className = '' }: SummaryDeta
     }
   };
 
-  const handleClick = () => {
+  const openEditor = () => {
     if (cellRef.current) {
       const rect = cellRef.current.getBoundingClientRect();
       setCellRect(rect);
       setIsEditing(true);
+      if (onEditorOpened) {
+        onEditorOpened();
+      }
     }
   };
+
+  const handleClick = () => {
+    openEditor();
+  };
+
+  // Auto-open editor if requested
+  useEffect(() => {
+    if (autoOpen && !isEditing && cellRef.current) {
+      // Small delay to ensure the cell is rendered
+      const timer = setTimeout(() => {
+        openEditor();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [autoOpen, isEditing]);
 
   const handleSave = async (newValue: string) => {
     await onSave(newValue);
