@@ -47,6 +47,55 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
     }
   };
 
+  // Convert URLs in text to clickable links
+  const linkifyText = (text: string): React.ReactNode => {
+    // URL regex pattern - matches http://, https://, and www. URLs
+    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = urlRegex.exec(text)) !== null) {
+      // Add text before the URL
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+
+      // Add the link
+      const url = match[0];
+      const href = url.startsWith('http') ? url : `https://${url}`;
+      parts.push(
+        <a
+          key={match.index}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            color: 'var(--accent-color)',
+            textDecoration: 'underline',
+          }}
+        >
+          {url}
+        </a>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    // If no URLs found, return original text
+    if (parts.length === 0) {
+      return text;
+    }
+
+    return <>{parts}</>;
+  };
+
   const hasDetail = (): boolean => {
     const detail = getDetail();
     return detail.trim().length > 0;
@@ -162,7 +211,7 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
               wordBreak: 'break-word',
             }}
           >
-            {detail}
+            {linkifyText(detail)}
           </div>
         )}
       </div>
