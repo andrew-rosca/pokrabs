@@ -21,6 +21,15 @@ fi
 
 echo "✅ Node.js $(node -v) detected"
 
+# Install root dependencies (including concurrently)
+echo ""
+echo "📦 Installing root dependencies..."
+if [ ! -d "node_modules" ]; then
+    npm install
+else
+    echo "   Root dependencies already installed"
+fi
+
 # Install backend dependencies
 echo ""
 echo "📦 Installing backend dependencies..."
@@ -61,11 +70,7 @@ cd ..
 echo ""
 echo "✅ Initialization complete!"
 echo ""
-echo "To start development:"
-echo "  Terminal 1 (Backend):  cd backend && npm run dev"
-echo "  Terminal 2 (Frontend): cd frontend && npm run dev"
-echo ""
-echo "Or use Docker:"
-echo "  docker-compose up"
+echo "To start development (runs both backend and frontend):"
+echo "  npm run dev"
 echo ""
 
