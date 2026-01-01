@@ -691,3 +691,13 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 
 **Testing:**
 - Backend: 110 tests passing (`npm test`)
+
+### 2026-01-01 - Mark Feature Flags F038 & F041 Complete
+
+**Completed:**
+- Marked F038 (Frontend API service layer) as passing in `feature_list.json`
+- Marked F041 (Hierarchy indentation) as passing in `feature_list.json`
+
+**Notes:**
+- No code changes required; features already implemented in `frontend/src/services/api.ts` and `frontend/src/components/ProblemsList.tsx`
+- No additional tests were run in this update (previous backend suite already passing)

@@ -503,7 +503,7 @@
         "Test API service can communicate with backend",
         "Test error handling works correctly"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F039",
@@ -545,7 +545,7 @@
         "Test indentation displays correctly for various depths",
         "Test visual hierarchy is clear"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F042",
