@@ -109,3 +109,24 @@ export async function updateProblem(
   return response.json();
 }
 
+/**
+ * Delete a problem (soft delete)
+ */
+export async function deleteProblem(problemId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/problems/${problemId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    let errorMessage = `Failed to delete problem: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
+  }
+}
+

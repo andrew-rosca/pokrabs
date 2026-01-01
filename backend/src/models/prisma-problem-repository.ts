@@ -130,12 +130,34 @@ export class PrismaProblemRepository implements IProblemRepository {
   }
 
   async softDelete(id: string): Promise<void> {
-    await this.prisma.problem.update({
+    const problem = await this.prisma.problem.findUnique({
       where: { id },
-      data: {
-        deletedAt: new Date(),
-      },
+      select: { idPath: true },
     });
+
+    if (!problem) {
+      throw new Error('Problem not found');
+    }
+
+    const deletedAt = new Date();
+    const descendantPrefix = `${problem.idPath}-`;
+
+    await this.prisma.$transaction([
+      // Soft delete the target problem
+      this.prisma.problem.update({
+        where: { id },
+        data: { deletedAt },
+      }),
+      // Cascade soft delete to all descendants using idPath prefix
+      this.prisma.problem.updateMany({
+        where: {
+          idPath: {
+            startsWith: descendantPrefix,
+          },
+        },
+        data: { deletedAt },
+      }),
+    ]);
   }
 
   async checkIdExists(id: string, projectId: string): Promise<boolean> {

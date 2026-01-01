@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import React from 'react';
 import { Problem, Status, CreateProblemRequest } from '../../../shared/types';
-import { fetchProblems, updateProblem, createProblem } from '../services/api';
+import { fetchProblems, updateProblem, createProblem, deleteProblem } from '../services/api';
 import { EditableCell } from './EditableCell';
 
 interface ProblemsListProps {
@@ -18,6 +18,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadProblems() {
@@ -143,7 +144,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
           )
         );
       }
-      throw error;
+      console.error('Error saving field:', error);
     }
   };
 
@@ -181,7 +182,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
           )
         );
       }
-      throw error;
+      console.error('Error updating status:', error);
     }
   };
 
@@ -221,7 +222,41 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
           )
         );
       }
-      throw error;
+      console.error('Error updating votes:', error);
+    }
+  };
+
+  // Handle deleting a problem (inline confirm)
+  const handleDeleteProblem = (problemId: string) => {
+    setPendingDeleteId(problemId);
+  };
+
+  const handleCancelDelete = () => {
+    setPendingDeleteId(null);
+  };
+
+  const handleConfirmDelete = async (problemId: string) => {
+    const previousProblems = problems;
+    try {
+      setError(null);
+      setPendingDeleteId(problemId);
+
+      // Optimistically remove the problem
+      setProblems(prev => prev.filter(p => p.id !== problemId));
+
+      await deleteProblem(problemId);
+
+      // Refresh list to ensure consistent ordering/state from server
+      const data = await fetchProblems(projectId);
+      setProblems(data);
+    } catch (err) {
+      // Revert on error
+      setProblems(previousProblems);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete problem';
+      setError(errorMessage);
+      console.error('Error deleting problem:', err);
+    } finally {
+      setPendingDeleteId(null);
     }
   };
 
@@ -335,7 +370,32 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                         >
                           +
                         </button>
-                        {/* Delete button will be added here soon */}
+                        <button
+                          className="row-action-button row-action-delete"
+                          onClick={() => handleDeleteProblem(problem.id)}
+                          title="Delete problem"
+                        >
+                          ×
+                        </button>
+                        {pendingDeleteId === problem.id && (
+                          <div className="row-delete-confirm" role="alert">
+                            <span className="row-delete-text">Delete?</span>
+                            <button
+                              className="row-action-button row-action-delete confirm"
+                              onClick={() => handleConfirmDelete(problem.id)}
+                              title="Confirm delete"
+                            >
+                              ✔
+                            </button>
+                            <button
+                              className="row-action-button cancel"
+                              onClick={handleCancelDelete}
+                              title="Cancel delete"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <span className="id-path" style={{ paddingLeft: `${depth * 8}px` }}>

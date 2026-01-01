@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ProblemsList } from './ProblemsList';
-import { fetchProblems, updateProblem, createProblem } from '../services/api';
+import { fetchProblems, updateProblem, createProblem, deleteProblem } from '../services/api';
 import { Problem, Status } from '../../../shared/types';
 
 // Mock the API service
@@ -14,11 +14,13 @@ vi.mock('../services/api', () => ({
   fetchProblems: vi.fn(),
   updateProblem: vi.fn(),
   createProblem: vi.fn(),
+  deleteProblem: vi.fn(),
 }));
 
 const mockFetchProblems = fetchProblems as ReturnType<typeof vi.fn>;
 const mockUpdateProblem = updateProblem as ReturnType<typeof vi.fn>;
 const mockCreateProblem = createProblem as ReturnType<typeof vi.fn>;
+const mockDeleteProblem = deleteProblem as ReturnType<typeof vi.fn>;
 
 describe('ProblemsList', () => {
   const projectId = 'test-project-1';
@@ -673,6 +675,87 @@ describe('ProblemsList', () => {
       });
       
       expect(mockCreateProblem).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('Delete Problem', () => {
+    it('should delete a problem when delete is confirmed inline', async () => {
+      const user = userEvent.setup();
+      // First fetch returns full list, second fetch returns list without the first problem
+      mockFetchProblems
+        .mockResolvedValueOnce(mockProblems)
+        .mockResolvedValueOnce([mockProblems[1]]);
+      mockDeleteProblem.mockResolvedValue({});
+
+      render(<ProblemsList projectId={projectId} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      const rows = screen.getAllByRole('row');
+      const firstDataRow = rows[1];
+      await user.hover(firstDataRow);
+
+      const deleteButtons = screen.getAllByTitle(/Delete problem/i);
+      expect(deleteButtons.length).toBeGreaterThan(0);
+
+      await user.click(deleteButtons[0]);
+
+      // Confirm inline
+      const confirmButtons = screen.getAllByTitle(/Confirm delete/i);
+      await user.click(confirmButtons[0]);
+
+      await waitFor(() => {
+        expect(mockDeleteProblem).toHaveBeenCalledWith('i0');
+      });
+
+      // Should refetch problems after delete
+      await waitFor(() => {
+        expect(mockFetchProblems).toHaveBeenCalledTimes(2);
+      });
+
+      // Problem 1 should be gone, Problem 2 should remain
+      await waitFor(() => {
+        expect(screen.queryByText('Problem 1')).not.toBeInTheDocument();
+        expect(screen.getByText('Problem 2')).toBeInTheDocument();
+      });
+    });
+
+    it('should handle delete errors gracefully', async () => {
+      const user = userEvent.setup();
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockDeleteProblem.mockRejectedValue(new Error('Failed to delete problem'));
+
+      render(<ProblemsList projectId={projectId} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      const rows = screen.getAllByRole('row');
+      const firstDataRow = rows[1];
+      await user.hover(firstDataRow);
+
+      const deleteButtons = screen.getAllByTitle(/Delete problem/i);
+      await user.click(deleteButtons[0]);
+
+      const confirmButtons = screen.getAllByTitle(/Confirm delete/i);
+      await user.click(confirmButtons[0]);
+
+      await waitFor(() => {
+        expect(mockDeleteProblem).toHaveBeenCalledWith('i0');
+      });
+
+      // Should show error state
+      await waitFor(() => {
+        expect(screen.getByText(/Error:/i)).toBeInTheDocument();
+      });
+
+      // Should not refetch on failure
+      expect(mockFetchProblems).toHaveBeenCalledTimes(1);
+
       consoleErrorSpy.mockRestore();
     });
   });

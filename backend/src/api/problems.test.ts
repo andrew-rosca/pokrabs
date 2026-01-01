@@ -309,6 +309,79 @@ describe('Problems API', () => {
       expect(deleted).toBeNull();
     });
 
+    it('should cascade soft delete to child problems', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const parent = await problemRepo.create({
+        projectId,
+        problem: 'Parent problem',
+        objective: 'Parent objective',
+      });
+      const child = await problemRepo.create({
+        projectId,
+        parentId: parent.id,
+        problem: 'Child problem',
+        objective: 'Child objective',
+      });
+
+      const response = await request(app).delete(`/api/problems/${parent.id}`);
+      
+      expect(response.status).toBe(204);
+
+      const deletedParent = await problemRepo.findById(parent.id);
+      const deletedChild = await problemRepo.findById(child.id);
+
+      expect(deletedParent).toBeNull();
+      expect(deletedChild).toBeNull();
+    });
+
+    it('should cascade soft delete to grandchildren when deleting an intermediate node', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const root = await problemRepo.create({
+        projectId,
+        problem: 'Root problem',
+        objective: 'Root objective',
+      });
+      const child = await problemRepo.create({
+        projectId,
+        parentId: root.id,
+        problem: 'Child problem',
+        objective: 'Child objective',
+      });
+      const grandchild = await problemRepo.create({
+        projectId,
+        parentId: child.id,
+        problem: 'Grandchild problem',
+        objective: 'Grandchild objective',
+      });
+
+      const response = await request(app).delete(`/api/problems/${child.id}`);
+      
+      expect(response.status).toBe(204);
+
+      const fetchedRoot = await problemRepo.findById(root.id);
+      const fetchedChild = await problemRepo.findById(child.id);
+      const fetchedGrandchild = await problemRepo.findById(grandchild.id);
+
+      expect(fetchedRoot).not.toBeNull(); // root should remain
+      expect(fetchedChild).toBeNull();
+      expect(fetchedGrandchild).toBeNull();
+    });
+
+    it('should return 404 when fetching a deleted problem', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const created = await problemRepo.create({
+        projectId,
+        problem: 'Problem to delete',
+        objective: 'Objective',
+      });
+
+      await request(app).delete(`/api/problems/${created.id}`);
+
+      const response = await request(app).get(`/api/problems/${created.id}`);
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Problem not found');
+    });
+
     it('should return 404 for non-existent problem', async () => {
       const response = await request(app).delete('/api/problems/non-existent');
       

@@ -655,3 +655,39 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 **Next Steps:**
 - Summary/detail view toggle (F043)
 - Delete problem functionality (F062)
+
+### 2026-01-01 - F029 Soft Delete Endpoint Stabilization
+
+**Completed:**
+- F029 verified and marked complete for DELETE `/api/problems/:id`
+- Updated test expectation to allow detailed invalid status messages
+- Switched backend/frontend `npm test` scripts to `vitest run` to avoid interactive watch mode
+
+**Testing:**
+- Backend: 109 tests passing
+
+**Notes:**
+- Kept detailed invalid-status error messaging in API responses
+
+### 2026-01-01 - F062 Delete Problem UI
+
+**Completed:**
+- F062 implemented: delete button added to hover actions panel beside +
+- Added `deleteProblem` API client, confirmation prompt, and optimistic delete handler with refresh
+- Styled delete action with danger hover state
+- Prevented unhandled rejection noise by logging instead of rethrowing in UI handlers
+
+**Testing:**
+- Frontend: 38 tests passing (`npm test`)
+
+**Notes:**
+- Delete action refetches problems after removal to keep hierarchy consistent
+
+### 2026-01-01 - Cascade Soft Delete for Problem Hierarchy
+
+**Completed:**
+- Implemented cascading soft delete in `PrismaProblemRepository.softDelete` (parent + descendants via `idPath` prefix)
+- Added API test to verify children are soft-deleted when a parent is deleted
+
+**Testing:**
+- Backend: 110 tests passing (`npm test`)

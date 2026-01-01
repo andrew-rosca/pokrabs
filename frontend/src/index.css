@@ -204,6 +204,11 @@ code {
   position: relative;
 }
 
+.problems-table td.problem-id {
+  overflow: visible;
+  text-overflow: initial;
+}
+
 /* Row handle and actions panel */
 .row-handle-container {
   position: absolute;
@@ -260,6 +265,7 @@ code {
   transform: translateX(-8px);
   transition: opacity 0.2s ease, transform 0.2s ease;
   pointer-events: none;
+  z-index: 5;
 }
 
 .problem-row:hover .row-actions-panel {
@@ -298,6 +304,48 @@ code {
   background-color: var(--accent-color);
   border-color: var(--accent-color);
   color: var(--bg-primary);
+  transform: scale(1.05);
+}
+
+.row-action-delete:hover {
+  background-color: var(--status-blocked);
+  border-color: var(--status-blocked);
+  color: var(--bg-primary);
+}
+
+.row-delete-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  box-shadow: 0 1px 3px var(--shadow);
+  white-space: nowrap;
+}
+
+.row-delete-text {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+}
+
+.row-delete-confirm .confirm {
+  background-color: var(--status-blocked);
+  border-color: var(--status-blocked);
+  color: var(--bg-primary);
+}
+
+.row-delete-confirm .confirm:hover {
+  transform: scale(1.05);
+}
+
+.row-delete-confirm .cancel {
+  background-color: var(--bg-primary);
+}
+
+.row-delete-confirm .cancel:hover {
   transform: scale(1.05);
 }
 

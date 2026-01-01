@@ -375,7 +375,7 @@
         "Test endpoint soft deletes problem",
         "Test deleted problem is excluded from list queries"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F030",
@@ -850,7 +850,7 @@
         "Test deletion works correctly",
         "Test deleted problem doesn't appear in list"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F063",

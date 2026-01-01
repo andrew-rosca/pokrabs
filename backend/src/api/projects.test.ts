@@ -372,7 +372,7 @@ describe('Projects API', () => {
         });
       
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Invalid status value');
+      expect(response.body.error).toContain('Invalid status value');
     });
   });
 });
