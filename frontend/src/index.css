@@ -207,18 +207,49 @@ code {
 .problems-table td.problem-id {
   overflow: visible;
   text-overflow: initial;
+  padding-left: 1.3rem; /* room for handle/indicator */
+}
+
+/* Match header offset for the first column */
+.problems-table th:first-child {
+  padding-left: 1.3rem;
 }
 
 /* Row handle and actions panel */
 .row-handle-container {
   position: absolute;
-  left: -12px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: -10px;
+  top: 0;
+  bottom: 0;
+  width: 36px;
   display: flex;
   align-items: center;
   gap: 4px;
   z-index: 10;
+  cursor: pointer;
+  border-left: 1px solid var(--border-color);
+}
+
+/* Visual indicator (dim vertical ellipsis) always visible */
+.row-handle-indicator {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: var(--text-secondary);
+  opacity: 0.45;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  line-height: 1;
+  display: block;
+  width: 14px;
+  text-align: center;
+  z-index: 1;
+}
+
+.row-handle-container:hover .row-handle-indicator {
+  opacity: 0.7;
 }
 
 .row-handle {
@@ -249,7 +280,8 @@ code {
   transform: rotate(90deg);
 }
 
-.problem-row:hover .row-handle {
+/* Only show handle when hovering over the handle container */
+.row-handle-container:hover .row-handle {
   opacity: 1;
 }
 
@@ -261,6 +293,7 @@ code {
   display: flex;
   align-items: center;
   gap: 4px;
+  margin-left: 4px;
   opacity: 0;
   transform: translateX(-8px);
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -268,7 +301,8 @@ code {
   z-index: 5;
 }
 
-.problem-row:hover .row-actions-panel {
+/* Only show actions panel when hovering over the handle container */
+.row-handle-container:hover .row-actions-panel {
   opacity: 1;
   transform: translateX(0);
   pointer-events: auto;

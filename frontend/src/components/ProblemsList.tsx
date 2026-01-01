@@ -355,6 +355,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                 <tr key={problem.id} className={`problem-row depth-${depth}`}>
                   <td className="problem-id">
                     <div className="row-handle-container">
+                      <span className="row-handle-indicator">⋮</span>
                       <div className="row-handle" title="Row actions">
                         <span className="handle-icon">⋮⋮</span>
                       </div>
