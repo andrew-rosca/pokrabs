@@ -843,3 +843,58 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 **Notes:**
 - Feature was already fully implemented in previous sessions
 - Verified working correctly in browser testing
+
+### 2026-01-02 - Drag-and-Drop Reordering
+
+**Completed:**
+- Implemented drag-and-drop reordering for problems in the main table
+- When dragging a problem, all its children move with it
+
+**Backend Changes:**
+- Added `move` method to `IProblemRepository` interface
+- Implemented `move` in `PrismaProblemRepository`:
+  - Updates problem's `parentId`, `idPath`, and `priority`
+  - Cascades `idPath` updates to all descendants (children, grandchildren, etc.)
+  - Validates that a problem cannot be moved under itself or its descendants
+  - Shifts priority of sibling problems to make room at insertion point
+  - All operations wrapped in a transaction for atomicity
+- Added `PATCH /api/problems/:id/move` endpoint with validation:
+  - Accepts `newParentId` (string or null) and `afterProblemId` (string or null)
+  - Returns 404 if problem or new parent not found
+  - Returns 400 if trying to move problem under itself/descendant
+- Added 7 comprehensive tests for the move endpoint
+
+**Frontend Changes:**
+- Added `moveProblem` API client function
+- Implemented drag-and-drop in `ProblemsList` component:
+  - Drag handle on each row (⋮⋮ icon)
+  - Visual feedback: drop zones show before/after/child indicators
+  - Dragged row and its descendants appear semi-transparent
+  - Drop position determined by mouse Y position within target row:
+    - Top 25%: insert before
+    - Middle 50%: insert as child
+    - Bottom 25%: insert after
+  - Dropping on "add new" row moves to root level at end
+- Added CSS styles for drag states (`.dragging`, `.drop-target`)
+
+**Testing:**
+- Backend: 118 tests passing (7 new move endpoint tests)
+- Frontend: 71 tests passing
+- Verified in browser:
+  - Move problem `6q` under `5g` → idPath updated to `5g-6q`
+  - Move problem `16` (with descendants `16-v8`, `16-v8-o6`) under `5g` → all idPaths updated correctly
+  - Move problems back to root level → idPaths restored
+
+**Technical Details:**
+- Move API similar to ListEditor's reorder functionality but handles hierarchical structures
+- idPath cascade ensures tree structure remains consistent after moves
+- Priority field used for sibling ordering within same parent
+
+**Bug Fix - Sibling Reordering:**
+- Fixed frontend sorting to use `priority` field for sibling ordering instead of `idPath.localeCompare()`
+- Implemented proper hierarchical sort:
+  1. Group problems by parentId
+  2. Sort each sibling group by priority, then by createdAt
+  3. Traverse tree depth-first to build flat list
+- Added handling for orphaned problems (whose parent was deleted) - treated as root level
+- Verified sibling reordering works: moving `5g` after `0t` correctly updates priorities and display order

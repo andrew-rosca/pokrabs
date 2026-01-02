@@ -111,5 +111,47 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * PATCH /api/problems/:id/move
+ * Move a problem to a new parent and/or position
+ * 
+ * Body:
+ *   - newParentId: string | null - The new parent ID (null for root level)
+ *   - afterProblemId: string | null - Insert after this sibling (null means first)
+ */
+router.patch('/:id/move', async (req: Request, res: Response) => {
+  try {
+    const { newParentId, afterProblemId } = req.body;
+    
+    // Validate that newParentId and afterProblemId are strings or null
+    if (newParentId !== null && newParentId !== undefined && typeof newParentId !== 'string') {
+      return res.status(400).json({ error: 'newParentId must be a string or null' });
+    }
+    
+    if (afterProblemId !== null && afterProblemId !== undefined && typeof afterProblemId !== 'string') {
+      return res.status(400).json({ error: 'afterProblemId must be a string or null' });
+    }
+    
+    const problemRepo = getProblemRepoWithPrisma(req);
+    
+    const updated = await problemRepo.move(
+      req.params.id,
+      newParentId ?? null,
+      afterProblemId ?? null
+    );
+    
+    res.json(updated);
+  } catch (error: any) {
+    if (error.message === 'Problem not found' || error.message === 'New parent not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    if (error.message.includes('Cannot move')) {
+      return res.status(400).json({ error: error.message });
+    }
+    console.error('Error moving problem:', error);
+    res.status(500).json({ error: 'Failed to move problem' });
+  }
+});
+
 export default router;
 

@@ -67,5 +67,20 @@ export interface IProblemRepository {
    * Note: With LCG-based IDs, this is mainly for validation
    */
   checkIdExists(id: string, projectId: string): Promise<boolean>;
+
+  /**
+   * Move a problem to a new parent and/or position.
+   * Updates the problem's parentId, idPath, priority, and all descendants' idPaths.
+   * 
+   * @param id - The problem ID to move
+   * @param newParentId - The new parent ID (null for root level)
+   * @param afterProblemId - Insert after this sibling (null means insert first among siblings)
+   * @returns The updated problem
+   */
+  move(
+    id: string,
+    newParentId: string | null,
+    afterProblemId: string | null
+  ): Promise<Problem>;
 }
 

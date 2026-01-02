@@ -389,5 +389,160 @@ describe('Problems API', () => {
       expect(response.body.error).toBe('Problem not found');
     });
   });
+
+  describe('PATCH /api/problems/:id/move', () => {
+    it('should move a root problem to become a child of another', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const parent = await problemRepo.create({
+        projectId,
+        problem: 'Parent problem',
+        objective: 'Parent objective',
+      });
+      const sibling = await problemRepo.create({
+        projectId,
+        problem: 'Sibling problem',
+        objective: 'Sibling objective',
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${sibling.id}/move`)
+        .send({ newParentId: parent.id, afterProblemId: null });
+
+      expect(response.status).toBe(200);
+      expect(response.body.parentId).toBe(parent.id);
+      expect(response.body.idPath).toBe(`${parent.idPath}-${sibling.id}`);
+    });
+
+    it('should move a child problem to root level', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const parent = await problemRepo.create({
+        projectId,
+        problem: 'Parent problem',
+        objective: 'Parent objective',
+      });
+      const child = await problemRepo.create({
+        projectId,
+        parentId: parent.id,
+        problem: 'Child problem',
+        objective: 'Child objective',
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${child.id}/move`)
+        .send({ newParentId: null, afterProblemId: null });
+
+      expect(response.status).toBe(200);
+      expect(response.body.parentId).toBeNull();
+      expect(response.body.idPath).toBe(child.id);
+    });
+
+    it('should update idPaths of all descendants when moving a parent', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      
+      // Create a hierarchy: root -> child -> grandchild
+      const root = await problemRepo.create({
+        projectId,
+        problem: 'Root',
+        objective: 'Root objective',
+      });
+      const child = await problemRepo.create({
+        projectId,
+        parentId: root.id,
+        problem: 'Child',
+        objective: 'Child objective',
+      });
+      const grandchild = await problemRepo.create({
+        projectId,
+        parentId: child.id,
+        problem: 'Grandchild',
+        objective: 'Grandchild objective',
+      });
+      
+      // Create another root to move under
+      const newParent = await problemRepo.create({
+        projectId,
+        problem: 'New Parent',
+        objective: 'New Parent objective',
+      });
+
+      // Move the root (with its descendants) under newParent
+      const response = await request(app)
+        .patch(`/api/problems/${root.id}/move`)
+        .send({ newParentId: newParent.id, afterProblemId: null });
+
+      expect(response.status).toBe(200);
+      expect(response.body.idPath).toBe(`${newParent.id}-${root.id}`);
+
+      // Verify descendants have updated idPaths
+      const updatedChild = await problemRepo.findById(child.id);
+      const updatedGrandchild = await problemRepo.findById(grandchild.id);
+
+      expect(updatedChild!.idPath).toBe(`${newParent.id}-${root.id}-${child.id}`);
+      expect(updatedGrandchild!.idPath).toBe(`${newParent.id}-${root.id}-${child.id}-${grandchild.id}`);
+    });
+
+    it('should return 404 for non-existent problem', async () => {
+      const response = await request(app)
+        .patch('/api/problems/non-existent/move')
+        .send({ newParentId: null, afterProblemId: null });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Problem not found');
+    });
+
+    it('should return 404 for non-existent new parent', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const problem = await problemRepo.create({
+        projectId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${problem.id}/move`)
+        .send({ newParentId: 'non-existent', afterProblemId: null });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('New parent not found');
+    });
+
+    it('should reject moving a problem under itself', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const problem = await problemRepo.create({
+        projectId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${problem.id}/move`)
+        .send({ newParentId: problem.id, afterProblemId: null });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('Cannot move');
+    });
+
+    it('should reject moving a problem under its own descendant', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const parent = await problemRepo.create({
+        projectId,
+        problem: 'Parent',
+        objective: 'Parent objective',
+      });
+      const child = await problemRepo.create({
+        projectId,
+        parentId: parent.id,
+        problem: 'Child',
+        objective: 'Child objective',
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${parent.id}/move`)
+        .send({ newParentId: child.id, afterProblemId: null });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('Cannot move');
+    });
+  });
 });
 

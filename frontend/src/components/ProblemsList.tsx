@@ -2,11 +2,13 @@
  * ProblemsList Component
  * 
  * Displays a list of problems in a simple table format.
+ * Supports drag-and-drop reordering - when a problem is dragged,
+ * all its children move with it.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Problem, Status, CreateProblemRequest } from '../../../shared/types';
-import { fetchProblems, updateProblem, createProblem, deleteProblem } from '../services/api';
+import { fetchProblems, updateProblem, createProblem, deleteProblem, moveProblem } from '../services/api';
 import { SummaryDetailCell } from './SummaryDetailCell';
 import { DeleteButton } from './DeleteButton';
 import { ListCell } from './ListCell';
@@ -20,6 +22,12 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoOpenEditor, setAutoOpenEditor] = useState<{ problemId: string; field: 'problem' | 'objective' } | null>(null);
+  
+  // Drag-and-drop state
+  const [draggedProblemId, setDraggedProblemId] = useState<string | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+  const [dropPosition, setDropPosition] = useState<'before' | 'after' | 'child' | null>(null);
+  const dragOverCountRef = useRef(0);
 
   useEffect(() => {
     async function loadProblems() {
@@ -224,14 +232,214 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     }
   };
 
-  // Sort problems hierarchically by idPath
-  // This ensures parent problems appear before their children
-  // and maintains the tree structure visually
-  const sortedProblems = [...problems].sort((a, b) => {
-    // Sort by idPath which naturally creates hierarchical order
-    // e.g., "i0" < "i0-i5" < "i0-i5-na" < "i0-i5-ck"
-    return a.idPath.localeCompare(b.idPath);
-  });
+  // Sort problems hierarchically with priority-based sibling ordering
+  // This ensures:
+  // 1. Parent problems appear before their children
+  // 2. Siblings (same parent) are ordered by priority, then by createdAt
+  const sortedProblems = (() => {
+    // Build a set of all problem IDs for quick lookup
+    const problemIds = new Set(problems.map(p => p.id));
+    
+    // Group problems by parentId
+    // Orphaned problems (parent not in list) are treated as root level
+    const childrenByParent = new Map<string | null, Problem[]>();
+    for (const p of problems) {
+      // If parent doesn't exist in the list, treat as root level
+      const effectiveParentId = p.parentId && problemIds.has(p.parentId) ? p.parentId : null;
+      if (!childrenByParent.has(effectiveParentId)) {
+        childrenByParent.set(effectiveParentId, []);
+      }
+      childrenByParent.get(effectiveParentId)!.push(p);
+    }
+    
+    // Sort each group of siblings by priority, then by createdAt
+    for (const children of childrenByParent.values()) {
+      children.sort((a, b) => {
+        if (a.priority !== b.priority) {
+          return a.priority - b.priority;
+        }
+        // If same priority, sort by createdAt (older first)
+        return a.createdAt.localeCompare(b.createdAt);
+      });
+    }
+    
+    // Build flat list by traversing tree in order (DFS)
+    const result: Problem[] = [];
+    const traverse = (parentId: string | null) => {
+      const children = childrenByParent.get(parentId) || [];
+      for (const child of children) {
+        result.push(child);
+        traverse(child.id);
+      }
+    };
+    traverse(null); // Start from root problems
+    
+    return result;
+  })();
+
+  // Get all problems that would move with the dragged problem (itself + descendants)
+  const getDraggedProblems = (problemId: string): Set<string> => {
+    const dragged = problems.find(p => p.id === problemId);
+    if (!dragged) return new Set();
+    
+    const draggedSet = new Set<string>();
+    for (const p of problems) {
+      if (p.idPath === dragged.idPath || p.idPath.startsWith(dragged.idPath + '-')) {
+        draggedSet.add(p.id);
+      }
+    }
+    return draggedSet;
+  };
+
+  // Handle drag start
+  const handleDragStart = (e: React.DragEvent, problemId: string) => {
+    setDraggedProblemId(problemId);
+    dragOverCountRef.current = 0;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', problemId);
+    
+    // Add a small delay to allow the drag image to be created
+    setTimeout(() => {
+      // The browser will use the dragged element as the ghost image
+    }, 0);
+  };
+
+  // Handle drag end
+  const handleDragEnd = () => {
+    setDraggedProblemId(null);
+    setDropTargetIndex(null);
+    setDropPosition(null);
+    dragOverCountRef.current = 0;
+  };
+
+  // Handle drag over a row
+  const handleDragOver = (e: React.DragEvent, index: number, problem: Problem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!draggedProblemId) return;
+    
+    // Don't allow dropping on itself or its descendants
+    const draggedProblems = getDraggedProblems(draggedProblemId);
+    if (draggedProblems.has(problem.id)) {
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+    
+    e.dataTransfer.dropEffect = 'move';
+    
+    // Determine drop position based on mouse position within the row
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = rect.height;
+    
+    let position: 'before' | 'after' | 'child';
+    if (y < height * 0.25) {
+      position = 'before';
+    } else if (y > height * 0.75) {
+      position = 'after';
+    } else {
+      position = 'child'; // Drop as child of this problem
+    }
+    
+    setDropTargetIndex(index);
+    setDropPosition(position);
+  };
+
+  // Handle drag leave
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only reset if we're leaving the table entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDropTargetIndex(null);
+      setDropPosition(null);
+    }
+  };
+
+  // Handle drop
+  const handleDrop = async (e: React.DragEvent, _targetIndex: number, targetProblem: Problem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!draggedProblemId || dropPosition === null) {
+      handleDragEnd();
+      return;
+    }
+    
+    // Don't allow dropping on itself or its descendants
+    const draggedProblems = getDraggedProblems(draggedProblemId);
+    if (draggedProblems.has(targetProblem.id)) {
+      handleDragEnd();
+      return;
+    }
+    
+    try {
+      setError(null);
+      
+      let newParentId: string | null;
+      let afterProblemId: string | null;
+      
+      if (dropPosition === 'child') {
+        // Drop as child of target - find last child of target to insert after
+        newParentId = targetProblem.id;
+        const children = sortedProblems.filter(p => p.parentId === targetProblem.id);
+        afterProblemId = children.length > 0 ? children[children.length - 1].id : null;
+      } else if (dropPosition === 'before') {
+        // Drop before target - same parent as target
+        newParentId = targetProblem.parentId;
+        // Find the sibling before the target
+        const siblings = sortedProblems.filter(p => p.parentId === targetProblem.parentId && !draggedProblems.has(p.id));
+        const targetSiblingIndex = siblings.findIndex(p => p.id === targetProblem.id);
+        afterProblemId = targetSiblingIndex > 0 ? siblings[targetSiblingIndex - 1].id : null;
+      } else {
+        // Drop after target - same parent as target
+        newParentId = targetProblem.parentId;
+        afterProblemId = targetProblem.id;
+      }
+      
+      // Call the API to move the problem
+      await moveProblem(draggedProblemId, newParentId, afterProblemId);
+      
+      // Reload problems to get updated idPaths
+      const data = await fetchProblems(projectId);
+      setProblems(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to move problem';
+      setError(errorMessage);
+      console.error('Error moving problem:', err);
+    } finally {
+      handleDragEnd();
+    }
+  };
+
+  // Handle drop on the "add new" row (drop as root-level at end)
+  const handleDropOnNewRow = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!draggedProblemId) {
+      handleDragEnd();
+      return;
+    }
+    
+    try {
+      setError(null);
+      
+      // Drop as root level at the end
+      const rootProblems = sortedProblems.filter(p => !p.parentId);
+      const lastRootProblem = rootProblems.length > 0 ? rootProblems[rootProblems.length - 1] : null;
+      
+      await moveProblem(draggedProblemId, null, lastRootProblem?.id ?? null);
+      
+      const data = await fetchProblems(projectId);
+      setProblems(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to move problem';
+      setError(errorMessage);
+      console.error('Error moving problem:', err);
+    } finally {
+      handleDragEnd();
+    }
+  };
 
   // Handle creating a new problem
   const handleCreateProblem = async (insertAfterIndex: number | null) => {
@@ -302,12 +510,44 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
           <tbody>
             {sortedProblems.map((problem, index) => {
               const depth = getDepth(problem.idPath);
+              const isDragging = draggedProblemId !== null && getDraggedProblems(draggedProblemId).has(problem.id);
+              const isDropTarget = dropTargetIndex === index && !isDragging;
+              
+              // Determine drop indicator style
+              let dropIndicatorStyle: React.CSSProperties = {};
+              if (isDropTarget && dropPosition) {
+                if (dropPosition === 'before') {
+                  dropIndicatorStyle = { boxShadow: 'inset 0 2px 0 var(--accent-color)' };
+                } else if (dropPosition === 'after') {
+                  dropIndicatorStyle = { boxShadow: 'inset 0 -2px 0 var(--accent-color)' };
+                } else if (dropPosition === 'child') {
+                  dropIndicatorStyle = { backgroundColor: 'var(--bg-tertiary)' };
+                }
+              }
+              
               return (
-                <tr key={problem.id} className={`problem-row depth-${depth}`}>
+                <tr 
+                  key={problem.id} 
+                  className={`problem-row depth-${depth}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}`}
+                  style={{
+                    opacity: isDragging ? 0.5 : 1,
+                    ...dropIndicatorStyle,
+                  }}
+                  onDragOver={(e) => handleDragOver(e, index, problem)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, index, problem)}
+                >
                   <td className="problem-id">
                     <div className="row-handle-container">
                       <span className="row-handle-indicator">⋮</span>
-                      <div className="row-handle" title="Row actions">
+                      <div 
+                        className="row-handle" 
+                        title="Drag to reorder"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, problem.id)}
+                        onDragEnd={handleDragEnd}
+                        style={{ cursor: draggedProblemId ? 'grabbing' : 'grab' }}
+                      >
                         <span className="handle-icon">⋮⋮</span>
                       </div>
                       <div className="row-actions-panel">
@@ -411,7 +651,14 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
               );
             })}
             {/* Insert button row at bottom for top-level insertion */}
-            <tr className="insert-button-row">
+            <tr 
+              className="insert-button-row"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+              }}
+              onDrop={handleDropOnNewRow}
+            >
               <td colSpan={8} className="insert-button-cell">
                 <button
                   className="row-action-button"

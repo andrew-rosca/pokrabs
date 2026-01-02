@@ -175,6 +175,145 @@ export class PrismaProblemRepository implements IProblemRepository {
     return problem !== null;
   }
 
+  async move(
+    id: string,
+    newParentId: string | null,
+    afterProblemId: string | null
+  ): Promise<Problem> {
+    // Find the problem being moved
+    const problem = await this.prisma.problem.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        idPath: true,
+        projectId: true,
+        parentId: true,
+      },
+    });
+
+    if (!problem) {
+      throw new Error('Problem not found');
+    }
+
+    const oldIdPath = problem.idPath;
+
+    // Calculate new idPath
+    let newIdPath: string;
+    if (newParentId) {
+      // Moving under a new parent - get parent's idPath
+      const newParent = await this.prisma.problem.findUnique({
+        where: { id: newParentId },
+        select: { idPath: true, projectId: true },
+      });
+      if (!newParent) {
+        throw new Error('New parent not found');
+      }
+      if (newParent.projectId !== problem.projectId) {
+        throw new Error('Cannot move problem to a different project');
+      }
+      // Prevent moving a problem under itself or its descendants
+      if (newParent.idPath.startsWith(oldIdPath + '-') || newParent.idPath === oldIdPath) {
+        throw new Error('Cannot move a problem under itself or its descendants');
+      }
+      newIdPath = `${newParent.idPath}-${id}`;
+    } else {
+      // Moving to root level
+      newIdPath = id;
+    }
+
+    // Calculate new priority based on afterProblemId
+    let newPriority = 0;
+    if (afterProblemId) {
+      const afterProblem = await this.prisma.problem.findUnique({
+        where: { id: afterProblemId },
+        select: { priority: true },
+      });
+      if (afterProblem) {
+        newPriority = afterProblem.priority + 1;
+      }
+    }
+
+    // Get all descendants that need idPath updates
+    const descendantPrefix = `${oldIdPath}-`;
+    const descendants = await this.prisma.problem.findMany({
+      where: {
+        idPath: {
+          startsWith: descendantPrefix,
+        },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        idPath: true,
+      },
+    });
+
+    // Calculate new idPaths for descendants
+    const descendantUpdates = descendants.map((d) => ({
+      id: d.id,
+      // Replace the old prefix with the new one
+      newIdPath: newIdPath + d.idPath.substring(oldIdPath.length),
+    }));
+
+    // Perform all updates in a transaction
+    await this.prisma.$transaction(async (tx) => {
+      // Update the moved problem
+      await tx.problem.update({
+        where: { id },
+        data: {
+          parentId: newParentId,
+          idPath: newIdPath,
+          priority: newPriority,
+        },
+      });
+
+      // Update all descendants' idPaths
+      for (const update of descendantUpdates) {
+        await tx.problem.update({
+          where: { id: update.id },
+          data: { idPath: update.newIdPath },
+        });
+      }
+
+      // Shift priorities of other siblings to make room
+      // (problems at same level after the insertion point)
+      if (newParentId !== null) {
+        await tx.problem.updateMany({
+          where: {
+            parentId: newParentId,
+            id: { not: id },
+            priority: { gte: newPriority },
+            deletedAt: null,
+          },
+          data: {
+            priority: { increment: 1 },
+          },
+        });
+      } else {
+        // Root level siblings
+        await tx.problem.updateMany({
+          where: {
+            parentId: null,
+            projectId: problem.projectId,
+            id: { not: id },
+            priority: { gte: newPriority },
+            deletedAt: null,
+          },
+          data: {
+            priority: { increment: 1 },
+          },
+        });
+      }
+    });
+
+    // Fetch and return the updated problem
+    const updated = await this.prisma.problem.findUnique({
+      where: { id },
+    });
+
+    return this.mapToProblem(updated!);
+  }
+
   /**
    * Map Prisma ProblemStatus enum to shared Status enum
    */

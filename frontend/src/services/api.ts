@@ -130,3 +130,36 @@ export async function deleteProblem(problemId: string): Promise<void> {
   }
 }
 
+/**
+ * Move a problem to a new parent and/or position
+ * @param problemId - The problem ID to move
+ * @param newParentId - The new parent ID (null for root level)
+ * @param afterProblemId - Insert after this sibling (null means first among siblings)
+ */
+export async function moveProblem(
+  problemId: string,
+  newParentId: string | null,
+  afterProblemId: string | null
+): Promise<Problem> {
+  const response = await fetch(`${API_URL}/api/problems/${problemId}/move`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ newParentId, afterProblemId }),
+  });
+  if (!response.ok) {
+    let errorMessage = `Failed to move problem: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+}
+
