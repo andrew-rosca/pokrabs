@@ -30,8 +30,36 @@ cd frontend && npm run dev
 ```
 
 The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:3001
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3000
+
+### Database Seeding
+
+Populate the database with test data:
+
+**Small dataset** (6-7 problems, good for demos):
+```bash
+cd backend && npm run db:seed
+```
+
+**Large dataset** (200+ problems, for testing scrolling/performance):
+```bash
+cd backend && npm run db:seed:large
+```
+
+See `backend/src/database/SEED_README.md` for details.
+
+### Testing
+
+Run tests:
+
+```bash
+# Backend tests
+cd backend && npm test
+
+# Frontend tests
+cd frontend && npm test
+```
 
 ## Project Structure
 

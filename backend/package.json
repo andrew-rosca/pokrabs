@@ -14,7 +14,8 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
-    "db:seed": "tsx src/database/seed.ts"
+    "db:seed": "tsx src/database/seed.ts",
+    "db:seed:large": "tsx src/database/seed.ts --large"
   },
   "keywords": [],
   "author": "",

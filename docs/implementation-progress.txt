@@ -1130,3 +1130,95 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 - `frontend/src/components/SummaryDetailCell.tsx` - Added forceExpanded prop and sync effect
 - `frontend/src/App.tsx` - Updated route to render ProblemsList for /:problemId
 
+**Enhancement - Highlight Flash on Navigation:**
+- Added visual highlight animation when navigating to a problem via URL
+- Row briefly flashes with accent color to draw user's attention
+- Animation lasts 2 seconds with smooth fade in/out
+- Uses CSS `@keyframes` for smooth, performant animation
+- `highlightedProblemId` state tracks which row to highlight
+- Class `.highlighted` applied to target row triggers animation
+
+**Files Modified (Enhancement):**
+- `frontend/src/components/ProblemsList.tsx` - Added highlight state and timing
+- `frontend/src/index.css` - Added highlight-flash animation
+
+### 2026-01-02 - Database Seeding with Large Datasets
+
+**Completed:**
+- Enhanced database seeding script to support both small and large datasets
+- Implemented `--large` flag to generate 200+ test problems
+- Added variety in problem data (statuses, labels, areas)
+- Created comprehensive test suite for seeding functionality
+- Added documentation for seeding features
+
+**Feature Details:**
+- **Small Dataset** (`npm run db:seed`):
+  - Creates 6-7 sample problems demonstrating POKRABS decomposition
+  - Realistic support team scenario with clear problem hierarchy
+  - Shows all aspects of POKRABS methodology
+  - Suitable for demos and development
+
+- **Large Dataset** (`npm run db:seed:large`):
+  - Creates 50 root problems across diverse domains
+  - 2-5 children per root (150-250 child problems total)
+  - ~200-300 total problems for UI testing
+  - Varied statuses: Actionable, In Progress, Blocked, Resolved
+  - Diverse labels: high-priority, urgent, technical, frontend, backend, etc.
+  - Problem areas: Performance, Security, UX, Infrastructure, Code Quality, Business, Team
+
+**Implementation Details:**
+- Added template system for generating varied problem data
+- Helper functions for problem summaries, objectives, key results, actions, blockers
+- Progress logging during large seed (every 10-20 problems)
+- Automatic reseeding clears existing "Default Project" data
+- Proper foreign key constraint handling during deletion
+- Command-line argument parsing for `--large` flag
+
+**Template System:**
+- 7 problem areas with 5 variations each
+- 8 different label combinations
+- 4 status types distributed evenly
+- Randomized key results (1-3 per problem)
+- Randomized actions (1-4 per problem)
+- Blockers only for Blocked status problems
+
+**Testing:**
+- Created `seed.test.ts` with comprehensive test coverage
+- Tests verify small dataset structure (6-10 problems)
+- Tests verify large dataset size (150-300 problems)
+- Tests verify reseeding clears old data
+- Tests verify data variety (multiple statuses, labels)
+- Tests verify problem structure (JSON parsing, required fields)
+- All tests pass successfully
+
+**Use Cases:**
+- **Scrolling Performance**: Test table with 200+ rows
+- **Filtering/Search**: Test with diverse problem content
+- **Sorting**: Test with varied data values
+- **Hierarchy Display**: Test with clear parent-child relationships
+- **Bulk Operations**: Test with many selected items
+
+**Performance:**
+- Large seed completes in ~2-3 seconds
+- Creates 214 problems average (50 root + 164 children)
+- Progress logging shows creation status every 10-20 items
+- Efficient batch creation with single database connection
+
+**Files Modified:**
+- `backend/src/database/seed.ts` - Enhanced seeding logic with large dataset support
+- `backend/package.json` - Added `db:seed:large` script
+- `backend/src/database/seed.test.ts` - Created comprehensive test suite
+- `backend/src/database/SEED_README.md` - Created detailed documentation
+
+**Documentation:**
+- Created SEED_README.md with complete usage guide
+- Documented both seeding modes
+- Listed all problem templates and areas
+- Explained ID generation and hierarchy
+- Provided use cases and examples
+
+**Next Steps:**
+- Consider adding more problem templates for additional domains
+- Could add custom seed size parameter (e.g., `--size=100`)
+- Could add seed profiles for specific testing scenarios
+
