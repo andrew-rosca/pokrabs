@@ -10,6 +10,7 @@ import { Problem, Status, CreateProblemRequest } from '../../../shared/types';
 import { fetchProblems, updateProblem, createProblem, deleteProblem } from '../services/api';
 import { EditableCell } from './EditableCell';
 import { SummaryDetailCell } from './SummaryDetailCell';
+import { DeleteButton } from './DeleteButton';
 
 interface ProblemsListProps {
   projectId: string;
@@ -19,7 +20,6 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [autoOpenEditor, setAutoOpenEditor] = useState<{ problemId: string; field: 'problem' | 'objective' } | null>(null);
 
   useEffect(() => {
@@ -219,20 +219,11 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     }
   };
 
-  // Handle deleting a problem (inline confirm)
-  const handleDeleteProblem = (problemId: string) => {
-    setPendingDeleteId(problemId);
-  };
-
-  const handleCancelDelete = () => {
-    setPendingDeleteId(null);
-  };
-
-  const handleConfirmDelete = async (problemId: string) => {
+  // Handle deleting a problem
+  const handleDeleteProblem = async (problemId: string) => {
     const previousProblems = problems;
     try {
       setError(null);
-      setPendingDeleteId(problemId);
 
       // Optimistically remove the problem
       setProblems(prev => prev.filter(p => p.id !== problemId));
@@ -248,8 +239,6 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete problem';
       setError(errorMessage);
       console.error('Error deleting problem:', err);
-    } finally {
-      setPendingDeleteId(null);
     }
   };
 
@@ -367,32 +356,11 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                         >
                           +
                         </button>
-                        <button
-                          className="row-action-button row-action-delete"
-                          onClick={() => handleDeleteProblem(problem.id)}
-                          title="Delete problem"
-                        >
-                          ×
-                        </button>
-                        {pendingDeleteId === problem.id && (
-                          <div className="row-delete-confirm" role="alert">
-                            <span className="row-delete-text">Delete?</span>
-                            <button
-                              className="row-action-button row-action-delete confirm"
-                              onClick={() => handleConfirmDelete(problem.id)}
-                              title="Confirm delete"
-                            >
-                              ✔
-                            </button>
-                            <button
-                              className="row-action-button cancel"
-                              onClick={handleCancelDelete}
-                              title="Cancel delete"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        )}
+                        <DeleteButton
+                          onDelete={() => handleDeleteProblem(problem.id)}
+                          ariaLabel="Delete problem"
+                          title="Delete problem&#10;Ctrl+click to delete without confirmation"
+                        />
                       </div>
                     </div>
                     <span className="id-path" style={{ paddingLeft: `${depth * 8}px` }}>

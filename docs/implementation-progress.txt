@@ -705,6 +705,30 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 **Testing:**
 - Frontend: 48 tests passing (`npm test` in `frontend/`)
 
+### 2026-01-02 - Shared DeleteButton Component
+
+**Completed:**
+- Extracted reusable `DeleteButton` component from inline delete implementations
+- Shared between `ProblemsList` (main table) and `ListEditor`
+- Ensures consistent delete behavior across all delete buttons:
+  - Click shows confirmation dialog (Delete? ✔/✕)
+  - Ctrl+click deletes immediately without confirmation
+  - Escape key cancels confirmation
+  - Red button on hover
+- Supports configurable size (small for ListEditor, default for main table)
+- Supports custom aria-label and title props
+
+**Files Added:**
+- `frontend/src/components/DeleteButton.tsx` - Reusable delete button with confirmation
+- `frontend/src/components/DeleteButton.test.tsx` - Tests (11 tests)
+
+**Files Modified:**
+- `frontend/src/components/ListEditor.tsx` - Uses DeleteButton for row delete
+- `frontend/src/components/ProblemsList.tsx` - Uses DeleteButton for problem delete
+
+**Testing:**
+- Frontend: 61 tests passing (`npm test` in `frontend/`)
+
 ### 2026-01-02 - ListEditor Component Complete
 
 **Completed:**

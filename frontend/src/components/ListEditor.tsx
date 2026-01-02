@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import React from 'react';
+import { DeleteButton } from './DeleteButton';
 
 interface ListEditorProps {
   items: string[];
@@ -62,7 +63,7 @@ export function ListEditor({ items, onSave, onCancel, title = 'Edit list', ancho
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(null);
+  const [pendingHeaderDelete, setPendingHeaderDelete] = useState(false);
   const contentRefs = useRef<(HTMLDivElement | null)[]>([]);
   const selectAllPendingRef = useRef<boolean>(false);
 
@@ -83,23 +84,28 @@ export function ListEditor({ items, onSave, onCancel, title = 'Edit list', ancho
   };
 
   const handleDeleteAt = (index: number) => {
-    // Show confirmation dialog
-    setPendingDeleteIndex(index);
-  };
-
-  const handleConfirmDelete = (index: number) => {
     setListItems((prev) => prev.filter((_, idx) => idx !== index));
-    setSelectedIndex(null);
-    setPendingDeleteIndex(null);
+    if (selectedIndex === index) {
+      setSelectedIndex(null);
+    } else if (selectedIndex !== null && selectedIndex > index) {
+      setSelectedIndex(selectedIndex - 1);
+    }
   };
 
-  const handleCancelDelete = () => {
-    setPendingDeleteIndex(null);
-  };
-
-  const handleDeleteSelected = () => {
+  const handleDeleteSelectedRequest = () => {
     if (selectedIndex === null) return;
-    handleDeleteAt(selectedIndex);
+    setPendingHeaderDelete(true);
+  };
+
+  const handleConfirmHeaderDelete = () => {
+    if (selectedIndex !== null) {
+      handleDeleteAt(selectedIndex);
+    }
+    setPendingHeaderDelete(false);
+  };
+
+  const handleCancelHeaderDelete = () => {
+    setPendingHeaderDelete(false);
   };
 
   const handleNewRowCommit = (value: string) => {
@@ -145,15 +151,16 @@ export function ListEditor({ items, onSave, onCancel, title = 'Edit list', ancho
       handleSave();
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      // If delete confirmation is open, cancel it first
-      if (pendingDeleteIndex !== null) {
-        handleCancelDelete();
+      // Check if header delete confirmation is open
+      if (pendingHeaderDelete) {
+        handleCancelHeaderDelete();
       } else {
+        // Otherwise, close the editor (DeleteButton handles its own Escape)
         onCancel?.();
       }
     } else if (e.key === 'Delete' && selectedIndex !== null) {
       e.preventDefault();
-      handleDeleteSelected();
+      handleDeleteSelectedRequest();
     }
   };
 
@@ -234,13 +241,38 @@ export function ListEditor({ items, onSave, onCancel, title = 'Edit list', ancho
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <button
               type="button"
-              onClick={handleDeleteSelected}
-              disabled={selectedIndex === null}
-              style={buttonStyle(selectedIndex === null)}
+              onClick={handleDeleteSelectedRequest}
+              disabled={selectedIndex === null || pendingHeaderDelete}
+              style={buttonStyle(selectedIndex === null || pendingHeaderDelete)}
               aria-label="Delete selected row"
             >
               Delete selected
             </button>
+            {pendingHeaderDelete && (
+              <div className="row-delete-confirm" role="alert" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span className="row-delete-text">Delete?</span>
+                <button
+                  type="button"
+                  className="row-action-button row-action-delete confirm"
+                  aria-label="Confirm delete"
+                  onClick={handleConfirmHeaderDelete}
+                  title="Confirm delete"
+                  style={{ width: '24px', height: '24px' }}
+                >
+                  ✔
+                </button>
+                <button
+                  type="button"
+                  className="row-action-button cancel"
+                  aria-label="Cancel delete"
+                  onClick={handleCancelHeaderDelete}
+                  title="Cancel delete"
+                  style={{ width: '24px', height: '24px' }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
             <button
               type="button"
               onClick={handleSave}
@@ -376,70 +408,13 @@ export function ListEditor({ items, onSave, onCancel, title = 'Edit list', ancho
                       </span>
                     )}
                   </div>
-                  {!isNewRow && (hoveredIndex === index || pendingDeleteIndex === index) && (
-                    <>
-                      <button
-                        type="button"
-                        className="row-action-button row-action-delete"
-                        aria-label="Delete row"
-                        title={"Delete row\nCtrl+click to delete without confirmation"}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (e.ctrlKey) {
-                            // Ctrl+click: delete immediately without confirmation
-                            handleConfirmDelete(index);
-                          } else {
-                            handleDeleteAt(index);
-                          }
-                        }}
-                        onContextMenu={(e) => {
-                          // On Mac, Ctrl+click triggers context menu instead of click
-                          // Handle it here to support Ctrl+click on Mac
-                          if (e.ctrlKey) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleConfirmDelete(index);
-                          }
-                        }}
-                        style={{
-                          width: '20px',
-                          height: '20px',
-                        }}
-                      >
-                        ×
-                      </button>
-                      {pendingDeleteIndex === index && (
-                        <div className="row-delete-confirm" role="alert">
-                          <span className="row-delete-text">Delete?</span>
-                          <button
-                            type="button"
-                            className="row-action-button row-action-delete confirm"
-                            aria-label="Confirm delete"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleConfirmDelete(index);
-                            }}
-                            title="Confirm delete"
-                            style={{ width: '20px', height: '20px' }}
-                          >
-                            ✔
-                          </button>
-                          <button
-                            type="button"
-                            className="row-action-button cancel"
-                            aria-label="Cancel delete"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCancelDelete();
-                            }}
-                            title="Cancel delete"
-                            style={{ width: '20px', height: '20px' }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
-                    </>
+                  {!isNewRow && (
+                    <DeleteButton
+                      onDelete={() => handleDeleteAt(index)}
+                      ariaLabel="Delete row"
+                      size="small"
+                      visible={hoveredIndex === index}
+                    />
                   )}
                 </div>
                 {/* Single contentEditable div - no element switching, so no height change */}
