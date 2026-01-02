@@ -26,6 +26,9 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   // Collapse state - set of collapsed problem IDs (children hidden)
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   
+  // Copy feedback state - tracks which ID was just copied
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  
   // Drag-and-drop state
   const [draggedProblemId, setDraggedProblemId] = useState<string | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
@@ -625,6 +628,20 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     }
   };
 
+  // Handle copying problem URL to clipboard
+  const handleCopyProblemUrl = async (problemId: string) => {
+    try {
+      const url = `${window.location.origin}/${problemId}`;
+      await navigator.clipboard.writeText(url);
+      
+      // Show visual feedback
+      setCopiedId(problemId);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (error) {
+      console.error('Failed to copy URL:', error);
+    }
+  };
+
   // Handle creating a new problem
   // position: 'top' = first among siblings, 'bottom' = last among siblings
   const handleCreateProblem = async (parentId: string | null, position: 'top' | 'bottom') => {
@@ -821,8 +838,28 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       </div>
                     </div>
                     <div className="id-content" style={{ paddingLeft: `${depth * 8}px` }}>
-                      <span className="id-path">
+                      <span 
+                        className="id-path clickable"
+                        onClick={() => handleCopyProblemUrl(problem.id)}
+                        title={copiedId === problem.id ? "Copied!" : "Click to copy link"}
+                        style={{ 
+                          cursor: 'pointer',
+                          position: 'relative'
+                        }}
+                      >
                         {problem.idPath}
+                        {copiedId === problem.id && (
+                          <span 
+                            style={{
+                              marginLeft: '0.5rem',
+                              fontSize: '0.625rem',
+                              color: 'var(--accent-color)',
+                              fontWeight: 600
+                            }}
+                          >
+                            ✓
+                          </span>
+                        )}
                       </span>
                       {problemHasChildren && (
                         <span className="collapse-controls">
