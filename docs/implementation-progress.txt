@@ -909,3 +909,73 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 - Same logic applies for adding child problems
 - Styled bottom "+" button to match header "+" button (18x18px, 12px font)
 - Verified sibling reordering works: moving `5g` after `0t` correctly updates priorities and display order
+
+### 2026-01-02 - Collapse/Expand Parent Rows Feature
+
+**Completed:**
+- Implemented collapse/expand functionality for parent rows in the ID column
+
+**Feature Details:**
+- **Single caret (▸/▾)**: Toggles visibility of immediate children
+  - ▾ (down arrow) indicates expanded state - children are visible
+  - ▸ (right arrow) indicates collapsed state - children are hidden
+- **Double caret (»/«)**: Expands/collapses entire descendant tree
+  - » (double right arrow) expands all collapsed descendants
+  - « (double left arrow) collapses all descendants that have children
+- Carets only appear for problems that have children
+- When collapsed, all descendants (children, grandchildren, etc.) are hidden
+- State is managed locally in React (not persisted to backend)
+
+**Implementation Details:**
+- Added `collapsedIds` state (Set) to track which problems are collapsed
+- Created helper functions:
+  - `hasChildren(problemId)`: Checks if a problem has any descendants
+  - `getDescendantIds(problemId)`: Gets all descendant IDs
+  - `isHiddenByCollapse(problem)`: Checks if any ancestor is collapsed
+  - `toggleCollapse(problemId)`: Toggles single collapse state
+  - `expandAll(problemId)`: Removes problem and all descendants from collapsed set
+  - `collapseAll(problemId)`: Adds problem and all descendants with children to collapsed set
+  - `hasCollapsedDescendants(problemId)`: Checks if any descendant is collapsed
+- Added `visibleProblems` filter that excludes hidden problems from rendering
+- Added collapse control buttons in ID column with proper aria-labels
+
+**CSS Styling:**
+- `.collapse-controls`: Flex container for caret buttons
+- `.collapse-toggle`: Single caret button styling
+- `.collapse-toggle-all`: Double caret button styling
+- Hover effects change color to accent color
+- Small, subtle appearance (0.625rem font size)
+
+**Refinements:**
+- Moved carets to appear AFTER the ID (e.g., `6q ⌄ ⌄⌄`)
+- Used same caret characters as content cells: `>` for collapsed, `⌄` for expanded
+- Fixed row handle container width (32px) so carets are clickable
+- Added `.row-actions-panel:hover` to keep menu visible when moving to + button
+- Double caret only shown for problems with grandchildren (2+ levels of depth)
+- Updated tooltips: "Show/Hide children" for single, "Expand/Collapse entire tree" for double
+
+**Header Collapse Controls:**
+- Added single caret in ID column header to collapse/expand all root-level parents
+- Added double caret in ID column header to collapse/expand entire tree
+- Single caret only affects root-level parents (preserves nested collapse states)
+- Double caret affects ALL parents at all levels
+- Header carets only shown when applicable (any children / any grandchildren)
+- Added helper functions:
+  - `hasGrandchildren(problemId)`: Checks if problem has 2+ levels of descendants
+  - `collapseRootParents()` / `expandRootParents()`: For single caret
+  - `collapseAllParents()` / `expandAllParents()`: For double caret
+
+**Testing:**
+- Added 6 new tests for collapse/expand functionality:
+  1. Show collapse carets only for problems with children
+  2. Hide child when parent is collapsed
+  3. Show child when parent is expanded
+  4. Collapse all descendants with double caret
+  5. Expand all descendants with double caret
+  6. Only collapse immediate children with single caret
+- All 78 frontend tests passing
+
+**Files Modified:**
+- `frontend/src/components/ProblemsList.tsx` - Added collapse state, caret controls, and header controls
+- `frontend/src/index.css` - Added collapse control styles, fixed hover targets
+- `frontend/src/components/ProblemsList.test.tsx` - Added collapse/expand tests

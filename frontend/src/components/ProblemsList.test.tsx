@@ -829,5 +829,231 @@ describe('ProblemsList', () => {
       consoleErrorSpy.mockRestore();
     });
   });
+
+  describe('Collapse/Expand Parent Rows', () => {
+    const hierarchicalProblems: Problem[] = [
+      {
+        id: 'parent1',
+        idPath: 'parent1',
+        problem: JSON.stringify({ summary: 'Parent Problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'Parent Objective', detail: '' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.NotStarted,
+        votes: 0,
+        priority: 0,
+        labels: [],
+        parentId: null,
+        projectId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'child1',
+        idPath: 'parent1-child1',
+        problem: JSON.stringify({ summary: 'Child Problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'Child Objective', detail: '' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.InProgress,
+        votes: 0,
+        priority: 0,
+        labels: [],
+        parentId: 'parent1',
+        projectId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'grandchild1',
+        idPath: 'parent1-child1-grandchild1',
+        problem: JSON.stringify({ summary: 'Grandchild Problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'Grandchild Objective', detail: '' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.Blocked,
+        votes: 0,
+        priority: 0,
+        labels: [],
+        parentId: 'child1',
+        projectId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'orphan1',
+        idPath: 'orphan1',
+        problem: JSON.stringify({ summary: 'Orphan Problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'Orphan Objective', detail: '' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.NotStarted,
+        votes: 0,
+        priority: 1,
+        labels: [],
+        parentId: null,
+        projectId,
+        createdAt: '2024-01-01T00:00:01Z',
+        updatedAt: '2024-01-01T00:00:01Z',
+      },
+    ];
+
+    it('should show collapse carets only for problems with children', async () => {
+      mockFetchProblems.mockResolvedValue(hierarchicalProblems);
+      
+      render(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Parent Problem')).toBeInTheDocument();
+      });
+      
+      // Parent (has children) should have collapse controls (single caret)
+      const collapseButtons = screen.getAllByTitle('Hide children');
+      expect(collapseButtons.length).toBe(2); // parent1 and child1 have children
+      
+      // Orphan (no children) should not have collapse controls
+      const orphanRow = screen.getByText('orphan1').closest('tr');
+      const orphanCollapseButton = orphanRow?.querySelector('[title="Hide children"]');
+      expect(orphanCollapseButton).toBeNull();
+    });
+
+    it('should hide child when parent is collapsed', async () => {
+      const user = userEvent.setup();
+      mockFetchProblems.mockResolvedValue(hierarchicalProblems);
+      
+      render(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Parent Problem')).toBeInTheDocument();
+        expect(screen.getByText('Child Problem')).toBeInTheDocument();
+        expect(screen.getByText('Grandchild Problem')).toBeInTheDocument();
+      });
+      
+      // Find and click the collapse button for parent1 (single caret)
+      const collapseButton = screen.getAllByTitle('Hide children')[0];
+      await user.click(collapseButton);
+      
+      // Child and grandchild should be hidden
+      await waitFor(() => {
+        expect(screen.queryByText('Child Problem')).not.toBeInTheDocument();
+        expect(screen.queryByText('Grandchild Problem')).not.toBeInTheDocument();
+      });
+      
+      // Parent and orphan should still be visible
+      expect(screen.getByText('Parent Problem')).toBeInTheDocument();
+      expect(screen.getByText('Orphan Problem')).toBeInTheDocument();
+    });
+
+    it('should show child when parent is expanded', async () => {
+      const user = userEvent.setup();
+      mockFetchProblems.mockResolvedValue(hierarchicalProblems);
+      
+      render(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Parent Problem')).toBeInTheDocument();
+      });
+      
+      // Collapse first (single caret)
+      const collapseButton = screen.getAllByTitle('Hide children')[0];
+      await user.click(collapseButton);
+      
+      await waitFor(() => {
+        expect(screen.queryByText('Child Problem')).not.toBeInTheDocument();
+      });
+      
+      // Expand (single caret)
+      const expandButton = screen.getByTitle('Show children');
+      await user.click(expandButton);
+      
+      // Child and grandchild should be visible again
+      await waitFor(() => {
+        expect(screen.getByText('Child Problem')).toBeInTheDocument();
+        expect(screen.getByText('Grandchild Problem')).toBeInTheDocument();
+      });
+    });
+
+    it('should collapse all descendants when double caret is clicked', async () => {
+      const user = userEvent.setup();
+      mockFetchProblems.mockResolvedValue(hierarchicalProblems);
+      
+      render(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Parent Problem')).toBeInTheDocument();
+        expect(screen.getByText('Child Problem')).toBeInTheDocument();
+        expect(screen.getByText('Grandchild Problem')).toBeInTheDocument();
+      });
+      
+      // Click "Collapse entire tree" on parent (double caret)
+      const collapseAllButton = screen.getAllByTitle('Collapse entire tree')[0];
+      await user.click(collapseAllButton);
+      
+      // All descendants should be hidden
+      await waitFor(() => {
+        expect(screen.queryByText('Child Problem')).not.toBeInTheDocument();
+        expect(screen.queryByText('Grandchild Problem')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should expand all descendants when double caret is clicked on collapsed parent', async () => {
+      const user = userEvent.setup();
+      mockFetchProblems.mockResolvedValue(hierarchicalProblems);
+      
+      render(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Parent Problem')).toBeInTheDocument();
+      });
+      
+      // First collapse all (double caret)
+      const collapseAllButton = screen.getAllByTitle('Collapse entire tree')[0];
+      await user.click(collapseAllButton);
+      
+      await waitFor(() => {
+        expect(screen.queryByText('Child Problem')).not.toBeInTheDocument();
+      });
+      
+      // Now expand all (double caret) - use getAllByTitle since header also has one
+      const expandAllButtons = screen.getAllByTitle('Expand entire tree');
+      await user.click(expandAllButtons[0]);
+      
+      // All descendants should be visible
+      await waitFor(() => {
+        expect(screen.getByText('Child Problem')).toBeInTheDocument();
+        expect(screen.getByText('Grandchild Problem')).toBeInTheDocument();
+      });
+    });
+
+    it('should only collapse immediate children when single caret is clicked', async () => {
+      const user = userEvent.setup();
+      mockFetchProblems.mockResolvedValue(hierarchicalProblems);
+      
+      render(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Parent Problem')).toBeInTheDocument();
+        expect(screen.getByText('Child Problem')).toBeInTheDocument();
+        expect(screen.getByText('Grandchild Problem')).toBeInTheDocument();
+      });
+      
+      // Collapse child1 (which has grandchild1)
+      // First, find child1's collapse button (second collapse button) - single caret
+      const collapseButtons = screen.getAllByTitle('Hide children');
+      const childCollapseButton = collapseButtons[1]; // child1's button
+      await user.click(childCollapseButton);
+      
+      // Grandchild should be hidden, but parent and child should be visible
+      await waitFor(() => {
+        expect(screen.getByText('Parent Problem')).toBeInTheDocument();
+        expect(screen.getByText('Child Problem')).toBeInTheDocument();
+        expect(screen.queryByText('Grandchild Problem')).not.toBeInTheDocument();
+      });
+    });
+  });
 });
 

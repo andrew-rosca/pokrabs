@@ -266,7 +266,7 @@ code {
   left: -10px;
   top: 0;
   bottom: 0;
-  width: 100px;
+  width: 32px; /* Cover ellipsis area and extend to where actions panel starts */
   display: flex;
   align-items: center;
   gap: 4px;
@@ -340,7 +340,7 @@ code {
 
 .row-actions-panel {
   position: absolute;
-  left: 30px;
+  left: 28px; /* Align with container edge so there's no gap */
   top: 50%;
   transform: translateY(-50%) translateX(-8px);
   display: flex;
@@ -350,10 +350,12 @@ code {
   transition: opacity 0.2s ease, transform 0.2s ease;
   pointer-events: none;
   z-index: 5;
+  padding-left: 4px; /* Extra padding to extend hover area */
 }
 
-/* Only show actions panel when hovering over the handle container */
-.row-handle-container:hover .row-actions-panel {
+/* Show actions panel when hovering over the handle container OR the panel itself */
+.row-handle-container:hover .row-actions-panel,
+.row-actions-panel:hover {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
   pointer-events: auto;
@@ -465,11 +467,25 @@ code {
   overflow: visible;
 }
 
+.id-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .id-path {
   display: inline-block;
   font-weight: 500;
   color: var(--accent-color);
   font-size: 0.6875rem;
+}
+
+/* Collapse/Expand controls in ID column */
+.collapse-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  margin-left: 0.125rem;
 }
 
 .problem-text {

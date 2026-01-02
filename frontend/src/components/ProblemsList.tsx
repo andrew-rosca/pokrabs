@@ -23,6 +23,9 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   const [error, setError] = useState<string | null>(null);
   const [autoOpenEditor, setAutoOpenEditor] = useState<{ problemId: string; field: 'problem' | 'objective' } | null>(null);
   
+  // Collapse state - set of collapsed problem IDs (children hidden)
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  
   // Drag-and-drop state
   const [draggedProblemId, setDraggedProblemId] = useState<string | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
@@ -232,6 +235,162 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     }
   };
 
+  // Check if a problem has any children (direct or nested)
+  const hasChildren = (problemId: string): boolean => {
+    const problem = problems.find(p => p.id === problemId);
+    if (!problem) return false;
+    return problems.some(p => p.idPath.startsWith(problem.idPath + '-'));
+  };
+
+  // Check if a problem has grandchildren (at least 2 levels of depth below)
+  const hasGrandchildren = (problemId: string): boolean => {
+    const problem = problems.find(p => p.id === problemId);
+    if (!problem) return false;
+    const problemDepth = getDepth(problem.idPath);
+    // Find any descendant that is at least 2 levels deeper
+    return problems.some(p => 
+      p.idPath.startsWith(problem.idPath + '-') && 
+      getDepth(p.idPath) >= problemDepth + 2
+    );
+  };
+
+  // Get all descendant IDs of a problem (children, grandchildren, etc.)
+  const getDescendantIds = (problemId: string): Set<string> => {
+    const problem = problems.find(p => p.id === problemId);
+    if (!problem) return new Set();
+    
+    const descendantIds = new Set<string>();
+    for (const p of problems) {
+      if (p.idPath.startsWith(problem.idPath + '-')) {
+        descendantIds.add(p.id);
+      }
+    }
+    return descendantIds;
+  };
+
+  // Check if a problem is hidden due to a parent being collapsed
+  const isHiddenByCollapse = (problem: Problem): boolean => {
+    // Check each ancestor in the idPath to see if it's collapsed
+    const pathParts = problem.idPath.split('-');
+    // Build ancestor paths and check if any are collapsed
+    let currentPath = '';
+    for (let i = 0; i < pathParts.length - 1; i++) { // -1 to skip the problem itself
+      currentPath = currentPath ? `${currentPath}-${pathParts[i]}` : pathParts[i];
+      // Find the problem with this idPath and check if it's collapsed
+      const ancestorProblem = problems.find(p => p.idPath === currentPath);
+      if (ancestorProblem && collapsedIds.has(ancestorProblem.id)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Toggle collapse for a single problem (show/hide direct children)
+  const toggleCollapse = (problemId: string) => {
+    setCollapsedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(problemId)) {
+        next.delete(problemId);
+      } else {
+        next.add(problemId);
+      }
+      return next;
+    });
+  };
+
+  // Expand all descendants (remove from collapsed set)
+  const expandAll = (problemId: string) => {
+    const descendantIds = getDescendantIds(problemId);
+    setCollapsedIds(prev => {
+      const next = new Set(prev);
+      // Remove this problem and all descendants from collapsed set
+      next.delete(problemId);
+      for (const id of descendantIds) {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  // Collapse all descendants (add all with children to collapsed set)
+  const collapseAll = (problemId: string) => {
+    const descendantIds = getDescendantIds(problemId);
+    setCollapsedIds(prev => {
+      const next = new Set(prev);
+      // Collapse this problem
+      next.add(problemId);
+      // Collapse all descendants that have children
+      for (const id of descendantIds) {
+        if (hasChildren(id)) {
+          next.add(id);
+        }
+      }
+      return next;
+    });
+  };
+
+  // Check if a problem or any of its descendants is collapsed
+  const hasCollapsedDescendants = (problemId: string): boolean => {
+    const descendantIds = getDescendantIds(problemId);
+    for (const id of descendantIds) {
+      if (collapsedIds.has(id)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Global collapse/expand helpers
+  // Get root-level problems (those without a parent in the list)
+  const problemIds = new Set(problems.map(p => p.id));
+  const rootProblems = problems.filter(p => !p.parentId || !problemIds.has(p.parentId));
+  const rootParents = rootProblems.filter(p => hasChildren(p.id));
+  
+  const anyProblemsHaveChildren = problems.some(p => hasChildren(p.id));
+  const anyProblemsHaveGrandchildren = problems.some(p => hasGrandchildren(p.id));
+  const allRootParentsCollapsed = rootParents.length > 0 && rootParents.every(p => collapsedIds.has(p.id));
+  const anyCollapsed = collapsedIds.size > 0;
+
+  // Single caret: Collapse only root-level parents (hide their immediate children)
+  const collapseRootParents = () => {
+    setCollapsedIds(prev => {
+      const next = new Set(prev);
+      for (const p of rootParents) {
+        next.add(p.id);
+      }
+      return next;
+    });
+  };
+
+  // Single caret: Expand only root-level parents (show their immediate children)
+  const expandRootParents = () => {
+    setCollapsedIds(prev => {
+      const next = new Set(prev);
+      for (const p of rootParents) {
+        next.delete(p.id);
+      }
+      return next;
+    });
+  };
+
+  // Double caret: Collapse all parents at all levels
+  const collapseAllParents = () => {
+    setCollapsedIds(prev => {
+      const next = new Set(prev);
+      for (const p of problems) {
+        if (hasChildren(p.id)) {
+          next.add(p.id);
+        }
+      }
+      return next;
+    });
+  };
+
+  // Double caret: Expand all parents (show all children)
+  const expandAllParents = () => {
+    setCollapsedIds(new Set());
+  };
+
   // Sort problems hierarchically with priority-based sibling ordering
   // This ensures:
   // 1. Parent problems appear before their children
@@ -276,6 +435,9 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     
     return result;
   })();
+
+  // Filter out problems hidden by collapsed parents
+  const visibleProblems = sortedProblems.filter(p => !isHiddenByCollapse(p));
 
   // Get all problems that would move with the dragged problem (itself + descendants)
   const getDraggedProblems = (problemId: string): Set<string> => {
@@ -510,6 +672,64 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
               <th>
                 <div className="header-with-action">
                   <span>ID</span>
+                  {anyProblemsHaveChildren && (
+                    <span className="collapse-controls header-collapse-controls">
+                      {/* Single caret: collapse/expand only root-level parents */}
+                      <button
+                        className="expand-toggle"
+                        onClick={(e) => { e.stopPropagation(); allRootParentsCollapsed ? expandRootParents() : collapseRootParents(); }}
+                        title={allRootParentsCollapsed ? 'Show all children' : 'Hide all children'}
+                        aria-label={allRootParentsCollapsed ? 'Show all children' : 'Hide all children'}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '0.125rem 0.25rem',
+                          fontSize: '0.625rem',
+                          color: 'var(--text-secondary)',
+                          opacity: 0.65,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '16px',
+                          height: '16px',
+                          flexShrink: 0,
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.95'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.65'; }}
+                      >
+                        {allRootParentsCollapsed ? '>' : '⌄'}
+                      </button>
+                      {/* Double caret: collapse/expand entire tree */}
+                      {anyProblemsHaveGrandchildren && (
+                        <button
+                          className="expand-toggle"
+                          onClick={(e) => { e.stopPropagation(); anyCollapsed ? expandAllParents() : collapseAllParents(); }}
+                          title={anyCollapsed ? 'Expand entire tree' : 'Collapse entire tree'}
+                          aria-label={anyCollapsed ? 'Expand entire tree' : 'Collapse entire tree'}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '0.125rem 0.25rem',
+                            fontSize: '0.625rem',
+                            color: 'var(--text-secondary)',
+                            opacity: 0.65,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '16px',
+                            height: '16px',
+                            flexShrink: 0,
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.95'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.65'; }}
+                        >
+                          {anyCollapsed ? '>>' : '⌄⌄'}
+                        </button>
+                      )}
+                    </span>
+                  )}
                   <button
                     className="header-action-button"
                     onClick={() => handleCreateProblem(null, 'top')}
@@ -529,10 +749,14 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
             </tr>
           </thead>
           <tbody>
-            {sortedProblems.map((problem, index) => {
+            {visibleProblems.map((problem, index) => {
               const depth = getDepth(problem.idPath);
               const isDragging = draggedProblemId !== null && getDraggedProblems(draggedProblemId).has(problem.id);
               const isDropTarget = dropTargetIndex === index && !isDragging;
+              const problemHasChildren = hasChildren(problem.id);
+              const problemHasGrandchildren = hasGrandchildren(problem.id);
+              const isCollapsed = collapsedIds.has(problem.id);
+              const hasNestedCollapsed = hasCollapsedDescendants(problem.id);
               
               // Determine drop indicator style
               let dropIndicatorStyle: React.CSSProperties = {};
@@ -586,9 +810,76 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                         />
                       </div>
                     </div>
-                    <span className="id-path" style={{ paddingLeft: `${depth * 8}px` }}>
-                      {problem.idPath}
-                    </span>
+                    <div className="id-content" style={{ paddingLeft: `${depth * 8}px` }}>
+                      <span className="id-path">
+                        {problem.idPath}
+                      </span>
+                      {problemHasChildren && (
+                        <span className="collapse-controls">
+                          {/* Single caret: toggle immediate children */}
+                          <button
+                            className="expand-toggle"
+                            onClick={(e) => { e.stopPropagation(); toggleCollapse(problem.id); }}
+                            title={isCollapsed ? 'Show children' : 'Hide children'}
+                            aria-label={isCollapsed ? 'Show children' : 'Hide children'}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '0.125rem 0.25rem',
+                              fontSize: '0.625rem',
+                              color: 'var(--text-secondary)',
+                              opacity: 0.65,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              minWidth: '16px',
+                              height: '16px',
+                              flexShrink: 0,
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.95'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.65'; }}
+                          >
+                            {isCollapsed ? '>' : '⌄'}
+                          </button>
+                          {/* Double caret: expand/collapse all descendants - only shown for grandchildren */}
+                          {problemHasGrandchildren && (
+                            <button
+                              className="expand-toggle"
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (isCollapsed || hasNestedCollapsed) {
+                                  expandAll(problem.id);
+                                } else {
+                                  collapseAll(problem.id);
+                                }
+                              }}
+                              title={isCollapsed || hasNestedCollapsed ? 'Expand entire tree' : 'Collapse entire tree'}
+                              aria-label={isCollapsed || hasNestedCollapsed ? 'Expand entire tree' : 'Collapse entire tree'}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '0.125rem 0.25rem',
+                                fontSize: '0.625rem',
+                                color: 'var(--text-secondary)',
+                                opacity: 0.65,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                minWidth: '16px',
+                                height: '16px',
+                                flexShrink: 0,
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.95'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.65'; }}
+                            >
+                              {isCollapsed || hasNestedCollapsed ? '>>' : '⌄⌄'}
+                            </button>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="problem-text">
                     <SummaryDetailCell
