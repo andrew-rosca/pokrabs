@@ -11,6 +11,21 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 // Extend Vitest's expect with jest-dom matchers
 expect.extend(matchers);
 
+// Mock ResizeObserver (not available in jsdom)
+class ResizeObserverMock {
+  callback: ResizeObserverCallback;
+  
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback;
+  }
+  
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+global.ResizeObserver = ResizeObserverMock;
+
 // Mock localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};

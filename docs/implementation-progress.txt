@@ -778,6 +778,45 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 **Testing:**
 - Frontend: 50 tests passing (`npm test` in `frontend/`)
 
+### 2026-01-02 - ListEditor and ListCell Components with Smart Overflow
+
+**Completed:**
+- Created `ListEditor` component for editing list fields (keyResults, actions, blockers)
+  - Drag-and-drop reordering with live preview
+  - Inline row delete with confirmation (Ctrl+click to skip confirmation)
+  - Escape key to cancel delete confirmation or close editor
+  - Quick-add mode: Enter keeps focus on blank row for consecutive item entry
+  - Contenteditable-based editing for consistent height between modes
+- Created `ListCell` component for displaying list fields in table
+  - One item per line with text wrapping
+  - Smart overflow detection using ResizeObserver
+  - CSS mask-image for fade effect (works with any background color)
+  - Expand/collapse caret when content overflows
+  - Collapsed cells fill available row height when another cell is expanded
+- Updated `SummaryDetailCell` with same smart overflow behavior
+  - Shows partial detail when row is taller due to another cell expanding
+  - Fade effect using CSS mask-image
+  - Removed separator line between summary and detail
+- Extracted `DeleteButton` as shared component for consistent delete UX
+- Added ResizeObserver mock in test setup for jsdom compatibility
+
+**Files Modified:**
+- `frontend/src/components/ListEditor.tsx` (new)
+- `frontend/src/components/ListEditor.test.tsx` (new)
+- `frontend/src/components/ListCell.tsx` (new)
+- `frontend/src/components/ListCell.test.tsx` (new)
+- `frontend/src/components/DeleteButton.tsx` (new)
+- `frontend/src/components/DeleteButton.test.tsx` (new)
+- `frontend/src/components/SummaryDetailCell.tsx` (updated)
+- `frontend/src/components/ProblemsList.tsx` (updated to use ListCell)
+- `frontend/src/components/ProblemsList.test.tsx` (updated)
+- `frontend/src/index.css` (added placeholder CSS, td height fix)
+- `frontend/src/test-setup.ts` (added ResizeObserver mock)
+
+**Tests:** All 71 frontend tests passing
+
+---
+
 ### 2026-01-01 - Mark Feature Flags F038 & F041 Complete
 
 **Completed:**

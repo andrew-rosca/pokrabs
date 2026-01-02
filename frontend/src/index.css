@@ -202,6 +202,7 @@ code {
   overflow: hidden;
   text-overflow: ellipsis;
   position: relative;
+  height: 1px; /* Enables height: 100% for children */
 }
 
 .problems-table td.problem-id {

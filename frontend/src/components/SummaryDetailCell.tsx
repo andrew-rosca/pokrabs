@@ -3,6 +3,9 @@
  * 
  * A cell that displays a summary and opens SummaryDetailEditor when clicked.
  * Used for fields that have both summary and detail (problem, objective).
+ * 
+ * When collapsed but row is expanded by another cell, shows detail content
+ * up to available space with fade effect if overflow exists.
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -16,11 +19,18 @@ interface SummaryDetailCellProps {
   onEditorOpened?: () => void; // Callback when editor opens
 }
 
+/** Height of the summary row (approximately 1 line) */
+const SUMMARY_HEIGHT = 20;
+
 export function SummaryDetailCell({ value, onSave, className = '', autoOpen = false, onEditorOpened }: SummaryDetailCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const [hasSpaceForDetail, setHasSpaceForDetail] = useState(false);
   const [cellRect, setCellRect] = useState<DOMRect | null>(null);
   const cellRef = useRef<HTMLDivElement>(null);
+  const detailWrapperRef = useRef<HTMLDivElement>(null);
+  const detailContentRef = useRef<HTMLDivElement>(null);
 
   // Parse the JSON to get summary and detail
   const getSummary = (): string => {
@@ -101,6 +111,43 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
     return detail.trim().length > 0;
   };
 
+  // Check if there's space for detail and if it overflows
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (!isExpanded && cellRef.current) {
+        // Check if cell has enough height beyond the summary row
+        const cellHeight = cellRef.current.clientHeight;
+        const availableSpace = cellHeight - SUMMARY_HEIGHT - 8; // 8px for margins/padding
+        setHasSpaceForDetail(availableSpace > 10); // Need at least 10px of space
+        
+        if (detailWrapperRef.current && detailContentRef.current) {
+          const wrapperHeight = detailWrapperRef.current.clientHeight;
+          const contentHeight = detailContentRef.current.scrollHeight;
+          setHasOverflow(contentHeight > wrapperHeight + 2);
+        } else {
+          setHasOverflow(false);
+        }
+      } else {
+        setHasOverflow(false);
+        setHasSpaceForDetail(false);
+      }
+    };
+
+    // Delay check to allow DOM to update after expand/collapse toggle
+    const timer = setTimeout(checkOverflow, 0);
+
+    // Use ResizeObserver to re-check when cell size changes
+    const resizeObserver = new ResizeObserver(checkOverflow);
+    if (cellRef.current) {
+      resizeObserver.observe(cellRef.current);
+    }
+
+    return () => {
+      clearTimeout(timer);
+      resizeObserver.disconnect();
+    };
+  }, [isExpanded, value]);
+
   const openEditor = () => {
     if (cellRef.current) {
       const rect = cellRef.current.getBoundingClientRect();
@@ -148,6 +195,8 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
   const summary = getSummary();
   const detail = getDetail();
   const showDetail = hasDetail();
+  // Always show caret when there's detail (user might want to expand/collapse)
+  const showCaret = showDetail;
 
   return (
     <>
@@ -158,7 +207,7 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
         style={{
           cursor: 'text',
           width: '100%',
-          minHeight: '100%',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
@@ -166,11 +215,12 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
         }}
         title="Click to edit summary and detail"
       >
+        {/* Summary row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', width: '100%' }}>
           <span style={{ flex: 1 }}>
             {summary || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>[none]</span>}
           </span>
-          {showDetail && (
+          {showCaret && (
             <button
               className="expand-toggle"
               onClick={handleExpandToggle}
@@ -200,12 +250,13 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
             </button>
           )}
         </div>
-        {isExpanded && showDetail && (
+
+        {/* Detail section */}
+        {showDetail && isExpanded && (
+          // Expanded: show full detail, contributes to row height
           <div
             style={{
               marginTop: '0.25rem',
-              paddingTop: '0.25rem',
-              borderTop: '1px solid var(--border-color)',
               fontSize: '0.7rem',
               color: 'var(--text-secondary)',
               whiteSpace: 'pre-wrap',
@@ -213,6 +264,39 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
             }}
           >
             {linkifyText(detail)}
+          </div>
+        )}
+        {/* Collapsed detail: only render if there's space from another cell expanding */}
+        {showDetail && !isExpanded && hasSpaceForDetail && (
+          <div
+            ref={detailWrapperRef}
+            style={{
+              position: 'absolute',
+              top: `${SUMMARY_HEIGHT + 4}px`, // Below summary
+              left: 0,
+              right: 0,
+              bottom: '0.25rem',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              ref={detailContentRef}
+              style={{
+                fontSize: '0.7rem',
+                color: 'var(--text-secondary)',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                height: '100%',
+                overflow: 'hidden',
+                // Use mask-image for fade effect - works with any background
+                ...(hasOverflow ? {
+                  maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
+                  WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
+                } : {}),
+              }}
+            >
+              {linkifyText(detail)}
+            </div>
           </div>
         )}
       </div>
@@ -228,4 +312,3 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
     </>
   );
 }
-

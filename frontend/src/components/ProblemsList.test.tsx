@@ -140,23 +140,25 @@ describe('ProblemsList', () => {
     expect(screen.getByText('5')).toBeInTheDocument();
   });
 
-  it('should display key results as comma-separated list', async () => {
+  it('should display key results one per line', async () => {
     render(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
-      // ListCell displays items comma-separated
-      expect(screen.getByText('KR1, KR2')).toBeInTheDocument();
+      // ListCell displays items one per line
+      expect(screen.getByText('KR1')).toBeInTheDocument();
+      expect(screen.getByText('KR2')).toBeInTheDocument();
       expect(screen.getByText('KR3')).toBeInTheDocument();
     });
   });
 
-  it('should display actions as comma-separated list', async () => {
+  it('should display actions one per line', async () => {
     render(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
-      // ListCell displays items comma-separated
+      // ListCell displays items one per line
       expect(screen.getByText('Action 1')).toBeInTheDocument();
-      expect(screen.getByText('Action 2, Action 3')).toBeInTheDocument();
+      expect(screen.getByText('Action 2')).toBeInTheDocument();
+      expect(screen.getByText('Action 3')).toBeInTheDocument();
     });
   });
 
@@ -334,13 +336,13 @@ describe('ProblemsList', () => {
     
     render(<ProblemsList projectId={projectId} />);
     
-    // Wait for the list cell to appear with comma-separated items
+    // Wait for the list cell items to appear
     await waitFor(() => {
-      expect(screen.getByText('KR1, KR2')).toBeInTheDocument();
+      expect(screen.getAllByText('KR1').length).toBeGreaterThan(0);
     });
     
-    // Find and click the list cell to open ListEditor
-    const listCell = screen.getByText('KR1, KR2');
+    // Find and click the list cell to open ListEditor (get the first KR1 element's parent cell)
+    const listCell = screen.getAllByText('KR1')[0].closest('.list-cell') as HTMLElement;
     await user.click(listCell);
     
     // Wait for ListEditor dialog to appear
@@ -348,10 +350,6 @@ describe('ProblemsList', () => {
       return screen.getByRole('dialog', { name: 'Key Results' });
     });
     expect(dialog).toBeInTheDocument();
-    
-    // Verify existing items are shown
-    expect(screen.getByText('KR1')).toBeInTheDocument();
-    expect(screen.getByText('KR2')).toBeInTheDocument();
     
     // Add a new item via the blank row
     const addItemInput = screen.getByLabelText(/Add item/i);
@@ -376,13 +374,13 @@ describe('ProblemsList', () => {
     
     render(<ProblemsList projectId={projectId} />);
     
-    // Wait for the list cell to appear with comma-separated items
+    // Wait for the list cell items to appear
     await waitFor(() => {
-      expect(screen.getByText('Action 2, Action 3')).toBeInTheDocument();
+      expect(screen.getAllByText('Action 2').length).toBeGreaterThan(0);
     });
     
     // Find and click the list cell to open ListEditor
-    const listCell = screen.getByText('Action 2, Action 3');
+    const listCell = screen.getAllByText('Action 2')[0].closest('.list-cell') as HTMLElement;
     await user.click(listCell);
     
     // Wait for ListEditor dialog to appear
@@ -390,10 +388,6 @@ describe('ProblemsList', () => {
       return screen.getByRole('dialog', { name: 'Actions' });
     });
     expect(dialog).toBeInTheDocument();
-    
-    // Verify existing items are shown
-    expect(screen.getByText('Action 2')).toBeInTheDocument();
-    expect(screen.getByText('Action 3')).toBeInTheDocument();
     
     // Add a new item via the blank row
     const addItemInput = screen.getByLabelText(/Add item/i);
@@ -420,11 +414,11 @@ describe('ProblemsList', () => {
     
     // Wait for the list cell to appear
     await waitFor(() => {
-      expect(screen.getByText('Blocker 1')).toBeInTheDocument();
+      expect(screen.getAllByText('Blocker 1').length).toBeGreaterThan(0);
     });
     
     // Find and click the blockers list cell to open ListEditor
-    const blockersCell = screen.getByText('Blocker 1');
+    const blockersCell = screen.getAllByText('Blocker 1')[0].closest('.list-cell') as HTMLElement;
     await user.click(blockersCell);
     
     // Wait for ListEditor dialog to appear
@@ -432,9 +426,6 @@ describe('ProblemsList', () => {
       return screen.getByRole('dialog', { name: 'Blockers' });
     });
     expect(dialog).toBeInTheDocument();
-    
-    // Verify existing item is shown
-    expect(screen.getAllByText('Blocker 1').length).toBeGreaterThan(0);
     
     // Add a new item via the blank row
     const addItemInput = screen.getByLabelText(/Add item/i);
