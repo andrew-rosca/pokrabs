@@ -17,12 +17,13 @@ interface SummaryDetailCellProps {
   className?: string;
   autoOpen?: boolean; // If true, automatically open the editor
   onEditorOpened?: () => void; // Callback when editor opens
+  forceExpanded?: boolean; // If true, force detail to be expanded
 }
 
 /** Height of the summary row (approximately 1 line) */
 const SUMMARY_HEIGHT = 20;
 
-export function SummaryDetailCell({ value, onSave, className = '', autoOpen = false, onEditorOpened }: SummaryDetailCellProps) {
+export function SummaryDetailCell({ value, onSave, className = '', autoOpen = false, onEditorOpened, forceExpanded = false }: SummaryDetailCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasOverflow, setHasOverflow] = useState(false);
@@ -31,6 +32,13 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
   const cellRef = useRef<HTMLDivElement>(null);
   const detailWrapperRef = useRef<HTMLDivElement>(null);
   const detailContentRef = useRef<HTMLDivElement>(null);
+
+  // Sync external expansion control
+  useEffect(() => {
+    if (forceExpanded) {
+      setIsExpanded(true);
+    }
+  }, [forceExpanded]);
 
   // Parse the JSON to get summary and detail
   const getSummary = (): string => {

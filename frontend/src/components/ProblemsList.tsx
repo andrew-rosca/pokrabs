@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Problem, Status, CreateProblemRequest } from '../../../shared/types';
 import { fetchProblems, updateProblem, createProblem, deleteProblem, moveProblem } from '../services/api';
 import { SummaryDetailCell } from './SummaryDetailCell';
@@ -18,6 +19,8 @@ interface ProblemsListProps {
 }
 
 export function ProblemsList({ projectId }: ProblemsListProps) {
+  const { problemId: urlProblemId } = useParams<{ problemId: string }>();
+  const navigate = useNavigate();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +31,12 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   
   // Copy feedback state - tracks which ID was just copied
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  
+  // Expanded problem details - tracks which problems have their detail sections expanded
+  const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
+  
+  // Ref to track problem rows for scrolling
+  const problemRowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
   
   // Drag-and-drop state
   const [draggedProblemId, setDraggedProblemId] = useState<string | null>(null);
@@ -51,6 +60,62 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
 
     loadProblems();
   }, [projectId]);
+
+  // Handle URL navigation to specific problem
+  useEffect(() => {
+    if (!urlProblemId || problems.length === 0) return;
+
+    // Find the problem by ID
+    const targetProblem = problems.find(p => p.id === urlProblemId);
+    if (!targetProblem) {
+      // Problem not found, clear URL
+      navigate('/', { replace: true });
+      return;
+    }
+
+    // Expand all ancestor problems (make sure the target is visible)
+    const pathParts = targetProblem.idPath.split('-');
+    const ancestorPaths: string[] = [];
+    for (let i = 0; i < pathParts.length - 1; i++) {
+      const ancestorPath = pathParts.slice(0, i + 1).join('-');
+      ancestorPaths.push(ancestorPath);
+    }
+
+    // Remove all ancestors from collapsed set to make target visible
+    setCollapsedIds(prev => {
+      const next = new Set(prev);
+      for (const ancestorPath of ancestorPaths) {
+        const ancestor = problems.find(p => p.idPath === ancestorPath);
+        if (ancestor) {
+          next.delete(ancestor.id);
+        }
+      }
+      return next;
+    });
+
+    // Expand the target problem's children
+    setCollapsedIds(prev => {
+      const next = new Set(prev);
+      next.delete(targetProblem.id);
+      return next;
+    });
+
+    // Expand the target problem's details (problem and objective fields)
+    setExpandedDetails(prev => {
+      const next = new Set(prev);
+      next.add(`${targetProblem.id}-problem`);
+      next.add(`${targetProblem.id}-objective`);
+      return next;
+    });
+
+    // Scroll to the problem after a brief delay to allow render
+    setTimeout(() => {
+      const rowElement = problemRowRefs.current.get(targetProblem.id);
+      if (rowElement) {
+        rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  }, [urlProblemId, problems, navigate]);
 
   if (loading) {
     return <div className="loading">Loading problems...</div>;
@@ -798,7 +863,14 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
               
               return (
                 <tr 
-                  key={problem.id} 
+                  key={problem.id}
+                  ref={(el) => {
+                    if (el) {
+                      problemRowRefs.current.set(problem.id, el);
+                    } else {
+                      problemRowRefs.current.delete(problem.id);
+                    }
+                  }}
                   className={`problem-row depth-${depth}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}`}
                   style={{
                     opacity: isDragging ? 0.5 : 1,
@@ -935,6 +1007,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       className="problem-text"
                       autoOpen={autoOpenEditor?.problemId === problem.id && autoOpenEditor?.field === 'problem'}
                       onEditorOpened={() => setAutoOpenEditor(null)}
+                      forceExpanded={expandedDetails.has(`${problem.id}-problem`)}
                     />
                   </td>
                   <td className="problem-text">
@@ -944,6 +1017,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       className="problem-text"
                       autoOpen={autoOpenEditor?.problemId === problem.id && autoOpenEditor?.field === 'objective'}
                       onEditorOpened={() => setAutoOpenEditor(null)}
+                      forceExpanded={expandedDetails.has(`${problem.id}-objective`)}
                     />
                   </td>
                   <td className="problem-text">

@@ -70,7 +70,16 @@ function App() {
                 )
               } 
             />
-            <Route path="/:problemId" element={<div>Problem Detail - Coming Soon</div>} />
+            <Route 
+              path="/:problemId" 
+              element={
+                selectedProjectId ? (
+                  <ProblemsList projectId={selectedProjectId} />
+                ) : (
+                  <div>No project selected</div>
+                )
+              } 
+            />
           </Routes>
         </main>
       </div>

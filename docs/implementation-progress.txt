@@ -1073,3 +1073,60 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 - `frontend/src/components/ProblemsList.tsx` - Added copy handler, state, and UI feedback
 - `frontend/src/index.css` - Added clickable ID styles
 
+### 2026-01-02 - URL Navigation to Problems
+
+**Completed:**
+- Implemented deep linking to specific problems via URL
+- When navigating to `/{problemId}`, the problem is automatically expanded and scrolled into view
+- All ancestor problems are expanded to make the target problem visible
+- Detail sections of the target problem are automatically expanded
+
+**Feature Details:**
+- **URL Format**: `/{problemId}` (e.g., `/0t`, `/6q-5g`)
+- **Automatic Expansion**: 
+  - All parent problems in the hierarchy are uncollapsed
+  - Target problem's children are shown (if any)
+  - Problem detail field is expanded
+  - Objective detail field is expanded
+- **Scroll Behavior**: 
+  - Target problem row scrolls into view with smooth animation
+  - Row is centered in viewport for optimal visibility
+- **Error Handling**: 
+  - If problem ID not found, redirects to home page
+  - Uses `navigate('/', { replace: true })` to avoid back button issues
+
+**Implementation Details:**
+- Added `useParams` hook to read `problemId` from URL
+- Added `useNavigate` hook for programmatic navigation
+- Created `expandedDetails` state (Set<string>) to track expanded detail sections
+- Added `problemRowRefs` (Map<string, HTMLTableRowElement>) for scroll targets
+- Added `forceExpanded` prop to `SummaryDetailCell` component
+- Navigation effect runs when `urlProblemId` or `problems` change
+
+**SummaryDetailCell Enhancement:**
+- Added `forceExpanded?: boolean` prop
+- When `true`, detail section expands automatically
+- Synced via `useEffect` to respond to external control
+- Maintains existing user interaction capabilities
+
+**Navigation Flow:**
+1. URL contains problem ID (e.g., `/6q-5g`)
+2. Find problem in loaded problems list
+3. Calculate all ancestor IDs from idPath
+4. Remove ancestors from collapsed set (uncollapse hierarchy)
+5. Remove target from collapsed set (show children)
+6. Add target's detail keys to expandedDetails set
+7. Wait 100ms for render, then scroll row into view
+
+**Technical Notes:**
+- Uses `scrollIntoView({ behavior: 'smooth', block: 'center' })`
+- Ref callback pattern stores row elements in Map for efficient lookup
+- Problem lookup uses idPath parsing for ancestor resolution
+- Compatible with both direct navigation and copied links
+- State updates are batched for performance
+
+**Files Modified:**
+- `frontend/src/components/ProblemsList.tsx` - Added URL navigation, expansion control, scroll logic
+- `frontend/src/components/SummaryDetailCell.tsx` - Added forceExpanded prop and sync effect
+- `frontend/src/App.tsx` - Updated route to render ProblemsList for /:problemId
+
