@@ -35,6 +35,9 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   // Expanded problem details - tracks which problems have their detail sections expanded
   const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
   
+  // Highlighted problem - used to flash attention on URL navigation
+  const [highlightedProblemId, setHighlightedProblemId] = useState<string | null>(null);
+  
   // Ref to track problem rows for scrolling
   const problemRowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
   
@@ -73,30 +76,30 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
       return;
     }
 
-    // Expand all ancestor problems (make sure the target is visible)
+    // Build set of IDs that should be expanded (not collapsed)
+    const shouldBeExpanded = new Set<string>();
+    
+    // Add all ancestor problems to the expanded set
     const pathParts = targetProblem.idPath.split('-');
-    const ancestorPaths: string[] = [];
     for (let i = 0; i < pathParts.length - 1; i++) {
       const ancestorPath = pathParts.slice(0, i + 1).join('-');
-      ancestorPaths.push(ancestorPath);
+      const ancestor = problems.find(p => p.idPath === ancestorPath);
+      if (ancestor) {
+        shouldBeExpanded.add(ancestor.id);
+      }
     }
+    
+    // Add the target problem to show its children
+    shouldBeExpanded.add(targetProblem.id);
 
-    // Remove all ancestors from collapsed set to make target visible
-    setCollapsedIds(prev => {
-      const next = new Set(prev);
-      for (const ancestorPath of ancestorPaths) {
-        const ancestor = problems.find(p => p.idPath === ancestorPath);
-        if (ancestor) {
-          next.delete(ancestor.id);
+    // Collapse all problems except those in shouldBeExpanded
+    setCollapsedIds(() => {
+      const next = new Set<string>();
+      for (const problem of problems) {
+        if (hasChildren(problem.id) && !shouldBeExpanded.has(problem.id)) {
+          next.add(problem.id);
         }
       }
-      return next;
-    });
-
-    // Expand the target problem's children
-    setCollapsedIds(prev => {
-      const next = new Set(prev);
-      next.delete(targetProblem.id);
       return next;
     });
 
@@ -112,7 +115,28 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     setTimeout(() => {
       const rowElement = problemRowRefs.current.get(targetProblem.id);
       if (rowElement) {
-        rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Get the scroll container
+        const tableContainer = rowElement.closest('.table-container');
+        if (tableContainer) {
+          // Calculate position with offset for better visibility
+          const rowTop = rowElement.offsetTop;
+          const offset = 40; // Larger offset to ensure row is fully visible
+          tableContainer.scrollTo({
+            top: rowTop - offset,
+            behavior: 'smooth'
+          });
+        } else {
+          // Fallback to scrollIntoView
+          rowElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // Highlight the row to draw attention
+        setHighlightedProblemId(targetProblem.id);
+        
+        // Clear highlight after animation completes
+        setTimeout(() => {
+          setHighlightedProblemId(null);
+        }, 2000);
       }
     }, 100);
   }, [urlProblemId, problems, navigate]);
@@ -871,7 +895,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       problemRowRefs.current.delete(problem.id);
                     }
                   }}
-                  className={`problem-row depth-${depth}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}`}
+                  className={`problem-row depth-${depth}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}${highlightedProblemId === problem.id ? ' highlighted' : ''}`}
                   style={{
                     opacity: isDragging ? 0.5 : 1,
                     ...dropIndicatorStyle,
@@ -909,30 +933,40 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                         />
                       </div>
                     </div>
-                    <div className="id-content" style={{ paddingLeft: `${depth * 8}px` }}>
+                    <div className="id-content" style={{ paddingLeft: `${depth * 8}px`, position: 'relative' }}>
                       <span 
                         className="id-path clickable"
                         onClick={() => handleCopyProblemUrl(problem.id)}
                         title={copiedId === problem.id ? "Copied!" : "Click to copy link"}
                         style={{ 
-                          cursor: 'pointer',
-                          position: 'relative'
+                          cursor: 'pointer'
                         }}
                       >
                         {problem.idPath}
-                        {copiedId === problem.id && (
-                          <span 
-                            style={{
-                              marginLeft: '0.5rem',
-                              fontSize: '0.625rem',
-                              color: 'var(--accent-color)',
-                              fontWeight: 600
-                            }}
-                          >
-                            ✓
-                          </span>
-                        )}
                       </span>
+                      {copiedId === problem.id && (
+                        <span 
+                          className="copy-confirmation"
+                          style={{
+                            position: 'absolute',
+                            left: '100%',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            marginLeft: '0.5rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            pointerEvents: 'none',
+                            whiteSpace: 'nowrap',
+                            padding: '0.125rem 0.375rem',
+                            borderRadius: '3px',
+                            boxShadow: '0 1px 3px var(--shadow)',
+                            border: '1px solid var(--border-color)',
+                            zIndex: 10
+                          }}
+                        >
+                          Link copied to clipboard
+                        </span>
+                      )}
                       {problemHasChildren && (
                         <span className="collapse-controls">
                           {/* Single caret: toggle immediate children */}

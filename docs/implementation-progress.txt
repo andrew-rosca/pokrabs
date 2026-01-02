@@ -1142,6 +1142,39 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 - `frontend/src/components/ProblemsList.tsx` - Added highlight state and timing
 - `frontend/src/index.css` - Added highlight-flash animation
 
+**Enhancement - Sticky Table Header:**
+- Fixed app layout to prevent entire page from scrolling
+- Changed app height from `min-height: 100vh` to `height: 100vh` with `overflow: hidden`
+- Made `.app-main` and `.table-container` proper scroll containers
+- Table header now stays visible when scrolling through problems
+- Only table body scrolls, header remains fixed at top of table
+
+**Enhancement - Scroll Positioning:**
+- Changed scroll from center alignment to top alignment with offset
+- Uses precise `scrollTo()` method with calculated position
+- 40px offset ensures row is fully visible below header
+- Fallback to `scrollIntoView` if container not found
+
+**Enhancement - Selective Expansion:**
+- Fixed issue where all problems were expanded on URL navigation
+- Now only expands: target problem ancestors, target problem, and target's children
+- All other problems with children are collapsed
+- Builds explicit set of problems that should be expanded
+- More focused view showing only relevant hierarchy
+
+**Enhancement - Copy Confirmation Overlay:**
+- Changed from inline checkmark to absolute positioned overlay
+- Text: "Link copied to clipboard" with checkmark
+- Fully opaque background prevents text bleed-through
+- Uses regular sans-serif font instead of monospace
+- Regular text color instead of accent blue
+- No layout shift when displaying confirmation
+- 2-second display duration
+
+**Files Modified (All Enhancements):**
+- `frontend/src/components/ProblemsList.tsx` - Scroll logic, expansion logic, copy overlay
+- `frontend/src/index.css` - Layout fixes, sticky header, copy-confirmation styles
+
 ### 2026-01-02 - Database Seeding with Large Datasets
 
 **Completed:**

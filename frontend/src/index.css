@@ -81,9 +81,10 @@ code {
 
 /* App Layout */
 .app {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .app-header {
@@ -94,9 +95,7 @@ code {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 1px 2px var(--shadow);
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  flex-shrink: 0;
 }
 
 .app-title {
@@ -110,6 +109,10 @@ code {
   flex: 1;
   padding: 0.5rem;
   width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* Theme Toggle */
@@ -138,16 +141,23 @@ code {
 /* Problems List */
 .problems-list {
   width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .table-container {
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: auto;
   border-radius: 4px;
   border: 1px solid var(--border-color);
   box-shadow: 0 1px 3px var(--shadow);
   background-color: var(--bg-primary);
   position: relative;
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
 }
 
 .problems-table {
@@ -156,13 +166,15 @@ code {
   background-color: var(--bg-primary);
   font-size: 0.75rem;
   table-layout: auto;
+  position: relative;
 }
 
 .problems-table thead {
   background-color: var(--bg-secondary);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .problems-table th {
@@ -177,6 +189,7 @@ code {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  background-color: var(--bg-secondary);
 }
 
 /* Header with action button */
@@ -230,6 +243,29 @@ code {
 
 .problems-table tbody tr.drop-target {
   transition: box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+/* Highlighted row for URL navigation */
+.problems-table tbody tr.highlighted {
+  animation: highlight-flash 2s ease-in-out;
+}
+
+@keyframes highlight-flash {
+  0% {
+    background-color: transparent;
+  }
+  10% {
+    background-color: var(--accent-color);
+    opacity: 0.3;
+  }
+  50% {
+    background-color: var(--accent-color);
+    opacity: 0.2;
+  }
+  100% {
+    background-color: transparent;
+    opacity: 1;
+  }
 }
 
 .problems-table tbody tr:last-child {
@@ -507,6 +543,22 @@ code {
 .id-path.clickable:hover {
   opacity: 0.7;
   text-decoration: underline;
+}
+
+.copy-confirmation {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif !important;
+}
+
+[data-theme="light"] .copy-confirmation {
+  background-color: #ffffff !important;
+}
+
+[data-theme="dark"] .copy-confirmation {
+  background-color: #1a1a1a !important;
 }
 
 /* Collapse/Expand controls in ID column */
