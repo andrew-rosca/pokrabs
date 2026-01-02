@@ -574,7 +574,7 @@
         "Test summary view shows abbreviated text",
         "Test detail view shows full content"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F044",
