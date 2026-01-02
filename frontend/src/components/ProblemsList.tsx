@@ -730,6 +730,11 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       )}
                     </span>
                   )}
+                </div>
+              </th>
+              <th>
+                <div className="header-with-action">
+                  <span>Problem</span>
                   <button
                     className="header-action-button"
                     onClick={() => handleCreateProblem(null, 'top')}
@@ -739,7 +744,6 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                   </button>
                 </div>
               </th>
-              <th>Problem</th>
               <th>Objective</th>
               <th>Key Results</th>
               <th>Actions</th>
@@ -971,7 +975,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
               }}
               onDrop={handleDropOnNewRow}
             >
-              <td colSpan={8} className="insert-button-cell">
+              <td className="insert-button-cell"></td>
+              <td className="insert-button-cell">
                 <button
                   className="row-action-button"
                   onClick={() => handleCreateProblem(null, 'bottom')}
@@ -980,6 +985,12 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                   +
                 </button>
               </td>
+              <td className="insert-button-cell"></td>
+              <td className="insert-button-cell"></td>
+              <td className="insert-button-cell"></td>
+              <td className="insert-button-cell"></td>
+              <td className="insert-button-cell"></td>
+              <td className="insert-button-cell"></td>
             </tr>
           </tbody>
         </table>
