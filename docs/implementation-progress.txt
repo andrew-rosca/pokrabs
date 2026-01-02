@@ -979,3 +979,55 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 - `frontend/src/components/ProblemsList.tsx` - Added collapse state, caret controls, and header controls
 - `frontend/src/index.css` - Added collapse control styles, fixed hover targets
 - `frontend/src/components/ProblemsList.test.tsx` - Added collapse/expand tests
+
+### 2026-01-02 - Row Number Column and UI Improvements
+
+**Completed:**
+- Moved "new problem" buttons from ID column to Problem column
+- Added sequential row number column as first column in table
+- Repositioned all existing columns to accommodate new row number column
+
+**Row Number Column Features:**
+- **Position**: Leftmost column in table
+- **Content**: Sequential numbers (1, 2, 3...) for visible rows
+- **Header**: Shows total count when all visible, "visible / total" when rows collapsed
+- **Styling**: 
+  - Center-aligned with dimmed appearance (opacity: 0.5)
+  - Background matches table header (var(--bg-secondary))
+  - Auto-width to fit content without truncation
+  - No borders with adjacent columns
+  - Small font size (0.7rem)
+- **Tooltip**: Header displays explanatory text:
+  - "N total rows" when all visible
+  - "N visible rows / M total rows" when some hidden
+- **Dynamic Updates**: Numbers update automatically when:
+  - Rows are collapsed/expanded
+  - Problems are added/deleted
+  - Rows are reordered via drag-and-drop
+
+**Button Repositioning:**
+- Top "+" button: Moved from ID column header to Problem column header
+- Bottom "+" button: Moved from spanning all columns to Problem column only
+- Both buttons retain their functionality (add at top/bottom respectively)
+
+**Implementation Details:**
+- Added `row-number` class for styling the new column
+- Updated all `nth-child` selectors in CSS to account for new first column
+- Column widths adjusted:
+  - Row #: auto-width
+  - ID: auto (60px-200px range)
+  - Problem through Votes: shifted from nth-child(2-8) to nth-child(3-9)
+- Removed border-left from row-handle-container to eliminate visual artifacts
+- Bottom row now uses individual td cells instead of colspan
+
+**CSS Changes:**
+- Added `.row-number` styles with background, opacity, and centering
+- Updated `.problems-table th:nth-child(2)` for ID column offset
+- Removed `border-left` from `.row-handle-container` 
+- Updated all column width selectors to shift by one position
+- Set row number column to `white-space: nowrap` for content protection
+
+**Files Modified:**
+- `frontend/src/components/ProblemsList.tsx` - Added row number column, repositioned buttons, added tooltips
+- `frontend/src/index.css` - Added row number styles, updated nth-child selectors, removed borders
+

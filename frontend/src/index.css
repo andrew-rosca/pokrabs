@@ -253,11 +253,30 @@ code {
   overflow: visible;
   text-overflow: initial;
   padding-left: 1.3rem; /* room for handle/indicator */
+  border-left: none !important;
 }
 
-/* Match header offset for the first column */
-.problems-table th:first-child {
+/* Row number column - first column */
+.problems-table th:first-child,
+.problems-table td.row-number {
+  text-align: center;
+  padding-right: 0.4rem;
+  padding-left: 0.4rem;
+  width: auto;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  font-size: 0.7rem;
+  font-weight: 400;
+  background-color: var(--bg-secondary);
+  border-right: none !important;
+  white-space: nowrap;
+}
+
+/* Match header offset for the ID column (now second column) */
+.problems-table th:nth-child(2),
+.problems-table td:nth-child(2).problem-id {
   padding-left: 1.3rem;
+  border-left: none !important;
 }
 
 /* Row handle and actions panel */
@@ -272,7 +291,7 @@ code {
   gap: 4px;
   z-index: 10;
   cursor: pointer;
-  border-left: 1px solid var(--border-color);
+  border-left: none;
 }
 
 /* Visual indicator (dim vertical ellipsis) always visible */
@@ -500,34 +519,39 @@ code {
 .problems-table th:nth-child(1),
 .problems-table td:nth-child(1) { 
   width: auto;
+}  /* Row number - auto size to fit content */
+
+.problems-table th:nth-child(2),
+.problems-table td:nth-child(2) { 
+  width: auto;
   min-width: 60px;
   max-width: 200px;
 }  /* ID - auto size to fit content, with reasonable limits */
 
-.problems-table th:nth-child(2),
-.problems-table td:nth-child(2) { width: 17%; } /* Problem */
-
 .problems-table th:nth-child(3),
-.problems-table td:nth-child(3) { width: 17%; } /* Objective */
+.problems-table td:nth-child(3) { width: 17%; } /* Problem */
 
 .problems-table th:nth-child(4),
-.problems-table td:nth-child(4) { width: 17%; } /* Key Results */
+.problems-table td:nth-child(4) { width: 17%; } /* Objective */
 
 .problems-table th:nth-child(5),
-.problems-table td:nth-child(5) { width: 17%; } /* Actions */
+.problems-table td:nth-child(5) { width: 17%; } /* Key Results */
 
 .problems-table th:nth-child(6),
-.problems-table td:nth-child(6) { width: 16%; } /* Blockers */
+.problems-table td:nth-child(6) { width: 17%; } /* Actions */
 
 .problems-table th:nth-child(7),
-.problems-table td:nth-child(7) { 
+.problems-table td:nth-child(7) { width: 16%; } /* Blockers */
+
+.problems-table th:nth-child(8),
+.problems-table td:nth-child(8) { 
   width: auto;
   min-width: 90px;
   white-space: nowrap;
 }  /* Status - auto size to fit "Actionable" and other statuses */
 
-.problems-table th:nth-child(8),
-.problems-table td:nth-child(8) { width: 60px; }  /* Votes - fixed small width */
+.problems-table th:nth-child(9),
+.problems-table td:nth-child(9) { width: 60px; }  /* Votes - fixed small width */
 
 .problem-votes {
   text-align: center;

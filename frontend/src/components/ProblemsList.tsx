@@ -669,6 +669,11 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
         <table className="problems-table">
           <thead>
             <tr>
+              <th title={visibleProblems.length !== problems.length 
+                ? `${visibleProblems.length} visible rows / ${problems.length} total rows` 
+                : `${visibleProblems.length} total rows`}>
+                {visibleProblems.length}{visibleProblems.length !== problems.length && ` / ${problems.length}`}
+              </th>
               <th>
                 <div className="header-with-action">
                   <span>ID</span>
@@ -786,6 +791,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, index, problem)}
                 >
+                  <td className="row-number">{index + 1}</td>
                   <td className="problem-id">
                     <div className="row-handle-container">
                       <span className="row-handle-indicator">⋮</span>
@@ -975,6 +981,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
               }}
               onDrop={handleDropOnNewRow}
             >
+              <td className="insert-button-cell"></td>
               <td className="insert-button-cell"></td>
               <td className="insert-button-cell">
                 <button
