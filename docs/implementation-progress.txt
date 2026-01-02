@@ -692,6 +692,45 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 **Testing:**
 - Backend: 110 tests passing (`npm test`)
 
+### 2026-01-01 - List Editor Prototype (Actions/Blockers)
+
+**Completed:**
+- Built `ListEditor` component prototype for list-style fields (actions/blockers) with add/edit/delete/reorder controls and overlay/backdrop handling
+- Added isolated tests to verify rendering, add/remove, reordering, trimming on save, and cancel behavior
+
+**Files Added:**
+- `frontend/src/components/ListEditor.tsx`
+- `frontend/src/components/ListEditor.test.tsx`
+
+**Testing:**
+- Frontend: 48 tests passing (`npm test` in `frontend/`)
+
+### 2026-01-02 - ListEditor Component Complete
+
+**Completed:**
+- Built `ListEditor` component for editing list fields (actions/blockers)
+- Uses `contentEditable` div to avoid height changes between display/edit modes
+- Features:
+  - Add items via blank row at bottom with placeholder text
+  - Edit items inline with click-to-edit and select-all on entry
+  - Delete items with confirmation dialog (Delete? ✔/✕)
+  - Ctrl+click to delete without confirmation (works on Mac via onContextMenu)
+  - Escape cancels delete confirmation (or closes editor if no confirmation)
+  - Drag-and-drop reordering via handle
+  - Automatic URL linkification in display mode
+  - Compact row height with 4px vertical padding
+  - Delete button turns red on hover (matches main table styling)
+- Removed demo route from App.tsx (was used for development)
+
+**Files Modified:**
+- `frontend/src/components/ListEditor.tsx` - Main component
+- `frontend/src/components/ListEditor.test.tsx` - Tests (8 tests)
+- `frontend/src/index.css` - Added placeholder CSS rule
+- `frontend/src/App.tsx` - Removed demo route
+
+**Testing:**
+- Frontend: 50 tests passing (`npm test` in `frontend/`)
+
 ### 2026-01-01 - Mark Feature Flags F038 & F041 Complete
 
 **Completed:**

@@ -542,6 +542,13 @@ code {
   color: var(--status-not-started);
 }
 
+/* List Editor placeholder */
+[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
 /* Loading and Error States */
 .loading,
 .error,
