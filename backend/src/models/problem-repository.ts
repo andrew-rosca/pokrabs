@@ -21,6 +21,7 @@ export interface IProblemRepository {
     actions?: string;
     blockers?: string;
     status?: Status;
+    priority?: number;
     labels?: string[];
   }): Promise<Problem>;
 

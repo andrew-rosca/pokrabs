@@ -897,4 +897,15 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
   2. Sort each sibling group by priority, then by createdAt
   3. Traverse tree depth-first to build flat list
 - Added handling for orphaned problems (whose parent was deleted) - treated as root level
+
+**Enhancement - Add Problem Position:**
+- Added "+" button in the ID header to create new problems at the top of the list
+- Bottom "+" button now creates new problems at the bottom of the list
+- Added `priority` field to `CreateProblemRequest` type
+- Backend API now accepts priority field when creating problems
+- Frontend calculates priority based on position:
+  - Top: min(sibling priorities) - 1
+  - Bottom: max(sibling priorities) + 1
+- Same logic applies for adding child problems
+- Styled bottom "+" button to match header "+" button (18x18px, 12px font)
 - Verified sibling reordering works: moving `5g` after `0t` correctly updates priorities and display order

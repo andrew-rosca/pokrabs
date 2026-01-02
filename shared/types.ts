@@ -40,6 +40,7 @@ export interface CreateProblemRequest {
   actions?: string;
   blockers?: string;
   status?: Status;
+  priority?: number;
   labels?: string[];
   parentId?: string | null;
 }

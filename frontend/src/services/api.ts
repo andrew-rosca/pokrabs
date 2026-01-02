@@ -53,6 +53,7 @@ export async function createProblem(
     actions?: string;
     blockers?: string;
     status?: string;
+    priority?: number;
     labels?: string[];
     parentId?: string | null;
   }

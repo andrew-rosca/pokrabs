@@ -647,8 +647,8 @@ describe('ProblemsList', () => {
       // Hover over the row to show the actions panel
       await user.hover(firstDataRow);
       
-      // Find the + button
-      const createButtons = screen.getAllByTitle(/Insert new problem/i);
+      // Find the + button for adding children
+      const createButtons = screen.getAllByTitle(/Add child problem/i);
       expect(createButtons.length).toBeGreaterThan(0);
       
       // Click the first + button (creates child of first problem)
@@ -671,7 +671,7 @@ describe('ProblemsList', () => {
       expect(mockFetchProblems).toHaveBeenCalledTimes(2); // Once on mount, once after create
     });
 
-    it('should create a top-level problem when + button is clicked on bottom row', async () => {
+    it('should create a top-level problem at bottom when + button is clicked on bottom row', async () => {
       const user = userEvent.setup();
       render(<ProblemsList projectId={projectId} />);
       
@@ -680,17 +680,42 @@ describe('ProblemsList', () => {
       });
 
       // Find the + button in the bottom insert row
-      const insertButtons = screen.getAllByTitle(/Insert new problem/i);
-      const bottomButton = insertButtons[insertButtons.length - 1]; // Last button is for top-level
+      const bottomButton = screen.getByTitle(/Add new problem at bottom/i);
       
       await user.click(bottomButton);
       
-      // Verify createProblem was called with null parentId
+      // Verify createProblem was called with null parentId and priority > 0 (at bottom)
       await waitFor(() => {
         expect(mockCreateProblem).toHaveBeenCalledWith(
           projectId,
           expect.objectContaining({
             parentId: null, // Top-level problem
+            priority: 1, // Higher than existing problem with priority 0
+          })
+        );
+      });
+    });
+
+    it('should create a top-level problem at top when + button is clicked in header', async () => {
+      const user = userEvent.setup();
+      render(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      // Find the + button in the header
+      const headerButton = screen.getByTitle(/Add new problem at top/i);
+      
+      await user.click(headerButton);
+      
+      // Verify createProblem was called with null parentId and priority < 0 (at top)
+      await waitFor(() => {
+        expect(mockCreateProblem).toHaveBeenCalledWith(
+          projectId,
+          expect.objectContaining({
+            parentId: null, // Top-level problem
+            priority: -1, // Lower than existing problem with priority 0
           })
         );
       });
@@ -711,7 +736,7 @@ describe('ProblemsList', () => {
       const firstDataRow = rows[1];
       await user.hover(firstDataRow);
       
-      const createButtons = screen.getAllByTitle(/Insert new problem/i);
+      const createButtons = screen.getAllByTitle(/Add child problem/i);
       await user.click(createButtons[0]);
       
       // Should show error message

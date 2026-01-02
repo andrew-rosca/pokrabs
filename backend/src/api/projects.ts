@@ -109,6 +109,7 @@ router.post('/:projectId/problems', async (req: Request, res: Response) => {
       actions,
       blockers,
       status,
+      priority,
       labels,
       parentId,
     } = req.body;
@@ -161,6 +162,7 @@ router.post('/:projectId/problems', async (req: Request, res: Response) => {
       actions,
       blockers,
       status: status || Status.NotStarted,
+      priority: typeof priority === 'number' ? priority : undefined,
       labels: Array.isArray(labels) ? labels : undefined,
     });
     

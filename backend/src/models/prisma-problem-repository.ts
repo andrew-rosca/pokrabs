@@ -23,6 +23,7 @@ export class PrismaProblemRepository implements IProblemRepository {
     actions?: string;
     blockers?: string;
     status?: Status;
+    priority?: number;
     labels?: string[];
   }): Promise<Problem> {
     // Generate unique ID
@@ -47,6 +48,7 @@ export class PrismaProblemRepository implements IProblemRepository {
         actions: data.actions ?? '[]',
         blockers: data.blockers ?? '[]',
         status: prismaStatus,
+        priority: data.priority ?? 0,
         labels: JSON.stringify(data.labels ?? []),
       },
     });

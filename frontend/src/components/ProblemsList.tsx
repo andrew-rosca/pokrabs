@@ -441,20 +441,38 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     }
   };
 
+  // Get siblings of a problem (problems with the same parent)
+  const getSiblings = (parentId: string | null): Problem[] => {
+    return sortedProblems.filter(p => p.parentId === parentId);
+  };
+
+  // Calculate priority for a new problem at top or bottom of sibling list
+  const calculatePriority = (parentId: string | null, position: 'top' | 'bottom'): number => {
+    const siblings = getSiblings(parentId);
+    if (siblings.length === 0) {
+      return 0;
+    }
+    if (position === 'top') {
+      // Priority lower than all siblings (min - 1)
+      const minPriority = Math.min(...siblings.map(s => s.priority));
+      return minPriority - 1;
+    } else {
+      // Priority higher than all siblings (max + 1)
+      const maxPriority = Math.max(...siblings.map(s => s.priority));
+      return maxPriority + 1;
+    }
+  };
+
   // Handle creating a new problem
-  const handleCreateProblem = async (insertAfterIndex: number | null) => {
+  // position: 'top' = first among siblings, 'bottom' = last among siblings
+  const handleCreateProblem = async (parentId: string | null, position: 'top' | 'bottom') => {
     try {
       setError(null);
       
-      // Determine parentId: if inserting after a problem, make it a child of that problem
-      // If inserting at the top (insertAfterIndex === null), no parent
-      let parentId: string | null = null;
-      if (insertAfterIndex !== null && insertAfterIndex >= 0 && insertAfterIndex < sortedProblems.length) {
-        parentId = sortedProblems[insertAfterIndex].id;
-      }
+      // Calculate priority based on position
+      const priority = calculatePriority(parentId, position);
 
       // Create new problem with default values
-      // Note: Status.NotStarted enum value is 'Actionable', which will serialize correctly
       const newProblem: CreateProblemRequest = {
         problem: JSON.stringify({ summary: 'New problem', detail: '' }),
         objective: JSON.stringify({ summary: 'New objective', detail: '' }),
@@ -462,18 +480,10 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
         actions: JSON.stringify([]),
         blockers: JSON.stringify([]),
         status: Status.NotStarted,
+        priority,
         labels: [],
         parentId: parentId || null,
       };
-
-      // Debug: log what we're sending
-      console.log('Creating problem with:', {
-        projectId,
-        problem: newProblem.problem.substring(0, 50),
-        objective: newProblem.objective.substring(0, 50),
-        status: newProblem.status,
-        parentId: newProblem.parentId,
-      });
 
       // Create the problem
       const created = await createProblem(projectId, newProblem);
@@ -497,7 +507,18 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
         <table className="problems-table">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>
+                <div className="header-with-action">
+                  <span>ID</span>
+                  <button
+                    className="header-action-button"
+                    onClick={() => handleCreateProblem(null, 'top')}
+                    title="Add new problem at top"
+                  >
+                    +
+                  </button>
+                </div>
+              </th>
               <th>Problem</th>
               <th>Objective</th>
               <th>Key Results</th>
@@ -553,8 +574,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       <div className="row-actions-panel">
                         <button
                           className="row-action-button"
-                          onClick={() => handleCreateProblem(index)}
-                          title="Insert new problem here (as child of above)"
+                          onClick={() => handleCreateProblem(problem.id, 'bottom')}
+                          title="Add child problem"
                         >
                           +
                         </button>
@@ -662,8 +683,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
               <td colSpan={8} className="insert-button-cell">
                 <button
                   className="row-action-button"
-                  onClick={() => handleCreateProblem(null)}
-                  title="Insert new problem at top level"
+                  onClick={() => handleCreateProblem(null, 'bottom')}
+                  title="Add new problem at bottom"
                 >
                   +
                 </button>

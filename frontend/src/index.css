@@ -179,6 +179,41 @@ code {
   text-overflow: ellipsis;
 }
 
+/* Header with action button */
+.header-with-action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-action-button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  opacity: 0.7;
+}
+
+.header-action-button:hover {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: var(--bg-primary);
+  opacity: 1;
+  transform: scale(1.1);
+}
+
 .problems-table tbody tr {
   border-bottom: 1px solid var(--border-color);
   transition: background-color 0.15s ease;
@@ -417,6 +452,9 @@ code {
 
 .insert-button-cell .row-action-button {
   margin-left: 0;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
 }
 
 .problem-id {
