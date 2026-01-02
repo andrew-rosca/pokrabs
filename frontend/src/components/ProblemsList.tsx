@@ -778,7 +778,10 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
               <th title={visibleProblems.length !== problems.length 
                 ? `${visibleProblems.length} visible rows / ${problems.length} total rows` 
                 : `${visibleProblems.length} total rows`}>
-                {visibleProblems.length}{visibleProblems.length !== problems.length && ` / ${problems.length}`}
+                {visibleProblems.length}
+                {visibleProblems.length !== problems.length && (
+                  <span className="total-count"> {problems.length}</span>
+                )}
               </th>
               <th>
                 <div className="header-with-action">
