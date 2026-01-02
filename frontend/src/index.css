@@ -222,7 +222,7 @@ code {
   left: -10px;
   top: 0;
   bottom: 0;
-  width: 36px;
+  width: 100px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -254,6 +254,10 @@ code {
 }
 
 .row-handle {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 24px;
   height: 24px;
   display: flex;
@@ -265,6 +269,7 @@ code {
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1;
+  z-index: 2;
 }
 
 .insert-button-row .row-handle {
@@ -278,7 +283,6 @@ code {
 .handle-icon {
   display: block;
   letter-spacing: -2px;
-  transform: rotate(90deg);
 }
 
 /* Only show handle when hovering over the handle container */
@@ -291,12 +295,14 @@ code {
 }
 
 .row-actions-panel {
+  position: absolute;
+  left: 30px;
+  top: 50%;
+  transform: translateY(-50%) translateX(-8px);
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-left: 4px;
   opacity: 0;
-  transform: translateX(-8px);
   transition: opacity 0.2s ease, transform 0.2s ease;
   pointer-events: none;
   z-index: 5;
@@ -305,13 +311,13 @@ code {
 /* Only show actions panel when hovering over the handle container */
 .row-handle-container:hover .row-actions-panel {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateY(-50%) translateX(0);
   pointer-events: auto;
 }
 
 .insert-button-row .row-actions-panel {
   opacity: 1; /* Always visible on bottom row */
-  transform: translateX(0);
+  transform: translateY(-50%) translateX(0);
   pointer-events: auto;
 }
 
