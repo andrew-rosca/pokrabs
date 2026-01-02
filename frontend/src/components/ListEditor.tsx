@@ -63,7 +63,6 @@ export function ListEditor({ items, onSave, onCancel, title = 'Edit list', ancho
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [pendingHeaderDelete, setPendingHeaderDelete] = useState(false);
   const contentRefs = useRef<(HTMLDivElement | null)[]>([]);
   const selectAllPendingRef = useRef<boolean>(false);
 
@@ -92,30 +91,24 @@ export function ListEditor({ items, onSave, onCancel, title = 'Edit list', ancho
     }
   };
 
-  const handleDeleteSelectedRequest = () => {
-    if (selectedIndex === null) return;
-    setPendingHeaderDelete(true);
-  };
-
-  const handleConfirmHeaderDelete = () => {
-    if (selectedIndex !== null) {
-      handleDeleteAt(selectedIndex);
-    }
-    setPendingHeaderDelete(false);
-  };
-
-  const handleCancelHeaderDelete = () => {
-    setPendingHeaderDelete(false);
-  };
-
-  const handleNewRowCommit = (value: string) => {
+  const handleNewRowCommit = (value: string, stayOnBlankRow = false) => {
     const trimmed = value.trim();
     if (!trimmed) return;
     setListItems((prev) => [...prev, trimmed]);
     setDraftNew('');
-    setSelectedIndex(listItems.length); // select the newly added row
-    setEditingIndex(listItems.length);
-    selectAllPendingRef.current = true;
+    
+    if (stayOnBlankRow) {
+      // Keep focus on the blank row for quick consecutive adds
+      // The blank row will be at the new listItems.length after the update
+      setSelectedIndex(null);
+      setEditingIndex(listItems.length + 1); // This will be the new blank row index
+      selectAllPendingRef.current = false;
+    } else {
+      // Default behavior: select the newly added row
+      setSelectedIndex(listItems.length);
+      setEditingIndex(listItems.length);
+      selectAllPendingRef.current = true;
+    }
   };
 
   const handleSave = async () => {
@@ -151,16 +144,8 @@ export function ListEditor({ items, onSave, onCancel, title = 'Edit list', ancho
       handleSave();
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      // Check if header delete confirmation is open
-      if (pendingHeaderDelete) {
-        handleCancelHeaderDelete();
-      } else {
-        // Otherwise, close the editor (DeleteButton handles its own Escape)
-        onCancel?.();
-      }
-    } else if (e.key === 'Delete' && selectedIndex !== null) {
-      e.preventDefault();
-      handleDeleteSelectedRequest();
+      // Close the editor (DeleteButton handles its own Escape for confirmations)
+      onCancel?.();
     }
   };
 
@@ -239,40 +224,6 @@ export function ListEditor({ items, onSave, onCancel, title = 'Edit list', ancho
         >
           <span>{title}</span>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={handleDeleteSelectedRequest}
-              disabled={selectedIndex === null || pendingHeaderDelete}
-              style={buttonStyle(selectedIndex === null || pendingHeaderDelete)}
-              aria-label="Delete selected row"
-            >
-              Delete selected
-            </button>
-            {pendingHeaderDelete && (
-              <div className="row-delete-confirm" role="alert" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span className="row-delete-text">Delete?</span>
-                <button
-                  type="button"
-                  className="row-action-button row-action-delete confirm"
-                  aria-label="Confirm delete"
-                  onClick={handleConfirmHeaderDelete}
-                  title="Confirm delete"
-                  style={{ width: '24px', height: '24px' }}
-                >
-                  ✔
-                </button>
-                <button
-                  type="button"
-                  className="row-action-button cancel"
-                  aria-label="Cancel delete"
-                  onClick={handleCancelHeaderDelete}
-                  title="Cancel delete"
-                  style={{ width: '24px', height: '24px' }}
-                >
-                  ✕
-                </button>
-              </div>
-            )}
             <button
               type="button"
               onClick={handleSave}
@@ -446,7 +397,10 @@ export function ListEditor({ items, onSave, onCancel, title = 'Edit list', ancho
                       e.preventDefault();
                       const newValue = e.currentTarget.textContent || '';
                       if (isNewRow) {
-                        handleNewRowCommit(newValue);
+                        // Stay on blank row for quick consecutive adds
+                        handleNewRowCommit(newValue, true);
+                        // Clear the content for the next item
+                        e.currentTarget.textContent = '';
                       } else {
                         handleRowChange(index, newValue);
                         setSelectedIndex(index);

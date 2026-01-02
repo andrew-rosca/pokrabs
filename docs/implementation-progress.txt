@@ -705,6 +705,29 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 **Testing:**
 - Frontend: 48 tests passing (`npm test` in `frontend/`)
 
+### 2026-01-02 - Integrate ListEditor for Key Results, Actions, Blockers
+
+**Completed:**
+- Created `ListCell` component to display lists and open ListEditor on click
+- Replaced `EditableCell` with `ListCell` for Key Results, Actions, Blockers columns
+- List items now displayed as comma-separated text in table cells
+- Click any list cell to open the rich ListEditor overlay
+- Removed redundant "Delete selected" button from ListEditor header (row-level delete is sufficient)
+- Added quick consecutive item adding: press Enter to add item and stay on blank row
+
+**Files Added:**
+- `frontend/src/components/ListCell.tsx` - Displays lists, opens ListEditor
+- `frontend/src/components/ListCell.test.tsx` - 7 tests
+
+**Files Modified:**
+- `frontend/src/components/ListEditor.tsx` - Removed header delete button, added quick-add feature
+- `frontend/src/components/ListEditor.test.tsx` - Updated tests
+- `frontend/src/components/ProblemsList.tsx` - Use ListCell for list columns
+- `frontend/src/components/ProblemsList.test.tsx` - Updated tests for new workflow
+
+**Testing:**
+- Frontend: 68 tests passing (`npm test` in `frontend/`)
+
 ### 2026-01-02 - Shared DeleteButton Component
 
 **Completed:**

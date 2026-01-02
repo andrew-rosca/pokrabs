@@ -23,16 +23,18 @@ describe('ListEditor', () => {
     expect((newRow.textContent || '').trim().length).toBeGreaterThan(0);
   });
 
-  test('selects row via handle and deletes selected with confirmation', async () => {
+  test('deletes row via inline delete button with confirmation', async () => {
     const user = userEvent.setup();
     render(<ListEditor items={['Keep', 'Drop']} onSave={vi.fn()} />);
 
-    // select second row via handle
+    // Find the second row's handle container and trigger mouseEnter
     const handle = screen.getByLabelText(/Row 2 handle/i);
-    await user.click(handle);
+    const handleContainer = handle.parentElement as HTMLElement;
+    fireEvent.mouseEnter(handleContainer);
 
-    const deleteButton = screen.getByRole('button', { name: /Delete selected/i });
-    await user.click(deleteButton);
+    // Click the delete button (×) - this shows confirmation
+    const deleteButton = screen.getByRole('button', { name: /Delete row/i });
+    fireEvent.click(deleteButton);
 
     // Confirmation dialog should appear
     expect(screen.getByText('Delete?')).toBeInTheDocument();

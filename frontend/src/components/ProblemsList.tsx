@@ -5,12 +5,11 @@
  */
 
 import { useEffect, useState } from 'react';
-import React from 'react';
 import { Problem, Status, CreateProblemRequest } from '../../../shared/types';
 import { fetchProblems, updateProblem, createProblem, deleteProblem } from '../services/api';
-import { EditableCell } from './EditableCell';
 import { SummaryDetailCell } from './SummaryDetailCell';
 import { DeleteButton } from './DeleteButton';
+import { ListCell } from './ListCell';
 
 interface ProblemsListProps {
   projectId: string;
@@ -51,51 +50,14 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     return <div className="empty">No problems found.</div>;
   }
 
-  // Parse JSON fields for display
-  const parseField = (field: string) => {
-    try {
-      const parsed = JSON.parse(field);
-      if (typeof parsed === 'object' && parsed.summary) {
-        return parsed.summary;
-      }
-      if (Array.isArray(parsed)) {
-        return parsed.length > 0 ? parsed.join(', ') : '-';
-      }
-      return field;
-    } catch {
-      return field;
-    }
-  };
-
-  // Parse JSON fields for editing (get full content)
-  const parseFieldForEdit = (field: string) => {
-    try {
-      const parsed = JSON.parse(field);
-      if (typeof parsed === 'object' && parsed.summary) {
-        // For editing, show the summary (we'll update the JSON structure)
-        return parsed.summary;
-      }
-      if (Array.isArray(parsed)) {
-        return parsed.join('\n');
-      }
-      return field;
-    } catch {
-      return field;
-    }
-  };
-
   // Format value back to JSON for saving
-  const formatFieldForSave = (problem: Problem, fieldName: string, value: string): string => {
-    // For problem and objective, SummaryDetailCell handles the JSON formatting
-    // So we just pass through the value (it's already JSON)
-    if (fieldName === 'problem' || fieldName === 'objective') {
-      return value; // Already JSON from SummaryDetailCell
-    }
-    
-    // For arrays (keyResults, actions, blockers), split by newlines
-    if (fieldName === 'keyResults' || fieldName === 'actions' || fieldName === 'blockers') {
-      const items = value.split('\n').filter(item => item.trim().length > 0);
-      return JSON.stringify(items);
+  const formatFieldForSave = (fieldName: string, value: string): string => {
+    // For problem, objective, and list fields (keyResults, actions, blockers),
+    // the value is already JSON from SummaryDetailCell or ListCell
+    // So we just pass through the value
+    if (fieldName === 'problem' || fieldName === 'objective' ||
+        fieldName === 'keyResults' || fieldName === 'actions' || fieldName === 'blockers') {
+      return value; // Already JSON from the cell components
     }
     
     return value;
@@ -106,7 +68,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     const problem = problems.find(p => p.id === problemId);
     if (!problem) return;
     
-    const formattedValue = formatFieldForSave(problem, fieldName, value);
+    const formattedValue = formatFieldForSave(fieldName, value);
     
     // Optimistically update the UI
     setProblems(prevProblems =>
@@ -386,26 +348,26 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                     />
                   </td>
                   <td className="problem-text">
-                    <EditableCell
-                      value={parseFieldForEdit(problem.keyResults)}
+                    <ListCell
+                      value={problem.keyResults}
                       onSave={(value) => handleSaveField(problem.id, 'keyResults', value)}
-                      multiline
+                      title="Key Results"
                       className="problem-text"
                     />
                   </td>
                   <td className="problem-text">
-                    <EditableCell
-                      value={parseFieldForEdit(problem.actions)}
+                    <ListCell
+                      value={problem.actions}
                       onSave={(value) => handleSaveField(problem.id, 'actions', value)}
-                      multiline
+                      title="Actions"
                       className="problem-text"
                     />
                   </td>
                   <td className="problem-text">
-                    <EditableCell
-                      value={parseFieldForEdit(problem.blockers)}
+                    <ListCell
+                      value={problem.blockers}
                       onSave={(value) => handleSaveField(problem.id, 'blockers', value)}
-                      multiline
+                      title="Blockers"
                       className="problem-text"
                     />
                   </td>
