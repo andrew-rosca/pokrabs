@@ -2,9 +2,11 @@
  * Tests for ProblemsList Component
  */
 
+import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { ProblemsList } from './ProblemsList';
 import { fetchProblems, updateProblem, createProblem, deleteProblem } from '../services/api';
 import { Problem, Status } from '../../../shared/types';
@@ -21,6 +23,11 @@ const mockFetchProblems = fetchProblems as ReturnType<typeof vi.fn>;
 const mockUpdateProblem = updateProblem as ReturnType<typeof vi.fn>;
 const mockCreateProblem = createProblem as ReturnType<typeof vi.fn>;
 const mockDeleteProblem = deleteProblem as ReturnType<typeof vi.fn>;
+
+// Helper function to render component with Router context
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
 
 describe('ProblemsList', () => {
   const projectId = 'test-project-1';
@@ -87,12 +94,12 @@ describe('ProblemsList', () => {
   it('should render loading state initially', () => {
     mockFetchProblems.mockImplementation(() => new Promise(() => {})); // Never resolves
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     expect(screen.getByText('Loading problems...')).toBeInTheDocument();
   });
 
   it('should render problems table', async () => {
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -104,7 +111,7 @@ describe('ProblemsList', () => {
   });
 
   it('should display hierarchical IDs with indentation', async () => {
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('i0')).toBeInTheDocument();
@@ -114,7 +121,7 @@ describe('ProblemsList', () => {
   });
 
   it('should display status dropdowns', async () => {
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       const selects = screen.getAllByRole('combobox');
@@ -131,7 +138,7 @@ describe('ProblemsList', () => {
   });
 
   it('should display votes', async () => {
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('0')).toBeInTheDocument();
@@ -141,7 +148,7 @@ describe('ProblemsList', () => {
   });
 
   it('should display key results one per line', async () => {
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       // ListCell displays items one per line
@@ -152,7 +159,7 @@ describe('ProblemsList', () => {
   });
 
   it('should display actions one per line', async () => {
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       // ListCell displays items one per line
@@ -167,7 +174,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[0], problem: JSON.stringify({ summary: 'Updated Problem', detail: 'Updated Detail' }) };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -202,7 +209,7 @@ describe('ProblemsList', () => {
   });
 
   it('should show expand button when detail exists', async () => {
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -224,7 +231,7 @@ describe('ProblemsList', () => {
     };
     mockFetchProblems.mockResolvedValue([problemWithoutDetail]);
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -238,7 +245,7 @@ describe('ProblemsList', () => {
   it('should expand and show detail when expand button is clicked', async () => {
     const user = userEvent.setup();
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -265,7 +272,7 @@ describe('ProblemsList', () => {
   it('should collapse and hide detail when collapse button is clicked', async () => {
     const user = userEvent.setup();
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -299,7 +306,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[0], objective: JSON.stringify({ summary: 'Updated Objective', detail: 'Updated Detail' }) };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Objective 1')).toBeInTheDocument();
@@ -334,7 +341,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[0], keyResults: JSON.stringify(['KR1', 'KR2', 'KR3']) };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     // Wait for the list cell items to appear
     await waitFor(() => {
@@ -372,7 +379,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[1], actions: JSON.stringify(['Action 2', 'Action 3', 'Action 4']) };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     // Wait for the list cell items to appear
     await waitFor(() => {
@@ -410,7 +417,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[1], blockers: JSON.stringify(['Blocker 1', 'Blocker 2']) };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     // Wait for the list cell to appear
     await waitFor(() => {
@@ -448,7 +455,7 @@ describe('ProblemsList', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockUpdateProblem.mockRejectedValue(new Error('Update failed'));
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -473,7 +480,7 @@ describe('ProblemsList', () => {
   it('should display error message on fetch failure', async () => {
     mockFetchProblems.mockRejectedValue(new Error('Failed to fetch'));
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText(/Error: Failed to fetch/i)).toBeInTheDocument();
@@ -483,7 +490,7 @@ describe('ProblemsList', () => {
   it('should display empty state when no problems', async () => {
     mockFetchProblems.mockResolvedValue([]);
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('No problems found.')).toBeInTheDocument();
@@ -506,7 +513,7 @@ describe('ProblemsList', () => {
     
     mockFetchProblems.mockResolvedValue(unsortedProblems);
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       const rows = screen.getAllByRole('row');
@@ -521,7 +528,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[0], status: Status.InProgress };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       const selects = screen.getAllByRole('combobox');
@@ -556,7 +563,7 @@ describe('ProblemsList', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockUpdateProblem.mockRejectedValue(new Error('Update failed'));
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       const selects = screen.getAllByRole('combobox');
@@ -583,18 +590,19 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[0], votes: 1 };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('0')).toBeInTheDocument();
     });
     
-    // Find the vote button
-    const voteButton = screen.getByText('0').closest('button');
-    expect(voteButton).toBeInTheDocument();
+    // Find the vote button - it should be a button with text '0'
+    const voteButtons = screen.getAllByRole('button').filter(btn => btn.textContent === '0');
+    expect(voteButtons.length).toBeGreaterThan(0);
+    const voteButton = voteButtons[0];
     
     // Click to increment
-    await user.click(voteButton!);
+    await user.click(voteButton);
     
     await waitFor(() => {
       expect(mockUpdateProblem).toHaveBeenCalledWith('i0', {
@@ -602,9 +610,10 @@ describe('ProblemsList', () => {
       });
     });
     
-    // Verify UI updated optimistically
+    // Verify UI updated optimistically - look for button with text '1'
     await waitFor(() => {
-      expect(screen.getByText('1')).toBeInTheDocument();
+      const updatedVoteButtons = screen.getAllByRole('button').filter(btn => btn.textContent === '1');
+      expect(updatedVoteButtons.length).toBeGreaterThan(0);
     });
   });
 
@@ -613,7 +622,7 @@ describe('ProblemsList', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockUpdateProblem.mockRejectedValue(new Error('Update failed'));
     
-    render(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList projectId={projectId} />);
     
     await waitFor(() => {
       expect(screen.getByText('0')).toBeInTheDocument();
@@ -633,7 +642,7 @@ describe('ProblemsList', () => {
   describe('Create Problem', () => {
     it('should create a new problem when + button is clicked', async () => {
       const user = userEvent.setup();
-      render(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList projectId={projectId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -673,7 +682,7 @@ describe('ProblemsList', () => {
 
     it('should create a top-level problem at bottom when + button is clicked on bottom row', async () => {
       const user = userEvent.setup();
-      render(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList projectId={projectId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -698,7 +707,7 @@ describe('ProblemsList', () => {
 
     it('should create a top-level problem at top when + button is clicked in header', async () => {
       const user = userEvent.setup();
-      render(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList projectId={projectId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -726,7 +735,7 @@ describe('ProblemsList', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockCreateProblem.mockRejectedValue(new Error('Failed to create problem: Bad Request'));
       
-      render(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList projectId={projectId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -758,7 +767,7 @@ describe('ProblemsList', () => {
         .mockResolvedValueOnce([mockProblems[1]]);
       mockDeleteProblem.mockResolvedValue({});
 
-      render(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList projectId={projectId} />);
 
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -798,7 +807,7 @@ describe('ProblemsList', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockDeleteProblem.mockRejectedValue(new Error('Failed to delete problem'));
 
-      render(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList projectId={projectId} />);
 
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -905,7 +914,7 @@ describe('ProblemsList', () => {
     it('should show collapse carets only for problems with children', async () => {
       mockFetchProblems.mockResolvedValue(hierarchicalProblems);
       
-      render(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList projectId={projectId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Parent Problem')).toBeInTheDocument();
@@ -925,7 +934,7 @@ describe('ProblemsList', () => {
       const user = userEvent.setup();
       mockFetchProblems.mockResolvedValue(hierarchicalProblems);
       
-      render(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList projectId={projectId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Parent Problem')).toBeInTheDocument();
@@ -952,7 +961,7 @@ describe('ProblemsList', () => {
       const user = userEvent.setup();
       mockFetchProblems.mockResolvedValue(hierarchicalProblems);
       
-      render(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList projectId={projectId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Parent Problem')).toBeInTheDocument();
@@ -981,7 +990,7 @@ describe('ProblemsList', () => {
       const user = userEvent.setup();
       mockFetchProblems.mockResolvedValue(hierarchicalProblems);
       
-      render(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList projectId={projectId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Parent Problem')).toBeInTheDocument();
@@ -1004,7 +1013,7 @@ describe('ProblemsList', () => {
       const user = userEvent.setup();
       mockFetchProblems.mockResolvedValue(hierarchicalProblems);
       
-      render(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList projectId={projectId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Parent Problem')).toBeInTheDocument();
@@ -1033,7 +1042,7 @@ describe('ProblemsList', () => {
       const user = userEvent.setup();
       mockFetchProblems.mockResolvedValue(hierarchicalProblems);
       
-      render(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList projectId={projectId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Parent Problem')).toBeInTheDocument();
