@@ -405,7 +405,8 @@
         "Test voting increments count correctly",
         "Test multiple votes accumulate"
       ],
-      "passes": false
+      "passes": false,
+      "notes": "BLOCKED: Voting requires user authentication (Phase 2). Cannot track who voted without user identity. Votes column hidden in UI until authentication is implemented."
     },
     {
       "id": "F032",
@@ -603,7 +604,8 @@
         "Test voting increments count correctly",
         "Test vote count updates in UI"
       ],
-      "passes": true
+      "passes": true,
+      "notes": "Implementation complete but votes column hidden until user authentication is implemented (Phase 2). Voting requires user identity to track who voted."
     },
     {
       "id": "F046",

@@ -58,22 +58,26 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
   const positionInputRef = useRef<HTMLInputElement>(null);
 
   // Column visibility state - persisted to localStorage
+  // Note: votes column hidden until user authentication is implemented (voting requires user identity)
   const [visibleColumns, setVisibleColumns] = useState<{
     objective: boolean;
     keyResults: boolean;
     actions: boolean;
     blockers: boolean;
     status: boolean;
+    votes: boolean;
   }>(() => {
     const stored = localStorage.getItem('pokrabs-column-visibility');
     if (stored) {
       try {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // Default votes to false if not present in stored config
+        return { ...parsed, votes: parsed.votes ?? false };
       } catch {
-        return { objective: true, keyResults: true, actions: true, blockers: true, status: true };
+        return { objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: false };
       }
     }
-    return { objective: true, keyResults: true, actions: true, blockers: true, status: true };
+    return { objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: false };
   });
 
   // Persist column visibility to localStorage
@@ -1108,7 +1112,7 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
               {visibleColumns.actions && <th>Actions</th>}
               {visibleColumns.blockers && <th>Blockers</th>}
               {visibleColumns.status && <th>Status</th>}
-              <th>Votes</th>
+              {visibleColumns.votes && <th>Votes</th>}
             </tr>
           </thead>
           <tbody>
@@ -1413,30 +1417,32 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
                       </select>
                     </td>
                   )}
-                  <td className="problem-votes">
-                    <button
-                      onClick={() => handleVoteIncrement(problem.id)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'inherit',
-                        cursor: 'pointer',
-                        fontSize: '0.75rem',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '4px',
-                        transition: 'background-color 0.2s',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'var(--bg-hover, rgba(0,0,0,0.05))';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
-                      title="Click to increment votes"
-                    >
-                      {problem.votes}
-                    </button>
-                  </td>
+                  {visibleColumns.votes && (
+                    <td className="problem-votes">
+                      <button
+                        onClick={() => handleVoteIncrement(problem.id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'inherit',
+                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          transition: 'background-color 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'var(--bg-hover, rgba(0,0,0,0.05))';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                        title="Click to increment votes"
+                      >
+                        {problem.votes}
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}

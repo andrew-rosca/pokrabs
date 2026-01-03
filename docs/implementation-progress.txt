@@ -1797,3 +1797,44 @@ Implemented a client-side search bar in the header that filters the problem tabl
 - idPath search is critical for hierarchical ID matching
 - Search bypasses isHiddenByCollapse() when query is present
 
+---
+
+## 2026-01-03 - Hide Votes Column (Requires User Authentication)
+
+**Rationale:**
+Voting functionality requires user authentication to be meaningful. Without user identity, we cannot:
+- Track which users have voted on which problems
+- Prevent users from voting multiple times
+- Implement vote-based sorting reliably
+- Show who voted for transparency
+
+**Changes:**
+- Added `votes: boolean` to `visibleColumns` state in ProblemsList component
+- Default value set to `false` (hidden)
+- Votes column conditionally rendered based on `visibleColumns.votes`
+- Column visibility persisted to localStorage for future use
+- Existing vote increment functionality preserved but hidden from UI
+
+**Documentation Updates:**
+- F031 marked as BLOCKED with note: "Voting requires user authentication (Phase 2)"
+- F045 note added: "Implementation complete but votes column hidden until user authentication"
+- Both features note that voting requires user identity to track who voted
+
+**Implementation Status:**
+- Backend: votes field exists in database and API ✅
+- Frontend: vote increment button implemented ✅
+- UI: Votes column hidden by default ✅
+- Future: Will be enabled in Phase 2 with user authentication
+
+**Files Modified:**
+- `frontend/src/components/ProblemsList.tsx` - Added votes to visibleColumns, defaulted to false
+- `docs/feature_list.json` - Added notes to F031 and F045 explaining voting requirement
+- `docs/implementation-progress.txt` - Documented decision and rationale
+
+**Technical Notes:**
+- All voting infrastructure remains in place (database field, API endpoints, handlers)
+- Can be re-enabled by setting `votes: true` in visibleColumns default or via UI toggle (future)
+- No breaking changes - existing code still works when column is shown
+
+---
+

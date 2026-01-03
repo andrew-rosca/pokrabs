@@ -138,6 +138,16 @@ describe('ProblemsList', () => {
   });
 
   it('should display votes', async () => {
+    // Enable votes column visibility in localStorage
+    localStorage.setItem('pokrabs-column-visibility', JSON.stringify({ 
+      objective: true, 
+      keyResults: true, 
+      actions: true, 
+      blockers: true, 
+      status: true, 
+      votes: true 
+    }));
+    
     renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
@@ -586,6 +596,16 @@ describe('ProblemsList', () => {
   });
 
   it('should allow incrementing votes on click', async () => {
+    // Enable votes column visibility in localStorage
+    localStorage.setItem('pokrabs-column-visibility', JSON.stringify({ 
+      objective: true, 
+      keyResults: true, 
+      actions: true, 
+      blockers: true, 
+      status: true, 
+      votes: true 
+    }));
+    
     const user = userEvent.setup();
     const updatedProblem = { ...mockProblems[0], votes: 1 };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
@@ -618,6 +638,16 @@ describe('ProblemsList', () => {
   });
 
   it('should handle vote increment errors gracefully', async () => {
+    // Enable votes column visibility in localStorage
+    localStorage.setItem('pokrabs-column-visibility', JSON.stringify({ 
+      objective: true, 
+      keyResults: true, 
+      actions: true, 
+      blockers: true, 
+      status: true, 
+      votes: true 
+    }));
+    
     const user = userEvent.setup();
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockUpdateProblem.mockRejectedValue(new Error('Update failed'));
