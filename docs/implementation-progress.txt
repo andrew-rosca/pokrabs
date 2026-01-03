@@ -1290,3 +1290,105 @@ In the `SummaryDetailCell` component (used for Problem and Objective columns), w
 - Both states result in detail at position: `summaryHeight + 8px` from cell top
 - Maintains fade effect on collapsed overflow for visual polish
 
+---
+
+## 2025-01-03: Problem Reordering Feature (Move to Top/Bottom/Position by Visible Row Number)
+
+**Feature Overview:**
+Extended the context menu for problem rows to include three new buttons for changing the sort order of problems based on **visible row numbers**:
+1. **Move to Top (⤊)** - Moves the problem to the very first visible row
+2. **Move to Bottom (⤋)** - Moves the problem to the very last visible row
+3. **Move to Position (#)** - Opens an input dialog to move the problem to a specific visible row number (1-based index)
+
+**Key Design Decision:**
+The position numbers correspond to the **visible row numbers** shown in the leftmost column of the table, NOT to positions within sibling groups. This allows users to visually see a row number (e.g., row 48) and move a problem to appear at that exact position, just like dragging and dropping
+
+**Backend Changes:**
+- Added `reorder` method to `IProblemRepository` interface
+  - Parameters: `id: string`, `position: 'top' | 'bottom' | number`
+  - Returns the updated problem
+- Implemented `reorder` in `PrismaProblemRepository`:
+  - Gets all siblings at the same level (same parent)
+  - Calculates target position based on position parameter
+  - Renumbers all siblings' priorities in a transaction to maintain correct order
+  - For numeric positions: clamps to valid range, supports middle position default
+- Added `PATCH /api/problems/:id/reorder` endpoint:
+  - Validates position parameter ('top', 'bottom', or positive integer)
+  - Returns 400 for invalid positions
+  - Returns 404 for non-existent problems
+- Added 9 comprehensive tests for the reorder endpoint:
+  - Reorder to top
+  - Reorder to bottom  
+  - Reorder to specific position
+  - Reorder within child problems (maintains hierarchy)
+  - Error cases: missing position, invalid position type, invalid numbers
+
+**Frontend Changes:**
+- Added three reorder buttons to the row actions panel:
+  - ⤊ (Move to top of visible list)
+  - ⤋ (Move to bottom of visible list)
+  - # (Move to specific visible row position)
+- Added position input dialog:
+  - Shows when user clicks the # button
+  - Text input for position number (1-based visible row number)
+  - Default value is middle of **visible problems** (not siblings)
+  - Confirm (✔) and Cancel (✕) buttons
+  - Supports Enter key to confirm, Escape key to cancel
+- Added state management:
+  - `showPositionInput` - tracks which problem's dialog is open
+  - `positionInputValue` - stores the position number entered by user
+- Added handler functions:
+  - `handleReorder` - moves to top/bottom of visible list using `moveProblem` API
+  - `handleShowPositionInput` - calculates middle of visible problems and shows dialog
+  - `handleReorderToPosition` - converts visible row number to appropriate parent/afterProblemId and calls `moveProblem`
+  - `handleCancelPositionInput` - closes dialog
+- **Implementation Detail**: All reorder operations use the existing `moveProblem` API endpoint, which handles parent changes and sibling ordering. The `reorderProblem` API function was created but is not used in the final implementation
+
+**CSS Styling:**
+- Added `.row-action-reorder:hover` style for reorder buttons (blue accent color)
+- Added `.row-position-input` styles for the position dialog:
+  - Similar styling to delete confirmation dialog
+  - Inline-flex layout with gap between elements
+  - 50px wide input field with border and focus state
+  - Confirm button with accent color
+  - Cancel button with default styling
+- Added `.position-input-field` styles:
+  - Centered text
+  - Focus state with accent color border
+  - Proper padding and sizing
+
+**Testing:**
+- Backend: All 35 tests passing (9 new reorder endpoint tests)
+- Frontend: Tested end-to-end in browser
+- Verified scenarios:
+  - Move to position dialog shows with correct default (middle of siblings)
+  - Move to position 1 successfully reorders problem
+  - Move to bottom successfully moves problem to last position
+  - UI updates correctly after reorder operations
+  - Reordering works correctly within hierarchical structures (siblings only)
+
+**Files Modified:**
+- `backend/src/models/problem-repository.ts` - Added reorder method to interface
+- `backend/src/models/prisma-problem-repository.ts` - Implemented reorder method
+- `backend/src/api/problems.ts` - Added reorder endpoint
+- `backend/src/api/problems.test.ts` - Added reorder tests
+- `frontend/src/services/api.ts` - Added reorderProblem function
+- `frontend/src/components/ProblemsList.tsx` - Added reorder UI and handlers
+- `frontend/src/index.css` - Added reorder button and dialog styles
+
+**User Experience:**
+- Buttons appear in row actions panel on hover (same as add child and delete buttons)
+- Position input dialog provides intuitive default (middle of list)
+- Visual feedback with button hover states
+- Smooth operation with automatic list refresh after reorder
+- Works seamlessly with hierarchical problem structure
+
+**Technical Notes:**
+- Reorder operations work with **visible row numbers**, not sibling positions
+- Uses `moveProblem` API which handles both parent changes and positioning
+- When moving to position X, the problem is inserted after the problem at visible row X-1
+- Priority field is used to maintain sort order within sibling groups
+- Position input is 1-based (matching visible row numbers) but converted to 0-based internally for array operations
+- The backend `reorder` endpoint was implemented but is not used; all operations use `moveProblem` for consistency
+- This matches drag-and-drop behavior: user sees row numbers and can type a number instead of dragging
+

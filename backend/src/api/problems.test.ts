@@ -544,5 +544,255 @@ describe('Problems API', () => {
       expect(response.body.error).toContain('Cannot move');
     });
   });
+
+  describe('PATCH /api/problems/:id/reorder', () => {
+    it('should reorder a problem to the top', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      
+      // Create three problems at root level
+      const problem1 = await problemRepo.create({
+        projectId,
+        problem: 'Problem 1',
+        objective: 'Objective 1',
+      });
+      const problem2 = await problemRepo.create({
+        projectId,
+        problem: 'Problem 2',
+        objective: 'Objective 2',
+      });
+      const problem3 = await problemRepo.create({
+        projectId,
+        problem: 'Problem 3',
+        objective: 'Objective 3',
+      });
+
+      // Move problem3 to top
+      const response = await request(app)
+        .patch(`/api/problems/${problem3.id}/reorder`)
+        .send({ position: 'top' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.id).toBe(problem3.id);
+
+      // Verify order by fetching all problems and checking priorities
+      const allProblems = await problemRepo.findByProjectId(projectId);
+      const sortedProblems = allProblems
+        .filter(p => p.parentId === null)
+        .sort((a, b) => a.priority - b.priority);
+
+      expect(sortedProblems[0].id).toBe(problem3.id);
+      expect(sortedProblems[1].id).toBe(problem1.id);
+      expect(sortedProblems[2].id).toBe(problem2.id);
+    });
+
+    it('should reorder a problem to the bottom', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      
+      // Create three problems at root level
+      const problem1 = await problemRepo.create({
+        projectId,
+        problem: 'Problem 1',
+        objective: 'Objective 1',
+      });
+      const problem2 = await problemRepo.create({
+        projectId,
+        problem: 'Problem 2',
+        objective: 'Objective 2',
+      });
+      const problem3 = await problemRepo.create({
+        projectId,
+        problem: 'Problem 3',
+        objective: 'Objective 3',
+      });
+
+      // Move problem1 to bottom
+      const response = await request(app)
+        .patch(`/api/problems/${problem1.id}/reorder`)
+        .send({ position: 'bottom' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.id).toBe(problem1.id);
+
+      // Verify order by fetching all problems and checking priorities
+      const allProblems = await problemRepo.findByProjectId(projectId);
+      const sortedProblems = allProblems
+        .filter(p => p.parentId === null)
+        .sort((a, b) => a.priority - b.priority);
+
+      expect(sortedProblems[0].id).toBe(problem2.id);
+      expect(sortedProblems[1].id).toBe(problem3.id);
+      expect(sortedProblems[2].id).toBe(problem1.id);
+    });
+
+    it('should reorder a problem to a specific position', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      
+      // Create five problems at root level
+      const problem1 = await problemRepo.create({
+        projectId,
+        problem: 'Problem 1',
+        objective: 'Objective 1',
+      });
+      const problem2 = await problemRepo.create({
+        projectId,
+        problem: 'Problem 2',
+        objective: 'Objective 2',
+      });
+      const problem3 = await problemRepo.create({
+        projectId,
+        problem: 'Problem 3',
+        objective: 'Objective 3',
+      });
+      const problem4 = await problemRepo.create({
+        projectId,
+        problem: 'Problem 4',
+        objective: 'Objective 4',
+      });
+      const problem5 = await problemRepo.create({
+        projectId,
+        problem: 'Problem 5',
+        objective: 'Objective 5',
+      });
+
+      // Move problem5 to position 2 (middle)
+      const response = await request(app)
+        .patch(`/api/problems/${problem5.id}/reorder`)
+        .send({ position: 2 });
+
+      expect(response.status).toBe(200);
+      expect(response.body.id).toBe(problem5.id);
+
+      // Verify order
+      const allProblems = await problemRepo.findByProjectId(projectId);
+      const sortedProblems = allProblems
+        .filter(p => p.parentId === null)
+        .sort((a, b) => a.priority - b.priority);
+
+      expect(sortedProblems[0].id).toBe(problem1.id);
+      expect(sortedProblems[1].id).toBe(problem5.id);
+      expect(sortedProblems[2].id).toBe(problem2.id);
+      expect(sortedProblems[3].id).toBe(problem3.id);
+      expect(sortedProblems[4].id).toBe(problem4.id);
+    });
+
+    it('should handle reordering within child problems', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      
+      // Create a parent with three children
+      const parent = await problemRepo.create({
+        projectId,
+        problem: 'Parent',
+        objective: 'Parent objective',
+      });
+      const child1 = await problemRepo.create({
+        projectId,
+        parentId: parent.id,
+        problem: 'Child 1',
+        objective: 'Objective 1',
+      });
+      const child2 = await problemRepo.create({
+        projectId,
+        parentId: parent.id,
+        problem: 'Child 2',
+        objective: 'Objective 2',
+      });
+      const child3 = await problemRepo.create({
+        projectId,
+        parentId: parent.id,
+        problem: 'Child 3',
+        objective: 'Objective 3',
+      });
+
+      // Move child3 to top among siblings
+      const response = await request(app)
+        .patch(`/api/problems/${child3.id}/reorder`)
+        .send({ position: 'top' });
+
+      expect(response.status).toBe(200);
+
+      // Verify order among children
+      const allProblems = await problemRepo.findByProjectId(projectId);
+      const children = allProblems
+        .filter(p => p.parentId === parent.id)
+        .sort((a, b) => a.priority - b.priority);
+
+      expect(children[0].id).toBe(child3.id);
+      expect(children[1].id).toBe(child1.id);
+      expect(children[2].id).toBe(child2.id);
+    });
+
+    it('should return 404 for non-existent problem', async () => {
+      const response = await request(app)
+        .patch('/api/problems/non-existent/reorder')
+        .send({ position: 'top' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Problem not found');
+    });
+
+    it('should return 400 for missing position', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const problem = await problemRepo.create({
+        projectId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${problem.id}/reorder`)
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('position is required');
+    });
+
+    it('should return 400 for invalid position type', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const problem = await problemRepo.create({
+        projectId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${problem.id}/reorder`)
+        .send({ position: 'middle' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('must be "top", "bottom", or a number');
+    });
+
+    it('should return 400 for invalid position number (zero)', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const problem = await problemRepo.create({
+        projectId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${problem.id}/reorder`)
+        .send({ position: 0 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('positive integer');
+    });
+
+    it('should return 400 for invalid position number (negative)', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const problem = await problemRepo.create({
+        projectId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${problem.id}/reorder`)
+        .send({ position: -1 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('positive integer');
+    });
+  });
 });
 

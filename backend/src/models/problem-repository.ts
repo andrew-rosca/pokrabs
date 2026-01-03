@@ -83,5 +83,17 @@ export interface IProblemRepository {
     newParentId: string | null,
     afterProblemId: string | null
   ): Promise<Problem>;
+
+  /**
+   * Reorder a problem within its current parent to a specific position.
+   * 
+   * @param id - The problem ID to reorder
+   * @param position - Target position: 'top' (first among siblings), 'bottom' (last among siblings), or a number (1-based index)
+   * @returns The updated problem
+   */
+  reorder(
+    id: string,
+    position: 'top' | 'bottom' | number
+  ): Promise<Problem>;
 }
 

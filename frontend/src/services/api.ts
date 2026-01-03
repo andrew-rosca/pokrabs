@@ -164,3 +164,34 @@ export async function moveProblem(
   return response.json();
 }
 
+/**
+ * Reorder a problem within its current parent to a specific position
+ * @param problemId - The problem ID to reorder
+ * @param position - Target position: 'top' (first), 'bottom' (last), or a number (1-based index)
+ */
+export async function reorderProblem(
+  problemId: string,
+  position: 'top' | 'bottom' | number
+): Promise<Problem> {
+  const response = await fetch(`${API_URL}/api/problems/${problemId}/reorder`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ position }),
+  });
+  if (!response.ok) {
+    let errorMessage = `Failed to reorder problem: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+}
+

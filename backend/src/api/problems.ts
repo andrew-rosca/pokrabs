@@ -153,5 +153,49 @@ router.patch('/:id/move', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * PATCH /api/problems/:id/reorder
+ * Reorder a problem within its current parent to a specific position
+ * 
+ * Body:
+ *   - position: 'top' | 'bottom' | number - Target position (number is 1-based index)
+ */
+router.patch('/:id/reorder', async (req: Request, res: Response) => {
+  try {
+    const { position } = req.body;
+    
+    // Validate position
+    if (position === undefined || position === null) {
+      return res.status(400).json({ error: 'position is required' });
+    }
+    
+    if (position !== 'top' && position !== 'bottom' && typeof position !== 'number') {
+      return res.status(400).json({ error: 'position must be "top", "bottom", or a number' });
+    }
+    
+    if (typeof position === 'number' && (!Number.isInteger(position) || position < 1)) {
+      return res.status(400).json({ error: 'position number must be a positive integer' });
+    }
+    
+    const problemRepo = getProblemRepoWithPrisma(req);
+    
+    const updated = await problemRepo.reorder(
+      req.params.id,
+      position
+    );
+    
+    res.json(updated);
+  } catch (error: any) {
+    if (error.message === 'Problem not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    if (error.message.includes('Position must be')) {
+      return res.status(400).json({ error: error.message });
+    }
+    console.error('Error reordering problem:', error);
+    res.status(500).json({ error: 'Failed to reorder problem' });
+  }
+});
+
 export default router;
 

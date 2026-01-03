@@ -462,6 +462,12 @@ code {
   color: var(--bg-primary);
 }
 
+.row-action-reorder:hover {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: var(--bg-primary);
+}
+
 .row-delete-confirm {
   display: inline-flex;
   align-items: center;
@@ -495,6 +501,60 @@ code {
 }
 
 .row-delete-confirm .cancel:hover {
+  transform: scale(1.05);
+}
+
+/* Position input dialog */
+.row-position-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  box-shadow: 0 1px 3px var(--shadow);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.row-position-text {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+}
+
+.position-input-field {
+  width: 50px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.position-input-field:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.row-position-input .confirm {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: var(--bg-primary);
+}
+
+.row-position-input .confirm:hover {
+  transform: scale(1.05);
+}
+
+.row-position-input .cancel {
+  background-color: var(--bg-primary);
+}
+
+.row-position-input .cancel:hover {
   transform: scale(1.05);
 }
 

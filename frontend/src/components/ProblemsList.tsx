@@ -47,6 +47,10 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | 'child' | null>(null);
   const dragOverCountRef = useRef(0);
 
+  // Reorder position input state
+  const [showPositionInput, setShowPositionInput] = useState<string | null>(null); // problem ID
+  const [positionInputValue, setPositionInputValue] = useState<string>('');
+
   useEffect(() => {
     async function loadProblems() {
       try {
@@ -731,6 +735,94 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     }
   };
 
+  // Handle reordering a problem to top or bottom of visible list
+  const handleReorder = async (problemId: string, position: 'top' | 'bottom') => {
+    try {
+      setError(null);
+      
+      if (position === 'top') {
+        // Move to very first position (before first visible problem)
+        const firstProblem = visibleProblems[0];
+        await moveProblem(problemId, firstProblem.parentId, null);
+      } else {
+        // Move to very last position (after last visible problem)
+        const lastProblem = visibleProblems[visibleProblems.length - 1];
+        await moveProblem(problemId, lastProblem.parentId, lastProblem.id);
+      }
+      
+      // Reload problems to get updated priorities
+      const data = await fetchProblems(projectId);
+      setProblems(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to reorder problem';
+      setError(errorMessage);
+      console.error('Error reordering problem:', err);
+    }
+  };
+
+  // Handle showing the position input for a problem
+  const handleShowPositionInput = (problemId: string) => {
+    // Calculate middle position of visible problems (visible row numbers)
+    const middlePosition = Math.ceil(visibleProblems.length / 2);
+    
+    setPositionInputValue(middlePosition.toString());
+    setShowPositionInput(problemId);
+  };
+
+  // Handle reordering to a specific visible row position
+  const handleReorderToPosition = async (problemId: string) => {
+    const targetRowNumber = parseInt(positionInputValue, 10);
+    
+    if (isNaN(targetRowNumber) || targetRowNumber < 1) {
+      setError('Please enter a valid row number (1 or greater)');
+      return;
+    }
+
+    if (targetRowNumber > visibleProblems.length + 1) {
+      setError(`Row number must be between 1 and ${visibleProblems.length + 1}`);
+      return;
+    }
+
+    try {
+      setError(null);
+      setShowPositionInput(null);
+      
+      // Convert 1-based row number to 0-based index
+      const targetIndex = targetRowNumber - 1;
+      
+      // Determine the new parent and position based on visible row number
+      // We want to insert the problem at the target visible row position
+      
+      if (targetIndex === 0) {
+        // Move to very first position (before first visible problem)
+        const firstProblem = visibleProblems[0];
+        await moveProblem(problemId, firstProblem.parentId, null);
+      } else if (targetIndex >= visibleProblems.length) {
+        // Move to very last position (after last visible problem)
+        const lastProblem = visibleProblems[visibleProblems.length - 1];
+        await moveProblem(problemId, lastProblem.parentId, lastProblem.id);
+      } else {
+        // Insert after the problem at targetIndex - 1
+        const afterProblem = visibleProblems[targetIndex - 1];
+        await moveProblem(problemId, afterProblem.parentId, afterProblem.id);
+      }
+      
+      // Reload problems to get updated priorities
+      const data = await fetchProblems(projectId);
+      setProblems(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to reorder problem';
+      setError(errorMessage);
+      console.error('Error reordering problem:', err);
+    }
+  };
+
+  // Handle canceling position input
+  const handleCancelPositionInput = () => {
+    setShowPositionInput(null);
+    setPositionInputValue('');
+  };
+
   // Handle creating a new problem
   // position: 'top' = first among siblings, 'bottom' = last among siblings
   const handleCreateProblem = async (parentId: string | null, position: 'top' | 'bottom') => {
@@ -929,12 +1021,71 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                         >
                           +
                         </button>
+                        <button
+                          className="row-action-button row-action-reorder"
+                          onClick={() => handleReorder(problem.id, 'top')}
+                          title="Move to top"
+                        >
+                          ⤊
+                        </button>
+                        <button
+                          className="row-action-button row-action-reorder"
+                          onClick={() => handleReorder(problem.id, 'bottom')}
+                          title="Move to bottom"
+                        >
+                          ⤋
+                        </button>
+                        <button
+                          className="row-action-button row-action-reorder"
+                          onClick={() => handleShowPositionInput(problem.id)}
+                          title="Move to position..."
+                        >
+                          #
+                        </button>
                         <DeleteButton
                           onDelete={() => handleDeleteProblem(problem.id)}
                           ariaLabel="Delete problem"
                           title="Delete problem&#10;Ctrl+click to delete without confirmation"
                         />
                       </div>
+                      {showPositionInput === problem.id && (
+                        <div className="row-position-input" role="dialog">
+                          <span className="row-position-text">Position:</span>
+                          <input
+                            type="number"
+                            className="position-input-field"
+                            value={positionInputValue}
+                            onChange={(e) => setPositionInputValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleReorderToPosition(problem.id);
+                              } else if (e.key === 'Escape') {
+                                handleCancelPositionInput();
+                              }
+                            }}
+                            autoFocus
+                            min="1"
+                          />
+                          <button
+                            type="button"
+                            className="row-action-button confirm"
+                            aria-label="Confirm position"
+                            onClick={() => handleReorderToPosition(problem.id)}
+                            title="Move to position"
+                          >
+                            ✔
+                          </button>
+                          <button
+                            type="button"
+                            className="row-action-button cancel"
+                            aria-label="Cancel"
+                            onClick={handleCancelPositionInput}
+                            title="Cancel"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div className="id-content" style={{ paddingLeft: `${depth * 8}px`, position: 'relative' }}>
                       <span 

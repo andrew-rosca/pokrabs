@@ -316,6 +316,91 @@ export class PrismaProblemRepository implements IProblemRepository {
     return this.mapToProblem(updated!);
   }
 
+  async reorder(
+    id: string,
+    position: 'top' | 'bottom' | number
+  ): Promise<Problem> {
+    // Find the problem being reordered
+    const problem = await this.prisma.problem.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        parentId: true,
+        projectId: true,
+        priority: true,
+      },
+    });
+
+    if (!problem) {
+      throw new Error('Problem not found');
+    }
+
+    // Get all siblings (problems at the same level), INCLUDING the problem being reordered
+    const allSiblings = await this.prisma.problem.findMany({
+      where: {
+        parentId: problem.parentId,
+        projectId: problem.projectId,
+        deletedAt: null,
+      },
+      orderBy: [
+        { priority: 'asc' },
+        { createdAt: 'asc' },
+      ],
+      select: {
+        id: true,
+        priority: true,
+      },
+    });
+
+    // Remove the problem being reordered from the list
+    const otherSiblings = allSiblings.filter(s => s.id !== id);
+    
+    // Determine the target index (0-based)
+    let targetIndex = 0;
+    
+    if (position === 'top') {
+      targetIndex = 0;
+    } else if (position === 'bottom') {
+      targetIndex = otherSiblings.length;
+    } else {
+      // position is a 1-based number
+      targetIndex = position - 1;
+      
+      if (targetIndex < 0) {
+        throw new Error('Position must be at least 1');
+      }
+      
+      // Clamp to valid range
+      if (targetIndex > otherSiblings.length) {
+        targetIndex = otherSiblings.length;
+      }
+    }
+
+    // Insert the problem at the target index
+    const newOrder = [
+      ...otherSiblings.slice(0, targetIndex),
+      allSiblings.find(s => s.id === id)!,
+      ...otherSiblings.slice(targetIndex),
+    ];
+
+    // Update all siblings with their new priorities
+    await this.prisma.$transaction(async (tx) => {
+      for (let i = 0; i < newOrder.length; i++) {
+        await tx.problem.update({
+          where: { id: newOrder[i].id },
+          data: { priority: i },
+        });
+      }
+    });
+
+    // Fetch and return the updated problem
+    const updated = await this.prisma.problem.findUnique({
+      where: { id },
+    });
+
+    return this.mapToProblem(updated!);
+  }
+
   /**
    * Map Prisma ProblemStatus enum to shared Status enum
    */
