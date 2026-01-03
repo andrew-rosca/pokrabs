@@ -816,6 +816,14 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
       // Reload problems to get updated priorities
       const data = await fetchProblems(projectId);
       setProblems(data);
+      
+      // Highlight the row to draw attention (without scrolling)
+      setHighlightedProblemId(problemId);
+      
+      // Clear highlight after animation completes
+      setTimeout(() => {
+        setHighlightedProblemId(null);
+      }, 2000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to reorder problem';
       setError(errorMessage);
@@ -875,6 +883,14 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
       // Reload problems to get updated priorities
       const data = await fetchProblems(projectId);
       setProblems(data);
+      
+      // Highlight the row to draw attention (without scrolling)
+      setHighlightedProblemId(problemId);
+      
+      // Clear highlight after animation completes
+      setTimeout(() => {
+        setHighlightedProblemId(null);
+      }, 2000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to reorder problem';
       setError(errorMessage);

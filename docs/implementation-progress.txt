@@ -1175,6 +1175,49 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 - `frontend/src/components/ProblemsList.tsx` - Scroll logic, expansion logic, copy overlay
 - `frontend/src/index.css` - Layout fixes, sticky header, copy-confirmation styles
 
+### 2026-01-03 - Highlight Flash on Problem Move/Reorder
+
+**Completed:**
+- Added visual highlight flash effect when problems are moved using context menu buttons
+- Applied same flashing animation used for URL navigation to problem moves
+- Flash occurs without scrolling, allowing users to track moved problems
+
+**Feature Details:**
+- **Move Operations**: All three move operations now trigger the highlight flash:
+  - Move to top (⤊ button)
+  - Move to bottom (⤋ button)
+  - Move to position (# button with numeric input)
+- **Visual Effect**: 
+  - Uses existing `highlight-flash` CSS animation (2 second duration)
+  - Accent color flash with fade in/out
+  - Same animation as URL navigation feature
+- **No Scrolling**: 
+  - Problem is highlighted in place, no automatic scroll
+  - If moved out of view, that's acceptable per requirements
+  - User can manually scroll to find highlighted problem
+
+**Implementation Details:**
+- Added highlight logic to `handleReorder()` function
+- Added highlight logic to `handleReorderToPosition()` function
+- Reused existing `highlightedProblemId` state
+- Set 2-second timeout to clear highlight after animation
+- No changes to CSS - reused existing `.highlighted` class and `@keyframes highlight-flash`
+
+**User Experience:**
+- When user clicks move button, problem moves to new position
+- Problem row flashes with accent color to show where it moved
+- Flash provides visual feedback of successful move operation
+- No jarring scroll behavior - smooth and predictable
+
+**Technical Notes:**
+- Follows DRY principle by reusing existing highlight infrastructure
+- Consistent with URL navigation behavior
+- Timeout cleanup prevents stale highlights
+- Works for all move operations (top, bottom, specific position)
+
+**Files Modified:**
+- `frontend/src/components/ProblemsList.tsx` - Added highlight flash to move handlers
+
 ### 2026-01-02 - Database Seeding with Large Datasets
 
 **Completed:**
