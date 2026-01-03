@@ -10,6 +10,7 @@ function App() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
     async function loadProjects() {
@@ -56,7 +57,27 @@ function App() {
       <div className="app">
         <header className="app-header">
           <h1 className="app-title">{selectedProject?.name || 'POKRABS'}</h1>
-          <ThemeToggle />
+          <div className="header-right">
+            <div className="header-search">
+              <input
+                type="text"
+                className="header-search-input"
+                placeholder="search ..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  className="header-search-clear"
+                  onClick={() => setSearchQuery('')}
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            <ThemeToggle />
+          </div>
         </header>
         <main className="app-main">
           <Routes>
@@ -64,7 +85,10 @@ function App() {
               path="/" 
               element={
                 selectedProjectId ? (
-                  <ProblemsList projectId={selectedProjectId} />
+                  <ProblemsList 
+                    projectId={selectedProjectId}
+                    searchQuery={searchQuery}
+                  />
                 ) : (
                   <div>No project selected</div>
                 )
@@ -74,7 +98,10 @@ function App() {
               path="/:problemId" 
               element={
                 selectedProjectId ? (
-                  <ProblemsList projectId={selectedProjectId} />
+                  <ProblemsList 
+                    projectId={selectedProjectId}
+                    searchQuery={searchQuery}
+                  />
                 ) : (
                   <div>No project selected</div>
                 )

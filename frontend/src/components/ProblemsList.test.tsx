@@ -1311,5 +1311,240 @@ describe('ProblemsList', () => {
       expect(screen.getByText('Status')).toBeInTheDocument();
     });
   });
+
+  describe('Search/Filter', () => {
+    const searchProblems: Problem[] = [
+      {
+        id: 'gp',
+        idPath: 'gp',
+        problem: JSON.stringify({ summary: 'UX: No dark mode support', detail: 'Users want dark mode' }),
+        objective: JSON.stringify({ summary: 'Improve ux issue #44', detail: 'Make the app accessible' }),
+        keyResults: JSON.stringify(['Metric 1 reaches target']),
+        actions: JSON.stringify(['Action step 1']),
+        blockers: JSON.stringify([]),
+        status: Status.Actionable,
+        votes: 0,
+        priority: 0,
+        labels: ['ux', 'frontend'],
+        parentId: null,
+        projectId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'ay',
+        idPath: 'gp-ay',
+        problem: JSON.stringify({ summary: 'Sub-problem 2 of: UX: No dark mode support', detail: 'Child problem' }),
+        objective: JSON.stringify({ summary: 'Address sub-issue 2', detail: 'Fix the child issue' }),
+        keyResults: JSON.stringify(['KR for child']),
+        actions: JSON.stringify(['Child action']),
+        blockers: JSON.stringify([]),
+        status: Status.Resolved,
+        votes: 0,
+        priority: 0,
+        labels: [],
+        parentId: 'gp',
+        projectId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: '58',
+        idPath: '58',
+        problem: JSON.stringify({ summary: 'Security: Missing rate limiting', detail: 'API needs rate limits' }),
+        objective: JSON.stringify({ summary: 'Resolve security issue #36', detail: 'Add rate limiting' }),
+        keyResults: JSON.stringify(['Secure API']),
+        actions: JSON.stringify(['Implement limits']),
+        blockers: JSON.stringify(['Infrastructure not ready']),
+        status: Status.Blocked,
+        votes: 3,
+        priority: 1,
+        labels: ['security', 'backend'],
+        parentId: null,
+        projectId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+    ];
+
+    beforeEach(() => {
+      mockFetchProblems.mockResolvedValue(searchProblems);
+    });
+
+    it('should filter problems by ID', async () => {
+      renderWithRouter(
+        <ProblemsList 
+          projectId={projectId} 
+          searchQuery="gp" 
+        />
+      );
+      
+      await waitFor(() => {
+        // Should show parent and child with "gp" in idPath
+        expect(screen.getByText('UX: No dark mode support')).toBeInTheDocument();
+        expect(screen.getByText('Sub-problem 2 of: UX: No dark mode support')).toBeInTheDocument();
+        // Should NOT show security problem
+        expect(screen.queryByText('Security: Missing rate limiting')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should filter problems by idPath (hierarchical IDs)', async () => {
+      renderWithRouter(
+        <ProblemsList 
+          projectId={projectId} 
+          searchQuery="gp-ay" 
+        />
+      );
+      
+      await waitFor(() => {
+        // Should find child problem with idPath "gp-ay"
+        expect(screen.getByText('Sub-problem 2 of: UX: No dark mode support')).toBeInTheDocument();
+        // Should NOT show parent or unrelated problems
+        expect(screen.queryByText('UX: No dark mode support')).not.toBeInTheDocument();
+        expect(screen.queryByText('Security: Missing rate limiting')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should filter problems by problem text (case-insensitive)', async () => {
+      renderWithRouter(
+        <ProblemsList 
+          projectId={projectId} 
+          searchQuery="security" 
+        />
+      );
+      
+      await waitFor(() => {
+        expect(screen.getByText('Security: Missing rate limiting')).toBeInTheDocument();
+        expect(screen.queryByText('UX: No dark mode support')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should filter problems by objective text', async () => {
+      renderWithRouter(
+        <ProblemsList 
+          projectId={projectId} 
+          searchQuery="issue #44" 
+        />
+      );
+      
+      await waitFor(() => {
+        expect(screen.getByText('UX: No dark mode support')).toBeInTheDocument();
+        expect(screen.queryByText('Security: Missing rate limiting')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should filter problems by key results', async () => {
+      renderWithRouter(
+        <ProblemsList 
+          projectId={projectId} 
+          searchQuery="Secure API" 
+        />
+      );
+      
+      await waitFor(() => {
+        expect(screen.getByText('Security: Missing rate limiting')).toBeInTheDocument();
+        expect(screen.queryByText('UX: No dark mode support')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should filter problems by actions', async () => {
+      renderWithRouter(
+        <ProblemsList 
+          projectId={projectId} 
+          searchQuery="Implement limits" 
+        />
+      );
+      
+      await waitFor(() => {
+        expect(screen.getByText('Security: Missing rate limiting')).toBeInTheDocument();
+        expect(screen.queryByText('UX: No dark mode support')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should filter problems by blockers', async () => {
+      renderWithRouter(
+        <ProblemsList 
+          projectId={projectId} 
+          searchQuery="Infrastructure not ready" 
+        />
+      );
+      
+      await waitFor(() => {
+        expect(screen.getByText('Security: Missing rate limiting')).toBeInTheDocument();
+        expect(screen.queryByText('UX: No dark mode support')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should filter problems by labels', async () => {
+      renderWithRouter(
+        <ProblemsList 
+          projectId={projectId} 
+          searchQuery="backend" 
+        />
+      );
+      
+      await waitFor(() => {
+        expect(screen.getByText('Security: Missing rate limiting')).toBeInTheDocument();
+        expect(screen.queryByText('UX: No dark mode support')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should be case-insensitive', async () => {
+      renderWithRouter(
+        <ProblemsList 
+          projectId={projectId} 
+          searchQuery="SECURITY" 
+        />
+      );
+      
+      await waitFor(() => {
+        expect(screen.getByText('Security: Missing rate limiting')).toBeInTheDocument();
+      });
+    });
+
+    it('should show all problems when search is empty', async () => {
+      renderWithRouter(
+        <ProblemsList 
+          projectId={projectId} 
+          searchQuery="" 
+        />
+      );
+      
+      await waitFor(() => {
+        expect(screen.getByText('UX: No dark mode support')).toBeInTheDocument();
+        expect(screen.getByText('Sub-problem 2 of: UX: No dark mode support')).toBeInTheDocument();
+        expect(screen.getByText('Security: Missing rate limiting')).toBeInTheDocument();
+      });
+    });
+
+    it('should show matching children even if parent is collapsed', async () => {
+      // This tests that search ignores collapse state
+      renderWithRouter(
+        <ProblemsList 
+          projectId={projectId} 
+          searchQuery="ay" 
+        />
+      );
+      
+      await waitFor(() => {
+        // Should find child problem even if parent would normally be collapsed
+        expect(screen.getByText('Sub-problem 2 of: UX: No dark mode support')).toBeInTheDocument();
+      });
+    });
+
+    it('should show no results when search matches nothing', async () => {
+      renderWithRouter(
+        <ProblemsList 
+          projectId={projectId} 
+          searchQuery="nonexistent-query-xyz" 
+        />
+      );
+      
+      await waitFor(() => {
+        expect(screen.queryByText('UX: No dark mode support')).not.toBeInTheDocument();
+        expect(screen.queryByText('Security: Missing rate limiting')).not.toBeInTheDocument();
+      });
+    });
+  });
 });
 

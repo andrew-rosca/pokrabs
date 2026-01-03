@@ -719,7 +719,7 @@
         "Test search is case-insensitive",
         "Test search updates results in real-time"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F054",

@@ -1218,6 +1218,68 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 **Files Modified:**
 - `frontend/src/components/ProblemsList.tsx` - Added highlight flash to move handlers
 
+### 2026-01-03 - Client-Side Search/Filter
+
+**Completed:**
+- Implemented instant client-side search filtering across all problem fields
+- Added search input in header between project title and theme toggle
+- Real-time filtering as user types with no API calls needed
+
+**Feature Details:**
+- **Search Location**: Header bar, between "Default Project" title and theme toggle button
+- **Search Fields** (case-insensitive):
+  - Problem ID
+  - Problem text
+  - Objective text
+  - Key Results text
+  - Actions text
+  - Blockers text
+  - Labels array
+- **Search Behavior**:
+  - Instant filtering (no debounce needed for small datasets)
+  - Case-insensitive substring matching
+  - Clear button (✕) appears when text is entered
+  - Works seamlessly with collapse/expand hierarchy
+  - Search persists during other operations (edit, delete, move)
+
+**Implementation Approach:**
+- **Client-side only**: No backend API changes needed
+- **Performance**: Suitable for hundreds of problems, instant filtering
+- **State management**: Search state lifted to App.tsx, passed down as props
+- **Responsive**: Stacks nicely on mobile devices
+
+**UI Design:**
+- Search input styled to match dark/light theme
+- Focus state with accent color border and subtle shadow
+- Clear button with hover opacity effect
+- Compact design fits naturally in header
+- Mobile responsive layout (search wraps to second row on small screens)
+
+**Technical Implementation:**
+- Added `searchQuery` state to App.tsx
+- Modified `ProblemsList` to accept optional `searchQuery` and `onSearchChange` props
+- Falls back to local state if not provided (backward compatible)
+- Updated `visibleProblems` calculation to filter before applying collapse logic
+- Search filter applied before hierarchy filtering for correct results
+
+**CSS Additions:**
+- `.header-search` - Container with relative positioning
+- `.header-search-input` - Styled input with focus states
+- `.header-search-clear` - Absolute positioned clear button
+- Mobile responsive adjustments for small screens
+
+**User Experience:**
+- Type to instantly filter problems
+- No loading states or delays
+- Clear search returns to full list immediately
+- Works intuitively with all existing features
+- No impact on performance with ~200 problems
+
+**Files Modified:**
+- `frontend/src/App.tsx` - Added search state and search input to header
+- `frontend/src/components/ProblemsList.tsx` - Added search filtering logic, props interface
+- `frontend/src/index.css` - Added search input styles and responsive layout
+
 ### 2026-01-02 - Database Seeding with Large Datasets
 
 **Completed:**
@@ -1607,4 +1669,131 @@ Added comprehensive automated tests in `ProblemsList.test.tsx`:
 - Toggle buttons use title attributes for accessibility
 - Conditional rendering in JSX using `{visibleColumns.columnName && <th>...</th>}`
 - Works correctly with all existing features (sorting, editing, drag-and-drop, etc.)
+
+---
+
+## Feature: Client-Side Free Text Search (F053)
+**Date:** January 3, 2026
+**Status:** ✅ Complete with comprehensive tests
+
+### Problem:
+Users needed the ability to quickly find problems by searching through problem text, objectives, key results, actions, blockers, labels, and IDs. For datasets with dozens or hundreds of rows, manual scanning was inefficient.
+
+### Solution:
+Implemented a client-side search bar in the header that filters the problem table in real-time by searching across all text fields, including support for hierarchical ID paths.
+
+### Implementation:
+
+**Frontend Changes:**
+
+1. **Search Input UI (`frontend/src/App.tsx`):**
+   - Added search bar in the header next to the theme toggle button
+   - Input field with placeholder "search ..."
+   - Clear button (✕) appears when text is entered
+   - Search query state managed at App level and passed down to ProblemsList
+   - Right-aligned in header using flexbox layout
+
+2. **Search Filtering Logic (`frontend/src/components/ProblemsList.tsx`):**
+   - Added `searchQuery` prop to receive search text from parent
+   - Modified `visibleProblems` useMemo to filter problems based on search query
+   - Case-insensitive partial matching across all fields:
+     - `problem.id` - last segment of ID (e.g., "gp")
+     - `problem.idPath` - full hierarchical ID path (e.g., "gp-ay")
+     - `problem.problem` - problem description text
+     - `problem.objective` - objective text
+     - `problem.keyResults` - key results items
+     - `problem.actions` - action items
+     - `problem.blockers` - blocker items
+     - `problem.labels` - all labels
+   - When search is active, collapse/expand state is bypassed to show all matching problems
+   - Empty search shows all problems with normal collapse behavior
+
+3. **Styling (`frontend/src/index.css`):**
+   - `.header-search` - search container with max-width constraint
+   - `.header-search-input` - styled input field with focus states
+   - `.header-search-clear` - positioned clear button (✕)
+   - `.header-right` - container for right-aligned header elements
+   - Responsive layout: stacks vertically on mobile screens
+
+### Key Features:
+
+1. **Hierarchical ID Search:**
+   - Searching "gp" finds both parent "gp" and child "gp-ay"
+   - idPath search ensures parent matches reveal children
+   - Supports partial ID matching at any level
+
+2. **Search Overrides Collapse State:**
+   - When searching, all matching problems are shown
+   - Collapsed parent nodes don't hide matching children
+   - When search is cleared, normal collapse behavior resumes
+
+3. **Real-Time Filtering:**
+   - No debouncing - instant results as you type
+   - Performance is excellent for hundreds of rows (client-side only)
+   - No server round-trips needed
+
+4. **Clear Visual Feedback:**
+   - Clear button (✕) only appears when text is entered
+   - Clicking clear restores full table view
+   - Placeholder text guides users
+
+### Testing:
+
+**Comprehensive Automated Tests (`frontend/src/components/ProblemsList.test.tsx`):**
+- Added 13 new tests in "Search/Filter" describe block:
+  1. Filter by ID - matches "gp" finds both parent and child
+  2. Filter by idPath - hierarchical ID matching (e.g., "gp-ay")
+  3. Filter by problem text
+  4. Filter by objective text
+  5. Filter by key results
+  6. Filter by actions
+  7. Filter by blockers
+  8. Filter by labels
+  9. Case-insensitive matching
+  10. Empty search shows all problems
+  11. Search ignores collapse state
+  12. No matches returns empty view
+  13. Trimmed whitespace handling
+
+**Test Coverage:**
+- **All 59 frontend tests passing** (46 ProblemsList tests + 13 search tests)
+- Verified hierarchical ID matching (parent "gp" matches child "gp-ay")
+- Verified collapse state is bypassed during search
+- All edge cases covered (empty search, no matches, case sensitivity)
+
+### Benefits:
+
+1. **Improved Usability:**
+   - Quick problem discovery without scrolling
+   - Search across all text fields simultaneously
+   - Hierarchical ID support for finding problem families
+
+2. **Performance:**
+   - Client-side filtering is instant
+   - No network latency
+   - Scales well to hundreds of rows
+
+3. **User Experience:**
+   - Clean, intuitive search bar placement
+   - Clear visual feedback
+   - Responsive design for mobile
+
+4. **Technical Quality:**
+   - Comprehensive test coverage
+   - Clean component interface
+   - Reusable search logic
+
+### Files Modified:
+- `frontend/src/App.tsx` - Added search state and UI
+- `frontend/src/components/ProblemsList.tsx` - Added search filtering logic
+- `frontend/src/index.css` - Added search bar styling
+- `frontend/src/components/ProblemsList.test.tsx` - Added 13 comprehensive tests
+
+### Technical Notes:
+- Search is controlled at App level for potential future use (e.g., search state in URL)
+- ProblemsList component receives searchQuery as optional prop
+- Filtering uses Array.filter() with multiple field checks
+- All text comparisons use .toLowerCase() for case-insensitive matching
+- idPath search is critical for hierarchical ID matching
+- Search bypasses isHiddenByCollapse() when query is present
 

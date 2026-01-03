@@ -96,6 +96,7 @@ code {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   box-shadow: 0 1px 2px var(--shadow);
   flex-shrink: 0;
 }
@@ -105,6 +106,66 @@ code {
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
+  flex-shrink: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.header-search {
+  position: relative;
+  width: 300px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.header-search-input {
+  width: 100%;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.header-search-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.header-search-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.header-search-clear {
+  position: absolute;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-search-clear:hover {
+  opacity: 1;
+  color: var(--text-primary);
 }
 
 .app-main {
@@ -871,10 +932,24 @@ code {
 @media (max-width: 768px) {
   .app-header {
     padding: 1rem;
+    flex-wrap: wrap;
   }
 
   .app-title {
     font-size: 1.5rem;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .header-search {
+    flex: 1;
+    width: auto;
+    max-width: none;
   }
 
   .app-main {

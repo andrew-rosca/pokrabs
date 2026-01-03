@@ -16,9 +16,10 @@ import { ListCell } from './ListCell';
 
 interface ProblemsListProps {
   projectId: string;
+  searchQuery?: string;
 }
 
-export function ProblemsList({ projectId }: ProblemsListProps) {
+export function ProblemsList({ projectId, searchQuery: externalSearchQuery }: ProblemsListProps) {
   const { problemId: urlProblemId } = useParams<{ problemId: string }>();
   const navigate = useNavigate();
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -40,6 +41,10 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   
   // Ref to track problem rows for scrolling
   const problemRowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+  
+  // Search/filter state - use external search if provided, otherwise use local state
+  const [localSearchQuery] = useState<string>('');
+  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : localSearchQuery;
   
   // Drag-and-drop state
   const [draggedProblemId, setDraggedProblemId] = useState<string | null>(null);
@@ -591,7 +596,32 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   })();
 
   // Filter out problems hidden by collapsed parents
-  const visibleProblems = sortedProblems.filter(p => !isHiddenByCollapse(p));
+  const visibleProblems = (() => {
+    // First, apply search filter if query exists
+    let filtered = sortedProblems;
+    
+    if (searchQuery.trim()) {
+      const searchLower = searchQuery.toLowerCase();
+      filtered = sortedProblems.filter(problem => {
+        return (
+          problem.id.toLowerCase().includes(searchLower) ||
+          problem.idPath.toLowerCase().includes(searchLower) ||
+          problem.problem?.toLowerCase().includes(searchLower) ||
+          problem.objective?.toLowerCase().includes(searchLower) ||
+          problem.keyResults?.toLowerCase().includes(searchLower) ||
+          problem.actions?.toLowerCase().includes(searchLower) ||
+          problem.blockers?.toLowerCase().includes(searchLower) ||
+          problem.labels?.some(label => label.toLowerCase().includes(searchLower))
+        );
+      });
+      
+      // When searching, show all matching problems regardless of collapse state
+      return filtered;
+    }
+    
+    // When not searching, filter out problems hidden by collapsed parents
+    return filtered.filter(p => !isHiddenByCollapse(p));
+  })();
 
   // Get all problems that would move with the dragged problem (itself + descendants)
   const getDraggedProblems = (problemId: string): Set<string> => {
