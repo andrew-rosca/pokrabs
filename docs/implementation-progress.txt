@@ -1440,3 +1440,128 @@ Implemented centralized URL clearing logic in `ProblemsList` that clears the URL
 - `problemId` prop is still passed to cell components for future extensibility but URL logic is handled at parent level
 - All action handlers now follow the pattern: clear URL first, then perform action
 
+---
+
+## 2025-01-03: Column Auto-Sizing, List Alternating Backgrounds, and Column Visibility Toggles
+
+**Implemented three UI enhancements for better table usability and customization:**
+
+### 1. Auto-Sizing Columns Based on Content
+
+**Problem:**
+All content columns (Problem, Objective, Key Results, Actions, Blockers) were allocated equal percentage widths (17% each). This resulted in wasted space when columns like Actions or Blockers had short content, while Problem and Objective columns often needed more space for detailed descriptions.
+
+**Solution:**
+Changed column widths from fixed percentages to `width: auto` with appropriate `min-width` and `max-width` constraints. This allows columns to dynamically adjust based on their actual content.
+
+**Implementation:**
+- Updated `frontend/src/index.css` column width rules:
+  - **Problem & Objective**: `width: auto; min-width: 150px; max-width: 400px;`
+  - **Key Results, Actions & Blockers**: `width: auto; min-width: 100px; max-width: 300px;`
+  - Row Number, ID, Status, Votes columns remain auto/fixed as appropriate
+
+**Benefits:**
+- More efficient space utilization
+- Problem/Objective columns expand for detailed content
+- Short columns (Actions, Blockers) shrink when content is brief
+- Table dynamically adapts to actual data
+
+### 2. Alternating Row Backgrounds for List Items
+
+**Problem:**
+When list cells (Key Results, Actions, Blockers) contained multiple items, it was difficult to visually distinguish between individual items in the list.
+
+**Solution:**
+Added subtle alternating row backgrounds to list items within cells to improve visual separation.
+
+**Implementation:**
+- Added CSS variables for alternating backgrounds:
+  - Light mode: `--bg-list-alt: rgba(0, 0, 0, 0.02)` (2% dark tint)
+  - Dark mode: `--bg-list-alt: rgba(255, 255, 255, 0.03)` (3% light tint)
+- Updated `frontend/src/components/ListCell.tsx`:
+  - Even-indexed items (0, 2, 4...): transparent background
+  - Odd-indexed items (1, 3, 5...): `--bg-list-alt` background
+  - Added padding and negative margins for proper visual appearance
+
+**Benefits:**
+- Improved readability of multi-item lists
+- Subtle enough to not be distracting
+- Works in both light and dark modes
+- Better visual hierarchy within cells
+
+### 3. Column Visibility Toggles
+
+**Problem:**
+Users needed the ability to hide columns they don't actively use to focus on relevant information and maximize space for important columns.
+
+**Solution:**
+Added toggle buttons in the Problem column header that allow users to show/hide Objective, Key Results, Actions, Blockers, and Status columns individually.
+
+**Implementation:**
+
+**Frontend Changes:**
+- Added state management in `ProblemsList.tsx`:
+  - `visibleColumns` state object tracks visibility of 5 columns
+  - `toggleColumn()` function to toggle visibility
+  - State persisted to localStorage as `pokrabs-column-visibility`
+  - State restored from localStorage on component mount
+  - Graceful fallback if localStorage data is corrupted
+
+- Added toggle buttons in Problem column header:
+  - 5 buttons labeled **O K A B S** (Objective, Key Results, Actions, Blockers, Status)
+  - Right-aligned in header (vs left-aligned "+" button)
+  - Active state: light gray background (`--bg-tertiary`)
+  - Inactive state: white/primary background with 40% opacity
+  - Hover effects for better UX
+
+- Conditional rendering:
+  - Table headers (`<th>`) only render if column is visible
+  - Table cells (`<td>`) only render if column is visible
+  - Table maintains proper structure with variable column count
+
+**CSS Styling (`frontend/src/index.css`):**
+- `.column-visibility-toggles` - container for toggle buttons
+- `.column-toggle-button` - base button styles
+- `.column-toggle-button.active` - subtle gray background for visible columns
+- `.column-toggle-button.inactive` - dimmed appearance for hidden columns
+- Hover states provide visual feedback
+
+**Benefits:**
+- Users can customize their view by hiding unused columns
+- More screen space for remaining columns
+- Preferences persist across sessions
+- Clean, intuitive UI with single-letter labels
+- Works seamlessly with auto-sizing columns
+- All columns can be hidden except ID, Problem, and Votes
+
+**Testing:**
+Added comprehensive automated tests in `ProblemsList.test.tsx`:
+- 11 new tests for column visibility feature
+- Test individual column toggles (O, K, A, B, S)
+- Test toggle restoration (hiding then showing)
+- Test multiple hidden columns simultaneously
+- Test localStorage persistence and restoration
+- Test graceful handling of corrupted localStorage data
+- **All 89 frontend tests passing** (47 ProblemsList tests total)
+- **All 130 backend tests passing** (no regressions)
+
+**Files Modified:**
+- `frontend/src/components/ProblemsList.tsx` - Added visibility state and toggle logic
+- `frontend/src/components/ListCell.tsx` - Added alternating row backgrounds
+- `frontend/src/index.css` - Updated column widths and added toggle button styles
+- `frontend/src/components/ProblemsList.test.tsx` - Added 11 comprehensive tests
+
+**User Experience:**
+- More flexible, customizable table layout
+- Better space utilization through auto-sizing
+- Improved readability with alternating list backgrounds
+- Persistent user preferences for column visibility
+- Professional, subtle styling that doesn't overwhelm
+
+**Technical Notes:**
+- Column visibility uses localStorage key `pokrabs-column-visibility`
+- State structure: `{ objective: boolean, keyResults: boolean, actions: boolean, blockers: boolean, status: boolean }`
+- Toggle buttons use title attributes for accessibility
+- Conditional rendering in JSX using `{visibleColumns.columnName && <th>...</th>}`
+- Works correctly with all existing features (sorting, editing, drag-and-drop, etc.)
+

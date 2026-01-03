@@ -52,6 +52,35 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   const [positionInputValue, setPositionInputValue] = useState<string>('');
   const positionInputRef = useRef<HTMLInputElement>(null);
 
+  // Column visibility state - persisted to localStorage
+  const [visibleColumns, setVisibleColumns] = useState<{
+    objective: boolean;
+    keyResults: boolean;
+    actions: boolean;
+    blockers: boolean;
+    status: boolean;
+  }>(() => {
+    const stored = localStorage.getItem('pokrabs-column-visibility');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return { objective: true, keyResults: true, actions: true, blockers: true, status: true };
+      }
+    }
+    return { objective: true, keyResults: true, actions: true, blockers: true, status: true };
+  });
+
+  // Persist column visibility to localStorage
+  useEffect(() => {
+    localStorage.setItem('pokrabs-column-visibility', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  // Toggle column visibility
+  const toggleColumn = (column: keyof typeof visibleColumns) => {
+    setVisibleColumns(prev => ({ ...prev, [column]: !prev[column] }));
+  };
+
   // Auto-select the position input field when it opens
   useEffect(() => {
     if (showPositionInput && positionInputRef.current) {
@@ -973,22 +1002,66 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                 </div>
               </th>
               <th>
-                <div className="header-with-action">
-                  <span>Problem</span>
-                  <button
-                    className="header-action-button"
-                    onClick={() => handleCreateProblem(null, 'top')}
-                    title="Add new problem at top"
-                  >
-                    +
-                  </button>
+                <div className="header-with-action" style={{ justifyContent: 'space-between' }}>
+                  <div className="header-with-action">
+                    <span>Problem</span>
+                    <button
+                      className="header-action-button"
+                      onClick={() => handleCreateProblem(null, 'top')}
+                      title="Add new problem at top"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="column-visibility-toggles">
+                    <button
+                      className={`column-toggle-button ${visibleColumns.objective ? 'active' : 'inactive'}`}
+                      onClick={() => toggleColumn('objective')}
+                      title={`${visibleColumns.objective ? 'Hide' : 'Show'} Objective column`}
+                      aria-label={`${visibleColumns.objective ? 'Hide' : 'Show'} Objective column`}
+                    >
+                      O
+                    </button>
+                    <button
+                      className={`column-toggle-button ${visibleColumns.keyResults ? 'active' : 'inactive'}`}
+                      onClick={() => toggleColumn('keyResults')}
+                      title={`${visibleColumns.keyResults ? 'Hide' : 'Show'} Key Results column`}
+                      aria-label={`${visibleColumns.keyResults ? 'Hide' : 'Show'} Key Results column`}
+                    >
+                      K
+                    </button>
+                    <button
+                      className={`column-toggle-button ${visibleColumns.actions ? 'active' : 'inactive'}`}
+                      onClick={() => toggleColumn('actions')}
+                      title={`${visibleColumns.actions ? 'Hide' : 'Show'} Actions column`}
+                      aria-label={`${visibleColumns.actions ? 'Hide' : 'Show'} Actions column`}
+                    >
+                      A
+                    </button>
+                    <button
+                      className={`column-toggle-button ${visibleColumns.blockers ? 'active' : 'inactive'}`}
+                      onClick={() => toggleColumn('blockers')}
+                      title={`${visibleColumns.blockers ? 'Hide' : 'Show'} Blockers column`}
+                      aria-label={`${visibleColumns.blockers ? 'Hide' : 'Show'} Blockers column`}
+                    >
+                      B
+                    </button>
+                    <button
+                      className={`column-toggle-button ${visibleColumns.status ? 'active' : 'inactive'}`}
+                      onClick={() => toggleColumn('status')}
+                      title={`${visibleColumns.status ? 'Hide' : 'Show'} Status column`}
+                      aria-label={`${visibleColumns.status ? 'Hide' : 'Show'} Status column`}
+                    >
+                      S
+                    </button>
+                  </div>
                 </div>
               </th>
-              <th>Objective</th>
-              <th>Key Results</th>
-              <th>Actions</th>
-              <th>Blockers</th>
-              <th>Status</th>
+              {visibleColumns.objective && <th>Objective</th>}
+              {visibleColumns.keyResults && <th>Key Results</th>}
+              {visibleColumns.actions && <th>Actions</th>}
+              {visibleColumns.blockers && <th>Blockers</th>}
+              {visibleColumns.status && <th>Status</th>}
               <th>Votes</th>
             </tr>
           </thead>
@@ -1234,56 +1307,66 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       problemId={problem.id}
                     />
                   </td>
-                  <td className="problem-text">
-                    <SummaryDetailCell
-                      value={problem.objective}
-                      onSave={(value) => handleSaveField(problem.id, 'objective', value)}
-                      className="problem-text"
-                      autoOpen={autoOpenEditor?.problemId === problem.id && autoOpenEditor?.field === 'objective'}
-                      onEditorOpened={() => setAutoOpenEditor(null)}
-                      forceExpanded={expandedDetails.has(`${problem.id}-objective`)}
-                      problemId={problem.id}
-                    />
-                  </td>
-                  <td className="problem-text">
-                    <ListCell
-                      value={problem.keyResults}
-                      onSave={(value) => handleSaveField(problem.id, 'keyResults', value)}
-                      title="Key Results"
-                      className="problem-text"
-                      problemId={problem.id}
-                    />
-                  </td>
-                  <td className="problem-text">
-                    <ListCell
-                      value={problem.actions}
-                      onSave={(value) => handleSaveField(problem.id, 'actions', value)}
-                      title="Actions"
-                      className="problem-text"
-                      problemId={problem.id}
-                    />
-                  </td>
-                  <td className="problem-text">
-                    <ListCell
-                      value={problem.blockers}
-                      onSave={(value) => handleSaveField(problem.id, 'blockers', value)}
-                      title="Blockers"
-                      className="problem-text"
-                      problemId={problem.id}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={problem.status}
-                      onChange={(e) => handleStatusChange(problem.id, e.target.value as Status)}
-                      className={`status-select ${getStatusClass(problem.status)}`}
-                    >
-                      <option value={Status.NotStarted}>Actionable</option>
-                      <option value={Status.InProgress}>In Progress</option>
-                      <option value={Status.Blocked}>Blocked</option>
-                      <option value={Status.Resolved}>Resolved</option>
-                    </select>
-                  </td>
+                  {visibleColumns.objective && (
+                    <td className="problem-text">
+                      <SummaryDetailCell
+                        value={problem.objective}
+                        onSave={(value) => handleSaveField(problem.id, 'objective', value)}
+                        className="problem-text"
+                        autoOpen={autoOpenEditor?.problemId === problem.id && autoOpenEditor?.field === 'objective'}
+                        onEditorOpened={() => setAutoOpenEditor(null)}
+                        forceExpanded={expandedDetails.has(`${problem.id}-objective`)}
+                        problemId={problem.id}
+                      />
+                    </td>
+                  )}
+                  {visibleColumns.keyResults && (
+                    <td className="problem-text">
+                      <ListCell
+                        value={problem.keyResults}
+                        onSave={(value) => handleSaveField(problem.id, 'keyResults', value)}
+                        title="Key Results"
+                        className="problem-text"
+                        problemId={problem.id}
+                      />
+                    </td>
+                  )}
+                  {visibleColumns.actions && (
+                    <td className="problem-text">
+                      <ListCell
+                        value={problem.actions}
+                        onSave={(value) => handleSaveField(problem.id, 'actions', value)}
+                        title="Actions"
+                        className="problem-text"
+                        problemId={problem.id}
+                      />
+                    </td>
+                  )}
+                  {visibleColumns.blockers && (
+                    <td className="problem-text">
+                      <ListCell
+                        value={problem.blockers}
+                        onSave={(value) => handleSaveField(problem.id, 'blockers', value)}
+                        title="Blockers"
+                        className="problem-text"
+                        problemId={problem.id}
+                      />
+                    </td>
+                  )}
+                  {visibleColumns.status && (
+                    <td>
+                      <select
+                        value={problem.status}
+                        onChange={(e) => handleStatusChange(problem.id, e.target.value as Status)}
+                        className={`status-select ${getStatusClass(problem.status)}`}
+                      >
+                        <option value={Status.NotStarted}>Actionable</option>
+                        <option value={Status.InProgress}>In Progress</option>
+                        <option value={Status.Blocked}>Blocked</option>
+                        <option value={Status.Resolved}>Resolved</option>
+                      </select>
+                    </td>
+                  )}
                   <td className="problem-votes">
                     <button
                       onClick={() => handleVoteIncrement(problem.id)}

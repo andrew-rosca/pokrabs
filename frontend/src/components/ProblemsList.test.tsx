@@ -1064,5 +1064,252 @@ describe('ProblemsList', () => {
       });
     });
   });
+
+  describe('Column Visibility Toggles', () => {
+    beforeEach(() => {
+      // Clear localStorage before each test
+      localStorage.clear();
+    });
+
+    it('should show all columns by default', async () => {
+      renderWithRouter(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      // Check that all column headers are visible
+      expect(screen.getByText('Objective')).toBeInTheDocument();
+      expect(screen.getByText('Key Results')).toBeInTheDocument();
+      expect(screen.getByText('Actions')).toBeInTheDocument();
+      expect(screen.getByText('Blockers')).toBeInTheDocument();
+      expect(screen.getByText('Status')).toBeInTheDocument();
+    });
+
+    it('should hide Objective column when O button is clicked', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      // Find and click the Objective toggle button
+      const objectiveToggle = screen.getByTitle('Hide Objective column');
+      await user.click(objectiveToggle);
+
+      // Objective column should be hidden
+      await waitFor(() => {
+        expect(screen.queryByText('Objective')).not.toBeInTheDocument();
+      });
+
+      // Other columns should still be visible
+      expect(screen.getByText('Key Results')).toBeInTheDocument();
+      expect(screen.getByText('Actions')).toBeInTheDocument();
+      expect(screen.getByText('Blockers')).toBeInTheDocument();
+      expect(screen.getByText('Status')).toBeInTheDocument();
+    });
+
+    it('should hide Key Results column when K button is clicked', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      const keyResultsToggle = screen.getByTitle('Hide Key Results column');
+      await user.click(keyResultsToggle);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Key Results')).not.toBeInTheDocument();
+      });
+
+      // Other columns should still be visible
+      expect(screen.getByText('Objective')).toBeInTheDocument();
+      expect(screen.getByText('Actions')).toBeInTheDocument();
+    });
+
+    it('should hide Actions column when A button is clicked', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      const actionsToggle = screen.getByTitle('Hide Actions column');
+      await user.click(actionsToggle);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Actions')).not.toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Objective')).toBeInTheDocument();
+      expect(screen.getByText('Key Results')).toBeInTheDocument();
+    });
+
+    it('should hide Blockers column when B button is clicked', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      const blockersToggle = screen.getByTitle('Hide Blockers column');
+      await user.click(blockersToggle);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Blockers')).not.toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Objective')).toBeInTheDocument();
+      expect(screen.getByText('Key Results')).toBeInTheDocument();
+      expect(screen.getByText('Actions')).toBeInTheDocument();
+    });
+
+    it('should hide Status column when S button is clicked', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      const statusToggle = screen.getByTitle('Hide Status column');
+      await user.click(statusToggle);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Status')).not.toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Objective')).toBeInTheDocument();
+      expect(screen.getByText('Key Results')).toBeInTheDocument();
+    });
+
+    it('should show hidden column when toggle button is clicked again', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      // Hide Blockers column
+      const blockersToggle = screen.getByTitle('Hide Blockers column');
+      await user.click(blockersToggle);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Blockers')).not.toBeInTheDocument();
+      });
+
+      // Show Blockers column again
+      const showBlockersToggle = screen.getByTitle('Show Blockers column');
+      await user.click(showBlockersToggle);
+
+      await waitFor(() => {
+        expect(screen.getByText('Blockers')).toBeInTheDocument();
+      });
+    });
+
+    it('should hide multiple columns simultaneously', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      // Hide Actions and Blockers
+      const actionsToggle = screen.getByTitle('Hide Actions column');
+      const blockersToggle = screen.getByTitle('Hide Blockers column');
+      
+      await user.click(actionsToggle);
+      await user.click(blockersToggle);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Actions')).not.toBeInTheDocument();
+        expect(screen.queryByText('Blockers')).not.toBeInTheDocument();
+      });
+
+      // Other columns should still be visible
+      expect(screen.getByText('Objective')).toBeInTheDocument();
+      expect(screen.getByText('Key Results')).toBeInTheDocument();
+      expect(screen.getByText('Status')).toBeInTheDocument();
+    });
+
+    it('should persist column visibility to localStorage', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      // Hide Actions column
+      const actionsToggle = screen.getByTitle('Hide Actions column');
+      await user.click(actionsToggle);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Actions')).not.toBeInTheDocument();
+      });
+
+      // Check localStorage
+      const storedValue = localStorage.getItem('pokrabs-column-visibility');
+      expect(storedValue).toBeTruthy();
+      
+      const parsed = JSON.parse(storedValue!);
+      expect(parsed.actions).toBe(false);
+      expect(parsed.objective).toBe(true);
+      expect(parsed.keyResults).toBe(true);
+      expect(parsed.blockers).toBe(true);
+      expect(parsed.status).toBe(true);
+    });
+
+    it('should restore column visibility from localStorage', async () => {
+      // Set initial state in localStorage
+      localStorage.setItem('pokrabs-column-visibility', JSON.stringify({
+        objective: true,
+        keyResults: false,
+        actions: false,
+        blockers: true,
+        status: true,
+      }));
+
+      renderWithRouter(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      // Key Results and Actions should be hidden
+      expect(screen.queryByText('Key Results')).not.toBeInTheDocument();
+      expect(screen.queryByText('Actions')).not.toBeInTheDocument();
+
+      // Other columns should be visible
+      expect(screen.getByText('Objective')).toBeInTheDocument();
+      expect(screen.getByText('Blockers')).toBeInTheDocument();
+      expect(screen.getByText('Status')).toBeInTheDocument();
+    });
+
+    it('should handle corrupted localStorage data gracefully', async () => {
+      // Set corrupted data in localStorage
+      localStorage.setItem('pokrabs-column-visibility', 'invalid-json');
+
+      renderWithRouter(<ProblemsList projectId={projectId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      // Should fall back to showing all columns
+      expect(screen.getByText('Objective')).toBeInTheDocument();
+      expect(screen.getByText('Key Results')).toBeInTheDocument();
+      expect(screen.getByText('Actions')).toBeInTheDocument();
+      expect(screen.getByText('Blockers')).toBeInTheDocument();
+      expect(screen.getByText('Status')).toBeInTheDocument();
+    });
+  });
 });
 

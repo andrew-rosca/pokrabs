@@ -230,6 +230,58 @@ code {
   transform: scale(1.1);
 }
 
+/* Column visibility toggles */
+.column-visibility-toggles {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.column-toggle-button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.column-toggle-button.active {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+  opacity: 1;
+}
+
+.column-toggle-button.inactive {
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  opacity: 0.4;
+}
+
+.column-toggle-button:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.column-toggle-button.active:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-hover);
+}
+
+.column-toggle-button.inactive:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-hover);
+}
+
 .problems-table tbody tr {
   border-bottom: 1px solid var(--border-color);
   transition: background-color 0.15s ease;
