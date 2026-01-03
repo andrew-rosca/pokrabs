@@ -631,7 +631,7 @@
         "Test drag and drop reorders rows correctly",
         "Test priority updates persist"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "F048",
