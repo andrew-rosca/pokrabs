@@ -903,13 +903,11 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
         <table className="problems-table">
           <thead>
             <tr>
-              <th title={visibleProblems.length !== problems.length 
-                ? `${visibleProblems.length} visible rows / ${problems.length} total rows` 
-                : `${visibleProblems.length} total rows`}>
-                {visibleProblems.length}
-                {visibleProblems.length !== problems.length && (
-                  <span className="total-count"> {problems.length}</span>
-                )}
+              <th title={`${visibleProblems.length} visible rows / ${problems.length} total rows`}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1.2' }}>
+                  <span>{visibleProblems.length}</span>
+                  <span className="total-count">{problems.length}</span>
+                </div>
               </th>
               <th>
                 <div className="header-with-action">

@@ -289,8 +289,8 @@ code {
 .problems-table td.problem-id {
   overflow: visible;
   text-overflow: initial;
-  padding-left: 1.3rem; /* room for handle/indicator */
-  border-left: none !important;
+  padding-left: 1.3rem; /* Room for handle/indicator */
+  padding-right: 0; /* No right padding to avoid gap with Problem column */
 }
 
 /* Row number column - first column */
@@ -313,13 +313,6 @@ code {
 .problems-table th:first-child .total-count {
   font-size: 0.55rem;
   opacity: 0.7;
-}
-
-/* Match header offset for the ID column (now second column) */
-.problems-table th:nth-child(2),
-.problems-table td:nth-child(2).problem-id {
-  padding-left: 1.3rem;
-  border-left: none !important;
 }
 
 /* Row handle and actions panel */
