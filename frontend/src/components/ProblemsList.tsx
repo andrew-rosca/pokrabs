@@ -50,6 +50,14 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
   // Reorder position input state
   const [showPositionInput, setShowPositionInput] = useState<string | null>(null); // problem ID
   const [positionInputValue, setPositionInputValue] = useState<string>('');
+  const positionInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-select the position input field when it opens
+  useEffect(() => {
+    if (showPositionInput && positionInputRef.current) {
+      positionInputRef.current.select();
+    }
+  }, [showPositionInput]);
 
   useEffect(() => {
     async function loadProblems() {
@@ -1080,6 +1088,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                         <div className="row-position-input" role="dialog">
                           <span className="row-position-text">Position:</span>
                           <input
+                            ref={positionInputRef}
                             type="number"
                             className="position-input-field"
                             value={positionInputValue}
