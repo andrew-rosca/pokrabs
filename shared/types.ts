@@ -7,7 +7,7 @@ export enum Status {
   Resolved = 'Resolved',
 }
 
-export interface Project {
+export interface Workspace {
   id: string;
   name: string;
   createdAt: string;
@@ -27,7 +27,7 @@ export interface Problem {
   priority: number;
   labels: string[];
   parentId: string | null;
-  projectId: string;
+  workspaceId: string;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;

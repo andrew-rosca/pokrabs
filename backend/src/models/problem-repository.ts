@@ -13,7 +13,7 @@ export interface IProblemRepository {
    * Automatically generates ID and computes idPath
    */
   create(data: {
-    projectId: string;
+    workspaceId: string;
     parentId?: string | null;
     problem?: string;
     objective?: string;
@@ -31,9 +31,9 @@ export interface IProblemRepository {
   findById(id: string): Promise<Problem | null>;
 
   /**
-   * Find all problems in a project (excluding soft-deleted)
+   * Find all problems in a workspace (excluding soft-deleted)
    */
-  findByProjectId(projectId: string): Promise<Problem[]>;
+  findByWorkspaceId(workspaceId: string): Promise<Problem[]>;
 
   /**
    * Find all child problems of a parent (excluding soft-deleted)
@@ -64,10 +64,10 @@ export interface IProblemRepository {
   softDelete(id: string): Promise<void>;
 
   /**
-   * Check if a problem ID exists in a project (excluding soft-deleted)
+   * Check if a problem ID exists in a workspace (excluding soft-deleted)
    * Note: With LCG-based IDs, this is mainly for validation
    */
-  checkIdExists(id: string, projectId: string): Promise<boolean>;
+  checkIdExists(id: string, workspaceId: string): Promise<boolean>;
 
   /**
    * Move a problem to a new parent and/or position.

@@ -1,11 +1,11 @@
 /**
- * Projects API Routes
+ * Workspaces API Routes
  * 
- * Handles all HTTP requests related to projects.
+ * Handles all HTTP requests related to workspaces.
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { getProjectRepository, getProblemRepository } from '../models/repository-factory';
+import { getWorkspaceRepository, getProblemRepository } from '../models/repository-factory';
 import { v4 as uuidv4 } from 'uuid';
 import { Status } from '../../../shared/types';
 import { PrismaClient } from '@prisma/client';
@@ -23,7 +23,7 @@ const router = Router();
 
 // Middleware to use Prisma client from request if available (for testing)
 const getRepositoryWithPrisma = (req: Request) => {
-  return req.prisma ? getProjectRepository(req.prisma) : getProjectRepository();
+  return req.prisma ? getWorkspaceRepository(req.prisma) : getWorkspaceRepository();
 };
 
 const getProblemRepositoryWithPrisma = (req: Request) => {
@@ -31,22 +31,22 @@ const getProblemRepositoryWithPrisma = (req: Request) => {
 };
 
 /**
- * GET /api/projects
- * List all non-deleted projects
+ * GET /api/workspaces
+ * List all non-deleted workspaces
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
     const repository = getRepositoryWithPrisma(req);
-    const projects = await repository.findAll();
-    res.json(projects);
+    const workspaces = await repository.findAll();
+    res.json(workspaces);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch projects' });
+    res.status(500).json({ error: 'Failed to fetch workspaces' });
   }
 });
 
 /**
- * POST /api/projects
- * Create a new project
+ * POST /api/workspaces
+ * Create a new workspace
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
@@ -54,40 +54,40 @@ router.post('/', async (req: Request, res: Response) => {
     
     // Validation
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return res.status(400).json({ error: 'Project name is required' });
+      return res.status(400).json({ error: 'Workspace name is required' });
     }
     
     const repository = getRepositoryWithPrisma(req);
-    const project = await repository.create({
+    const workspace = await repository.create({
       id: uuidv4(),
       name: name.trim(),
     });
     
-    res.status(201).json(project);
+    res.status(201).json(workspace);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create project' });
+    res.status(500).json({ error: 'Failed to create workspace' });
   }
 });
 
 /**
- * GET /api/projects/:projectId/problems
- * List all problems for a project
+ * GET /api/workspaces/:workspaceId/problems
+ * List all problems for a workspace
  * 
  * NOTE: This route must come before /:id to avoid route conflicts
  */
-router.get('/:projectId/problems', async (req: Request, res: Response) => {
+router.get('/:workspaceId/problems', async (req: Request, res: Response) => {
   try {
-    const { projectId } = req.params;
+    const { workspaceId } = req.params;
     
-    // Verify project exists
-    const projectRepo = getRepositoryWithPrisma(req);
-    const project = await projectRepo.findById(projectId);
-    if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
+    // Verify workspace exists
+    const workspaceRepo = getRepositoryWithPrisma(req);
+    const workspace = await workspaceRepo.findById(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({ error: 'Workspace not found' });
     }
     
     const problemRepo = getProblemRepositoryWithPrisma(req);
-    const problems = await problemRepo.findByProjectId(projectId);
+    const problems = await problemRepo.findByWorkspaceId(workspaceId);
     
     res.json(problems);
   } catch (error) {
@@ -96,12 +96,12 @@ router.get('/:projectId/problems', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/projects/:projectId/problems
- * Create a new problem in a project
+ * POST /api/workspaces/:workspaceId/problems
+ * Create a new problem in a workspace
  */
-router.post('/:projectId/problems', async (req: Request, res: Response) => {
+router.post('/:workspaceId/problems', async (req: Request, res: Response) => {
   try {
-    const { projectId } = req.params;
+    const { workspaceId } = req.params;
     const {
       problem,
       objective,
@@ -114,11 +114,11 @@ router.post('/:projectId/problems', async (req: Request, res: Response) => {
       parentId,
     } = req.body;
     
-    // Verify project exists
-    const projectRepo = getRepositoryWithPrisma(req);
-    const project = await projectRepo.findById(projectId);
-    if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
+    // Verify workspace exists
+    const workspaceRepo = getRepositoryWithPrisma(req);
+    const workspace = await workspaceRepo.findById(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({ error: 'Workspace not found' });
     }
     
     // Validation
@@ -147,14 +147,14 @@ router.post('/:projectId/problems', async (req: Request, res: Response) => {
     if (parentId) {
       const problemRepo = getProblemRepositoryWithPrisma(req);
       const parent = await problemRepo.findById(parentId);
-      if (!parent || parent.projectId !== projectId) {
-        return res.status(400).json({ error: 'Parent problem not found or belongs to different project' });
+      if (!parent || parent.workspaceId !== workspaceId) {
+        return res.status(400).json({ error: 'Parent problem not found or belongs to different workspace' });
       }
     }
     
     const problemRepo = getProblemRepositoryWithPrisma(req);
     const created = await problemRepo.create({
-      projectId,
+      workspaceId,
       parentId: parentId || null,
       problem,
       objective,
@@ -173,23 +173,23 @@ router.post('/:projectId/problems', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/projects/:id
- * Get a project by ID
+ * GET /api/workspaces/:id
+ * Get a workspace by ID
  * 
- * NOTE: This route must come after /:projectId/problems to avoid route conflicts
+ * NOTE: This route must come after /:workspaceId/problems to avoid route conflicts
  */
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const repository = getRepositoryWithPrisma(req);
-    const project = await repository.findById(req.params.id);
+    const workspace = await repository.findById(req.params.id);
     
-    if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
+    if (!workspace) {
+      return res.status(404).json({ error: 'Workspace not found' });
     }
     
-    res.json(project);
+    res.json(workspace);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch project' });
+    res.status(500).json({ error: 'Failed to fetch workspace' });
   }
 });
 

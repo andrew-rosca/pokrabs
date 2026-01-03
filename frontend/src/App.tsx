@@ -1,36 +1,36 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Project } from '../../../shared/types';
-import { fetchProjects } from './services/api';
+import { Workspace } from '../../../shared/types';
+import { fetchWorkspaces } from './services/api';
 import { ProblemsList } from './components/ProblemsList';
 import { ThemeToggle } from './components/ThemeToggle';
 
 function App() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
-    async function loadProjects() {
+    async function loadWorkspaces() {
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchProjects();
-        setProjects(data);
-        // Auto-select first project (should be "Default" if seeded)
+        const data = await fetchWorkspaces();
+        setWorkspaces(data);
+        // Auto-select first workspace (should be "Default" if seeded)
         if (data.length > 0) {
-          setSelectedProjectId(data[0].id);
+          setSelectedWorkspaceId(data[0].id);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load projects');
+        setError(err instanceof Error ? err.message : 'Failed to load workspaces');
       } finally {
         setLoading(false);
       }
     }
 
-    loadProjects();
+    loadWorkspaces();
   }, []);
 
   if (loading) {
@@ -41,11 +41,11 @@ function App() {
     return <div>Error: {error}</div>;
   }
 
-  if (projects.length === 0) {
-    return <div>No projects found. Please seed the database.</div>;
+  if (workspaces.length === 0) {
+    return <div>No workspaces found. Please seed the database.</div>;
   }
 
-  const selectedProject = projects.find(p => p.id === selectedProjectId);
+  const selectedWorkspace = workspaces.find(w => w.id === selectedWorkspaceId);
 
   return (
     <BrowserRouter
@@ -56,7 +56,7 @@ function App() {
     >
       <div className="app">
         <header className="app-header">
-          <h1 className="app-title">{selectedProject?.name || 'POKRABS'}</h1>
+          <h1 className="app-title">{selectedWorkspace?.name || 'POKRABS'}</h1>
           <div className="header-right">
             <div className="header-search">
               <input
@@ -84,26 +84,26 @@ function App() {
             <Route 
               path="/" 
               element={
-                selectedProjectId ? (
+                selectedWorkspaceId ? (
                   <ProblemsList 
-                    projectId={selectedProjectId}
+                    workspaceId={selectedWorkspaceId}
                     searchQuery={searchQuery}
                   />
                 ) : (
-                  <div>No project selected</div>
+                  <div>No workspace selected</div>
                 )
               } 
             />
             <Route 
               path="/:problemId" 
               element={
-                selectedProjectId ? (
+                selectedWorkspaceId ? (
                   <ProblemsList 
-                    projectId={selectedProjectId}
+                    workspaceId={selectedWorkspaceId}
                     searchQuery={searchQuery}
                   />
                 ) : (
-                  <div>No project selected</div>
+                  <div>No workspace selected</div>
                 )
               } 
             />

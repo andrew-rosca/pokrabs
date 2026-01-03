@@ -1,14 +1,14 @@
 /**
  * Database Seeding Script
  * 
- * Seeds the database with a default project and sample problem chain
+ * Seeds the database with a default workspace and sample problem chain
  * demonstrating POKRABS decomposition.
  * 
  * Can generate large amounts of test data with --large flag
  */
 
 import { getPrismaClient } from './prisma-client';
-import { getProjectRepository, getProblemRepository } from '../models/repository-factory';
+import { getWorkspaceRepository, getProblemRepository } from '../models/repository-factory';
 import { Status } from '../../../shared/types';
 
 // Sample data for generating varied problems
@@ -100,35 +100,35 @@ function generateBlockers(status: Status): string[] {
 }
 
 /**
- * Seed the database with default project and sample problems
+ * Seed the database with default workspace and sample problems
  */
 export async function seedDatabase(options: { large?: boolean } = {}): Promise<void> {
   const prisma = getPrismaClient();
-  const projectRepo = getProjectRepository(prisma);
+  const workspaceRepo = getWorkspaceRepository(prisma);
   const problemRepo = getProblemRepository(prisma);
 
   try {
-    // Check if Default project already exists and delete it to allow reseeding
-    const existingProjects = await projectRepo.findAll();
-    const defaultProject = existingProjects.find(p => p.name === 'Default Project');
+    // Check if Default workspace already exists and delete it to allow reseeding
+    const existingWorkspaces = await workspaceRepo.findAll();
+    const defaultWorkspace = existingWorkspaces.find(w => w.name === 'Default Workspace');
 
-    if (defaultProject) {
-      console.log('Default project exists, deleting to allow reseeding...');
+    if (defaultWorkspace) {
+      console.log('Default workspace exists, deleting to allow reseeding...');
       // Temporarily disable foreign key checks to delete all problems
       await prisma.$executeRawUnsafe(`PRAGMA foreign_keys = OFF`);
-      await prisma.$executeRawUnsafe(`DELETE FROM problems WHERE projectId = ?`, defaultProject.id);
-      await prisma.$executeRawUnsafe(`DELETE FROM projects WHERE name = ?`, 'Default Project');
+      await prisma.$executeRawUnsafe(`DELETE FROM problems WHERE workspaceId = ?`, defaultWorkspace.id);
+      await prisma.$executeRawUnsafe(`DELETE FROM workspaces WHERE name = ?`, 'Default Workspace');
       await prisma.$executeRawUnsafe(`PRAGMA foreign_keys = ON`);
-      console.log('Cleared existing Default project and problems');
+      console.log('Cleared existing Default workspace and problems');
     }
 
-    // Create Default project
-    const project = await projectRepo.create({
-      id: 'default-project-1',
-      name: 'Default Project',
+    // Create Default workspace
+    const workspace = await workspaceRepo.create({
+      id: 'default-workspace-1',
+      name: 'Default Workspace',
     });
 
-    console.log('Created Default project');
+    console.log('Created Default workspace');
 
     if (options.large) {
       // Generate large dataset for testing
@@ -141,7 +141,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
         const labels = labelSets[i % labelSets.length];
         
         const rootProblem = await problemRepo.create({
-          projectId: project.id,
+          workspaceId: workspace.id,
           parentId: null,
           problem: JSON.stringify({
             summary: generateProblemSummary(i),
@@ -175,7 +175,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
           const labels = labelSets[totalChildren % labelSets.length];
           
           await problemRepo.create({
-            projectId: project.id,
+            workspaceId: workspace.id,
             parentId: rootProblem.id,
             problem: JSON.stringify({
               summary: `Sub-problem ${j + 1} of: ${JSON.parse(rootProblem.problem).summary}`,
@@ -206,7 +206,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
       // Create original small sample dataset
       // Root problem
       const rootProblem = await problemRepo.create({
-        projectId: project.id,
+        workspaceId: workspace.id,
         parentId: null,
         problem: JSON.stringify({
           summary: 'Support team is overwhelmed',
@@ -226,7 +226,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
 
       // Child 1: Analyze ticket patterns
       const child1 = await problemRepo.create({
-        projectId: project.id,
+        workspaceId: workspace.id,
         parentId: rootProblem.id,
         problem: JSON.stringify({
           summary: 'We don\'t know root causes of tickets',
@@ -246,7 +246,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
 
       // Child 2 of child1: Implement categorization
       const child2a = await problemRepo.create({
-        projectId: project.id,
+        workspaceId: workspace.id,
         parentId: child1.id,
         problem: JSON.stringify({
           summary: 'Tickets aren\'t categorized',
@@ -266,7 +266,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
 
       // Child 3 of child2a: Define taxonomy (actionable - no blockers)
       const child3a = await problemRepo.create({
-        projectId: project.id,
+        workspaceId: workspace.id,
         parentId: child2a.id,
         problem: JSON.stringify({
           summary: 'Don\'t know what ticket categories to use',
@@ -286,7 +286,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
 
       // Child 4 of child1: Retroactively categorize
       const child2b = await problemRepo.create({
-        projectId: project.id,
+        workspaceId: workspace.id,
         parentId: child1.id,
         problem: JSON.stringify({
           summary: 'Historical tickets lack categories',
@@ -306,7 +306,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
 
       // Child 5 of child2b: Get API access (actionable - no blockers)
       const child3b = await problemRepo.create({
-        projectId: project.id,
+        workspaceId: workspace.id,
         parentId: child2b.id,
         problem: JSON.stringify({
           summary: 'No API access to support system',

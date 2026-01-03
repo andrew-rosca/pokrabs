@@ -7,7 +7,7 @@ import request from 'supertest';
 import express from 'express';
 import problemsRouter from './problems';
 import { setupTestDatabase, cleanupTestDatabase } from '../test-helpers/database';
-import { getProblemRepository, getProjectRepository } from '../models/repository-factory';
+import { getProblemRepository, getWorkspaceRepository } from '../models/repository-factory';
 import { PrismaClient } from '@prisma/client';
 import { Status } from '../../../shared/types';
 import { resetIdCounter } from '../utils/id-generator';
@@ -16,7 +16,7 @@ describe('Problems API', () => {
   let app: express.Application;
   let prisma: PrismaClient;
   let databaseUrl: string;
-  let projectId: string;
+  let workspaceId: string;
 
   beforeEach(async () => {
     // Create isolated database
@@ -27,13 +27,13 @@ describe('Problems API', () => {
     // Reset ID counter
     await resetIdCounter();
 
-    // Create a test project
-    const projectRepo = getProjectRepository(prisma);
-    const project = await projectRepo.create({
-      id: 'test-project-1',
-      name: 'Test Project',
+    // Create a test workspace
+    const workspaceRepo = getWorkspaceRepository(prisma);
+    const workspace = await workspaceRepo.create({
+      id: 'test-workspace-1',
+      name: 'Test Workspace',
     });
-    projectId = project.id;
+    workspaceId = workspace.id;
 
     // Create Express app with routes
     app = express();
@@ -54,7 +54,7 @@ describe('Problems API', () => {
     it('should return problem by ID', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -76,7 +76,7 @@ describe('Problems API', () => {
     it('should return 404 for soft-deleted problem', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -93,7 +93,7 @@ describe('Problems API', () => {
     it('should update problem fields', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Original problem',
         objective: 'Original objective',
       });
@@ -117,7 +117,7 @@ describe('Problems API', () => {
     it('should update problem text field', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: JSON.stringify({ summary: 'Original problem', detail: 'Original detail' }),
         objective: 'Original objective',
       });
@@ -134,7 +134,7 @@ describe('Problems API', () => {
     it('should update objective field', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: JSON.stringify({ summary: 'Original objective', detail: 'Original detail' }),
       });
@@ -151,7 +151,7 @@ describe('Problems API', () => {
     it('should update keyResults field', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
         keyResults: JSON.stringify(['Result 1', 'Result 2']),
@@ -169,7 +169,7 @@ describe('Problems API', () => {
     it('should update actions field', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
         actions: JSON.stringify(['Action 1']),
@@ -187,7 +187,7 @@ describe('Problems API', () => {
     it('should update blockers field', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
         blockers: JSON.stringify([]),
@@ -205,7 +205,7 @@ describe('Problems API', () => {
     it('should update multiple fields at once', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Original problem',
         objective: 'Original objective',
         status: Status.NotStarted,
@@ -245,7 +245,7 @@ describe('Problems API', () => {
     it('should reject invalid status', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -261,7 +261,7 @@ describe('Problems API', () => {
     it('should reject non-number votes', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -277,7 +277,7 @@ describe('Problems API', () => {
     it('should reject non-number priority', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -295,7 +295,7 @@ describe('Problems API', () => {
     it('should soft delete a problem', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -312,12 +312,12 @@ describe('Problems API', () => {
     it('should cascade soft delete to child problems', async () => {
       const problemRepo = getProblemRepository(prisma);
       const parent = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Parent problem',
         objective: 'Parent objective',
       });
       const child = await problemRepo.create({
-        projectId,
+        workspaceId,
         parentId: parent.id,
         problem: 'Child problem',
         objective: 'Child objective',
@@ -337,18 +337,18 @@ describe('Problems API', () => {
     it('should cascade soft delete to grandchildren when deleting an intermediate node', async () => {
       const problemRepo = getProblemRepository(prisma);
       const root = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Root problem',
         objective: 'Root objective',
       });
       const child = await problemRepo.create({
-        projectId,
+        workspaceId,
         parentId: root.id,
         problem: 'Child problem',
         objective: 'Child objective',
       });
       const grandchild = await problemRepo.create({
-        projectId,
+        workspaceId,
         parentId: child.id,
         problem: 'Grandchild problem',
         objective: 'Grandchild objective',
@@ -370,7 +370,7 @@ describe('Problems API', () => {
     it('should return 404 when fetching a deleted problem', async () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Problem to delete',
         objective: 'Objective',
       });
@@ -394,12 +394,12 @@ describe('Problems API', () => {
     it('should move a root problem to become a child of another', async () => {
       const problemRepo = getProblemRepository(prisma);
       const parent = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Parent problem',
         objective: 'Parent objective',
       });
       const sibling = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Sibling problem',
         objective: 'Sibling objective',
       });
@@ -416,12 +416,12 @@ describe('Problems API', () => {
     it('should move a child problem to root level', async () => {
       const problemRepo = getProblemRepository(prisma);
       const parent = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Parent problem',
         objective: 'Parent objective',
       });
       const child = await problemRepo.create({
-        projectId,
+        workspaceId,
         parentId: parent.id,
         problem: 'Child problem',
         objective: 'Child objective',
@@ -441,18 +441,18 @@ describe('Problems API', () => {
       
       // Create a hierarchy: root -> child -> grandchild
       const root = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Root',
         objective: 'Root objective',
       });
       const child = await problemRepo.create({
-        projectId,
+        workspaceId,
         parentId: root.id,
         problem: 'Child',
         objective: 'Child objective',
       });
       const grandchild = await problemRepo.create({
-        projectId,
+        workspaceId,
         parentId: child.id,
         problem: 'Grandchild',
         objective: 'Grandchild objective',
@@ -460,7 +460,7 @@ describe('Problems API', () => {
       
       // Create another root to move under
       const newParent = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'New Parent',
         objective: 'New Parent objective',
       });
@@ -493,7 +493,7 @@ describe('Problems API', () => {
     it('should return 404 for non-existent new parent', async () => {
       const problemRepo = getProblemRepository(prisma);
       const problem = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -509,7 +509,7 @@ describe('Problems API', () => {
     it('should reject moving a problem under itself', async () => {
       const problemRepo = getProblemRepository(prisma);
       const problem = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -525,12 +525,12 @@ describe('Problems API', () => {
     it('should reject moving a problem under its own descendant', async () => {
       const problemRepo = getProblemRepository(prisma);
       const parent = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Parent',
         objective: 'Parent objective',
       });
       const child = await problemRepo.create({
-        projectId,
+        workspaceId,
         parentId: parent.id,
         problem: 'Child',
         objective: 'Child objective',
@@ -551,17 +551,17 @@ describe('Problems API', () => {
       
       // Create three problems at root level
       const problem1 = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Problem 1',
         objective: 'Objective 1',
       });
       const problem2 = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Problem 2',
         objective: 'Objective 2',
       });
       const problem3 = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Problem 3',
         objective: 'Objective 3',
       });
@@ -575,7 +575,7 @@ describe('Problems API', () => {
       expect(response.body.id).toBe(problem3.id);
 
       // Verify order by fetching all problems and checking priorities
-      const allProblems = await problemRepo.findByProjectId(projectId);
+      const allProblems = await problemRepo.findByWorkspaceId(workspaceId);
       const sortedProblems = allProblems
         .filter(p => p.parentId === null)
         .sort((a, b) => a.priority - b.priority);
@@ -590,17 +590,17 @@ describe('Problems API', () => {
       
       // Create three problems at root level
       const problem1 = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Problem 1',
         objective: 'Objective 1',
       });
       const problem2 = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Problem 2',
         objective: 'Objective 2',
       });
       const problem3 = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Problem 3',
         objective: 'Objective 3',
       });
@@ -614,7 +614,7 @@ describe('Problems API', () => {
       expect(response.body.id).toBe(problem1.id);
 
       // Verify order by fetching all problems and checking priorities
-      const allProblems = await problemRepo.findByProjectId(projectId);
+      const allProblems = await problemRepo.findByWorkspaceId(workspaceId);
       const sortedProblems = allProblems
         .filter(p => p.parentId === null)
         .sort((a, b) => a.priority - b.priority);
@@ -629,27 +629,27 @@ describe('Problems API', () => {
       
       // Create five problems at root level
       const problem1 = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Problem 1',
         objective: 'Objective 1',
       });
       const problem2 = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Problem 2',
         objective: 'Objective 2',
       });
       const problem3 = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Problem 3',
         objective: 'Objective 3',
       });
       const problem4 = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Problem 4',
         objective: 'Objective 4',
       });
       const problem5 = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Problem 5',
         objective: 'Objective 5',
       });
@@ -663,7 +663,7 @@ describe('Problems API', () => {
       expect(response.body.id).toBe(problem5.id);
 
       // Verify order
-      const allProblems = await problemRepo.findByProjectId(projectId);
+      const allProblems = await problemRepo.findByWorkspaceId(workspaceId);
       const sortedProblems = allProblems
         .filter(p => p.parentId === null)
         .sort((a, b) => a.priority - b.priority);
@@ -680,24 +680,24 @@ describe('Problems API', () => {
       
       // Create a parent with three children
       const parent = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Parent',
         objective: 'Parent objective',
       });
       const child1 = await problemRepo.create({
-        projectId,
+        workspaceId,
         parentId: parent.id,
         problem: 'Child 1',
         objective: 'Objective 1',
       });
       const child2 = await problemRepo.create({
-        projectId,
+        workspaceId,
         parentId: parent.id,
         problem: 'Child 2',
         objective: 'Objective 2',
       });
       const child3 = await problemRepo.create({
-        projectId,
+        workspaceId,
         parentId: parent.id,
         problem: 'Child 3',
         objective: 'Objective 3',
@@ -711,7 +711,7 @@ describe('Problems API', () => {
       expect(response.status).toBe(200);
 
       // Verify order among children
-      const allProblems = await problemRepo.findByProjectId(projectId);
+      const allProblems = await problemRepo.findByWorkspaceId(workspaceId);
       const children = allProblems
         .filter(p => p.parentId === parent.id)
         .sort((a, b) => a.priority - b.priority);
@@ -733,7 +733,7 @@ describe('Problems API', () => {
     it('should return 400 for missing position', async () => {
       const problemRepo = getProblemRepository(prisma);
       const problem = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -749,7 +749,7 @@ describe('Problems API', () => {
     it('should return 400 for invalid position type', async () => {
       const problemRepo = getProblemRepository(prisma);
       const problem = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -765,7 +765,7 @@ describe('Problems API', () => {
     it('should return 400 for invalid position number (zero)', async () => {
       const problemRepo = getProblemRepository(prisma);
       const problem = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -781,7 +781,7 @@ describe('Problems API', () => {
     it('should return 400 for invalid position number (negative)', async () => {
       const problemRepo = getProblemRepository(prisma);
       const problem = await problemRepo.create({
-        projectId,
+        workspaceId,
         problem: 'Test problem',
         objective: 'Test objective',
       });

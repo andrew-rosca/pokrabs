@@ -30,7 +30,7 @@ function renderWithRouter(ui: React.ReactElement) {
 }
 
 describe('ProblemsList', () => {
-  const projectId = 'test-project-1';
+  const workspaceId = 'test-workspace-1';
 
   const mockProblems: Problem[] = [
     {
@@ -46,7 +46,7 @@ describe('ProblemsList', () => {
       priority: 0,
       labels: [],
       parentId: null,
-      projectId,
+      workspaceId,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
     },
@@ -63,7 +63,7 @@ describe('ProblemsList', () => {
       priority: 10,
       labels: [],
       parentId: 'i0',
-      projectId,
+      workspaceId,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
     },
@@ -85,7 +85,7 @@ describe('ProblemsList', () => {
       priority: 0,
       labels: [],
       parentId: null,
-      projectId,
+      workspaceId,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
     });
@@ -94,12 +94,12 @@ describe('ProblemsList', () => {
   it('should render loading state initially', () => {
     mockFetchProblems.mockImplementation(() => new Promise(() => {})); // Never resolves
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     expect(screen.getByText('Loading problems...')).toBeInTheDocument();
   });
 
   it('should render problems table', async () => {
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe('ProblemsList', () => {
   });
 
   it('should display hierarchical IDs with indentation', async () => {
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('i0')).toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('ProblemsList', () => {
   });
 
   it('should display status dropdowns', async () => {
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       const selects = screen.getAllByRole('combobox');
@@ -138,7 +138,7 @@ describe('ProblemsList', () => {
   });
 
   it('should display votes', async () => {
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('0')).toBeInTheDocument();
@@ -148,7 +148,7 @@ describe('ProblemsList', () => {
   });
 
   it('should display key results one per line', async () => {
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       // ListCell displays items one per line
@@ -159,7 +159,7 @@ describe('ProblemsList', () => {
   });
 
   it('should display actions one per line', async () => {
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       // ListCell displays items one per line
@@ -174,7 +174,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[0], problem: JSON.stringify({ summary: 'Updated Problem', detail: 'Updated Detail' }) };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -209,7 +209,7 @@ describe('ProblemsList', () => {
   });
 
   it('should show expand button when detail exists', async () => {
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -231,7 +231,7 @@ describe('ProblemsList', () => {
     };
     mockFetchProblems.mockResolvedValue([problemWithoutDetail]);
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -245,7 +245,7 @@ describe('ProblemsList', () => {
   it('should expand and show detail when expand button is clicked', async () => {
     const user = userEvent.setup();
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -272,7 +272,7 @@ describe('ProblemsList', () => {
   it('should collapse and hide detail when collapse button is clicked', async () => {
     const user = userEvent.setup();
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -306,7 +306,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[0], objective: JSON.stringify({ summary: 'Updated Objective', detail: 'Updated Detail' }) };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Objective 1')).toBeInTheDocument();
@@ -341,7 +341,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[0], keyResults: JSON.stringify(['KR1', 'KR2', 'KR3']) };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     // Wait for the list cell items to appear
     await waitFor(() => {
@@ -379,7 +379,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[1], actions: JSON.stringify(['Action 2', 'Action 3', 'Action 4']) };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     // Wait for the list cell items to appear
     await waitFor(() => {
@@ -417,7 +417,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[1], blockers: JSON.stringify(['Blocker 1', 'Blocker 2']) };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     // Wait for the list cell to appear
     await waitFor(() => {
@@ -455,7 +455,7 @@ describe('ProblemsList', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockUpdateProblem.mockRejectedValue(new Error('Update failed'));
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -480,7 +480,7 @@ describe('ProblemsList', () => {
   it('should display error message on fetch failure', async () => {
     mockFetchProblems.mockRejectedValue(new Error('Failed to fetch'));
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText(/Error: Failed to fetch/i)).toBeInTheDocument();
@@ -490,7 +490,7 @@ describe('ProblemsList', () => {
   it('should display empty state when no problems', async () => {
     mockFetchProblems.mockResolvedValue([]);
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('No problems found.')).toBeInTheDocument();
@@ -513,7 +513,7 @@ describe('ProblemsList', () => {
     
     mockFetchProblems.mockResolvedValue(unsortedProblems);
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       const rows = screen.getAllByRole('row');
@@ -528,7 +528,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[0], status: Status.InProgress };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       const selects = screen.getAllByRole('combobox');
@@ -563,7 +563,7 @@ describe('ProblemsList', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockUpdateProblem.mockRejectedValue(new Error('Update failed'));
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       const selects = screen.getAllByRole('combobox');
@@ -590,7 +590,7 @@ describe('ProblemsList', () => {
     const updatedProblem = { ...mockProblems[0], votes: 1 };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('0')).toBeInTheDocument();
@@ -622,7 +622,7 @@ describe('ProblemsList', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockUpdateProblem.mockRejectedValue(new Error('Update failed'));
     
-    renderWithRouter(<ProblemsList projectId={projectId} />);
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('0')).toBeInTheDocument();
@@ -642,7 +642,7 @@ describe('ProblemsList', () => {
   describe('Create Problem', () => {
     it('should create a new problem when + button is clicked', async () => {
       const user = userEvent.setup();
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -666,7 +666,7 @@ describe('ProblemsList', () => {
       // Verify createProblem was called with correct parameters
       await waitFor(() => {
         expect(mockCreateProblem).toHaveBeenCalledWith(
-          projectId,
+          workspaceId,
           expect.objectContaining({
             problem: JSON.stringify({ summary: 'New problem', detail: '' }),
             objective: JSON.stringify({ summary: 'New objective', detail: '' }),
@@ -682,7 +682,7 @@ describe('ProblemsList', () => {
 
     it('should create a top-level problem at bottom when + button is clicked on bottom row', async () => {
       const user = userEvent.setup();
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -696,7 +696,7 @@ describe('ProblemsList', () => {
       // Verify createProblem was called with null parentId and priority > 0 (at bottom)
       await waitFor(() => {
         expect(mockCreateProblem).toHaveBeenCalledWith(
-          projectId,
+          workspaceId,
           expect.objectContaining({
             parentId: null, // Top-level problem
             priority: 1, // Higher than existing problem with priority 0
@@ -707,7 +707,7 @@ describe('ProblemsList', () => {
 
     it('should create a top-level problem at top when + button is clicked in header', async () => {
       const user = userEvent.setup();
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -721,7 +721,7 @@ describe('ProblemsList', () => {
       // Verify createProblem was called with null parentId and priority < 0 (at top)
       await waitFor(() => {
         expect(mockCreateProblem).toHaveBeenCalledWith(
-          projectId,
+          workspaceId,
           expect.objectContaining({
             parentId: null, // Top-level problem
             priority: -1, // Lower than existing problem with priority 0
@@ -735,7 +735,7 @@ describe('ProblemsList', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockCreateProblem.mockRejectedValue(new Error('Failed to create problem: Bad Request'));
       
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -767,7 +767,7 @@ describe('ProblemsList', () => {
         .mockResolvedValueOnce([mockProblems[1]]);
       mockDeleteProblem.mockResolvedValue({});
 
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
 
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -807,7 +807,7 @@ describe('ProblemsList', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockDeleteProblem.mockRejectedValue(new Error('Failed to delete problem'));
 
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
 
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -854,7 +854,7 @@ describe('ProblemsList', () => {
         priority: 0,
         labels: [],
         parentId: null,
-        projectId,
+        workspaceId,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       },
@@ -871,7 +871,7 @@ describe('ProblemsList', () => {
         priority: 0,
         labels: [],
         parentId: 'parent1',
-        projectId,
+        workspaceId,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       },
@@ -888,7 +888,7 @@ describe('ProblemsList', () => {
         priority: 0,
         labels: [],
         parentId: 'child1',
-        projectId,
+        workspaceId,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       },
@@ -905,7 +905,7 @@ describe('ProblemsList', () => {
         priority: 1,
         labels: [],
         parentId: null,
-        projectId,
+        workspaceId,
         createdAt: '2024-01-01T00:00:01Z',
         updatedAt: '2024-01-01T00:00:01Z',
       },
@@ -914,7 +914,7 @@ describe('ProblemsList', () => {
     it('should show collapse carets only for problems with children', async () => {
       mockFetchProblems.mockResolvedValue(hierarchicalProblems);
       
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Parent Problem')).toBeInTheDocument();
@@ -934,7 +934,7 @@ describe('ProblemsList', () => {
       const user = userEvent.setup();
       mockFetchProblems.mockResolvedValue(hierarchicalProblems);
       
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Parent Problem')).toBeInTheDocument();
@@ -961,7 +961,7 @@ describe('ProblemsList', () => {
       const user = userEvent.setup();
       mockFetchProblems.mockResolvedValue(hierarchicalProblems);
       
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Parent Problem')).toBeInTheDocument();
@@ -990,7 +990,7 @@ describe('ProblemsList', () => {
       const user = userEvent.setup();
       mockFetchProblems.mockResolvedValue(hierarchicalProblems);
       
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Parent Problem')).toBeInTheDocument();
@@ -1013,7 +1013,7 @@ describe('ProblemsList', () => {
       const user = userEvent.setup();
       mockFetchProblems.mockResolvedValue(hierarchicalProblems);
       
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Parent Problem')).toBeInTheDocument();
@@ -1042,7 +1042,7 @@ describe('ProblemsList', () => {
       const user = userEvent.setup();
       mockFetchProblems.mockResolvedValue(hierarchicalProblems);
       
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Parent Problem')).toBeInTheDocument();
@@ -1072,7 +1072,7 @@ describe('ProblemsList', () => {
     });
 
     it('should show all columns by default', async () => {
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -1088,7 +1088,7 @@ describe('ProblemsList', () => {
 
     it('should hide Objective column when O button is clicked', async () => {
       const user = userEvent.setup();
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -1112,7 +1112,7 @@ describe('ProblemsList', () => {
 
     it('should hide Key Results column when K button is clicked', async () => {
       const user = userEvent.setup();
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -1132,7 +1132,7 @@ describe('ProblemsList', () => {
 
     it('should hide Actions column when A button is clicked', async () => {
       const user = userEvent.setup();
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -1151,7 +1151,7 @@ describe('ProblemsList', () => {
 
     it('should hide Blockers column when B button is clicked', async () => {
       const user = userEvent.setup();
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -1171,7 +1171,7 @@ describe('ProblemsList', () => {
 
     it('should hide Status column when S button is clicked', async () => {
       const user = userEvent.setup();
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -1190,7 +1190,7 @@ describe('ProblemsList', () => {
 
     it('should show hidden column when toggle button is clicked again', async () => {
       const user = userEvent.setup();
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -1215,7 +1215,7 @@ describe('ProblemsList', () => {
 
     it('should hide multiple columns simultaneously', async () => {
       const user = userEvent.setup();
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -1241,7 +1241,7 @@ describe('ProblemsList', () => {
 
     it('should persist column visibility to localStorage', async () => {
       const user = userEvent.setup();
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -1277,7 +1277,7 @@ describe('ProblemsList', () => {
         status: true,
       }));
 
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -1297,7 +1297,7 @@ describe('ProblemsList', () => {
       // Set corrupted data in localStorage
       localStorage.setItem('pokrabs-column-visibility', 'invalid-json');
 
-      renderWithRouter(<ProblemsList projectId={projectId} />);
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
@@ -1327,7 +1327,7 @@ describe('ProblemsList', () => {
         priority: 0,
         labels: ['ux', 'frontend'],
         parentId: null,
-        projectId,
+        workspaceId,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       },
@@ -1344,7 +1344,7 @@ describe('ProblemsList', () => {
         priority: 0,
         labels: [],
         parentId: 'gp',
-        projectId,
+        workspaceId,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       },
@@ -1361,7 +1361,7 @@ describe('ProblemsList', () => {
         priority: 1,
         labels: ['security', 'backend'],
         parentId: null,
-        projectId,
+        workspaceId,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       },
@@ -1374,7 +1374,7 @@ describe('ProblemsList', () => {
     it('should filter problems by ID', async () => {
       renderWithRouter(
         <ProblemsList 
-          projectId={projectId} 
+          workspaceId={workspaceId} 
           searchQuery="gp" 
         />
       );
@@ -1391,7 +1391,7 @@ describe('ProblemsList', () => {
     it('should filter problems by idPath (hierarchical IDs)', async () => {
       renderWithRouter(
         <ProblemsList 
-          projectId={projectId} 
+          workspaceId={workspaceId} 
           searchQuery="gp-ay" 
         />
       );
@@ -1408,7 +1408,7 @@ describe('ProblemsList', () => {
     it('should filter problems by problem text (case-insensitive)', async () => {
       renderWithRouter(
         <ProblemsList 
-          projectId={projectId} 
+          workspaceId={workspaceId} 
           searchQuery="security" 
         />
       );
@@ -1422,7 +1422,7 @@ describe('ProblemsList', () => {
     it('should filter problems by objective text', async () => {
       renderWithRouter(
         <ProblemsList 
-          projectId={projectId} 
+          workspaceId={workspaceId} 
           searchQuery="issue #44" 
         />
       );
@@ -1436,7 +1436,7 @@ describe('ProblemsList', () => {
     it('should filter problems by key results', async () => {
       renderWithRouter(
         <ProblemsList 
-          projectId={projectId} 
+          workspaceId={workspaceId} 
           searchQuery="Secure API" 
         />
       );
@@ -1450,7 +1450,7 @@ describe('ProblemsList', () => {
     it('should filter problems by actions', async () => {
       renderWithRouter(
         <ProblemsList 
-          projectId={projectId} 
+          workspaceId={workspaceId} 
           searchQuery="Implement limits" 
         />
       );
@@ -1464,7 +1464,7 @@ describe('ProblemsList', () => {
     it('should filter problems by blockers', async () => {
       renderWithRouter(
         <ProblemsList 
-          projectId={projectId} 
+          workspaceId={workspaceId} 
           searchQuery="Infrastructure not ready" 
         />
       );
@@ -1478,7 +1478,7 @@ describe('ProblemsList', () => {
     it('should filter problems by labels', async () => {
       renderWithRouter(
         <ProblemsList 
-          projectId={projectId} 
+          workspaceId={workspaceId} 
           searchQuery="backend" 
         />
       );
@@ -1492,7 +1492,7 @@ describe('ProblemsList', () => {
     it('should be case-insensitive', async () => {
       renderWithRouter(
         <ProblemsList 
-          projectId={projectId} 
+          workspaceId={workspaceId} 
           searchQuery="SECURITY" 
         />
       );
@@ -1505,7 +1505,7 @@ describe('ProblemsList', () => {
     it('should show all problems when search is empty', async () => {
       renderWithRouter(
         <ProblemsList 
-          projectId={projectId} 
+          workspaceId={workspaceId} 
           searchQuery="" 
         />
       );
@@ -1521,7 +1521,7 @@ describe('ProblemsList', () => {
       // This tests that search ignores collapse state
       renderWithRouter(
         <ProblemsList 
-          projectId={projectId} 
+          workspaceId={workspaceId} 
           searchQuery="ay" 
         />
       );
@@ -1535,7 +1535,7 @@ describe('ProblemsList', () => {
     it('should show no results when search matches nothing', async () => {
       renderWithRouter(
         <ProblemsList 
-          projectId={projectId} 
+          workspaceId={workspaceId} 
           searchQuery="nonexistent-query-xyz" 
         />
       );

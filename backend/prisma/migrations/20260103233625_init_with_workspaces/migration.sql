@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "projects" (
+CREATE TABLE "workspaces" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -15,24 +15,31 @@ CREATE TABLE "problems" (
     "keyResults" TEXT NOT NULL DEFAULT '[]',
     "actions" TEXT NOT NULL DEFAULT '[]',
     "blockers" TEXT NOT NULL DEFAULT '[]',
-    "status" TEXT NOT NULL DEFAULT 'Not Started',
+    "status" TEXT NOT NULL DEFAULT 'Actionable',
     "votes" INTEGER NOT NULL DEFAULT 0,
     "priority" INTEGER NOT NULL DEFAULT 0,
     "labels" TEXT NOT NULL DEFAULT '[]',
     "parentId" TEXT,
-    "projectId" TEXT NOT NULL,
+    "workspaceId" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     "deletedAt" DATETIME,
     CONSTRAINT "problems_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "problems" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "problems_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "projects" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "problems_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "workspaces" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "id_counter" (
+    "id" TEXT NOT NULL PRIMARY KEY DEFAULT 'global',
+    "counter" INTEGER NOT NULL DEFAULT 0,
+    "length" INTEGER NOT NULL DEFAULT 2
 );
 
 -- CreateIndex
-CREATE INDEX "projects_deletedAt_idx" ON "projects"("deletedAt");
+CREATE INDEX "workspaces_deletedAt_idx" ON "workspaces"("deletedAt");
 
 -- CreateIndex
-CREATE INDEX "problems_projectId_idx" ON "problems"("projectId");
+CREATE INDEX "problems_workspaceId_idx" ON "problems"("workspaceId");
 
 -- CreateIndex
 CREATE INDEX "problems_parentId_idx" ON "problems"("parentId");
@@ -41,7 +48,7 @@ CREATE INDEX "problems_parentId_idx" ON "problems"("parentId");
 CREATE INDEX "problems_deletedAt_idx" ON "problems"("deletedAt");
 
 -- CreateIndex
-CREATE INDEX "problems_projectId_deletedAt_idx" ON "problems"("projectId", "deletedAt");
+CREATE INDEX "problems_workspaceId_deletedAt_idx" ON "problems"("workspaceId", "deletedAt");
 
 -- CreateIndex
 CREATE INDEX "problems_status_idx" ON "problems"("status");

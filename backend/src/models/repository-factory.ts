@@ -7,32 +7,32 @@
 
 import { PrismaClient } from '@prisma/client';
 import { getPrismaClient } from '../database/prisma-client';
-import { IProjectRepository } from './project-repository';
+import { IWorkspaceRepository } from './workspace-repository';
 import { IProblemRepository } from './problem-repository';
-import { PrismaProjectRepository } from './prisma-project-repository';
+import { PrismaWorkspaceRepository } from './prisma-workspace-repository';
 import { PrismaProblemRepository } from './prisma-problem-repository';
 
-let projectRepository: IProjectRepository | null = null;
+let workspaceRepository: IWorkspaceRepository | null = null;
 let problemRepository: IProblemRepository | null = null;
 
 /**
- * Get or create Project repository instance
+ * Get or create Workspace repository instance
  * 
  * @param prisma - Optional Prisma client (for testing)
- * @returns Project repository instance
+ * @returns Workspace repository instance
  */
-export function getProjectRepository(prisma?: PrismaClient): IProjectRepository {
+export function getWorkspaceRepository(prisma?: PrismaClient): IWorkspaceRepository {
   if (prisma) {
     // For testing: create new instance with provided client
-    return new PrismaProjectRepository(prisma);
+    return new PrismaWorkspaceRepository(prisma);
   }
 
   // Production: use singleton pattern
-  if (!projectRepository) {
-    projectRepository = new PrismaProjectRepository(getPrismaClient());
+  if (!workspaceRepository) {
+    workspaceRepository = new PrismaWorkspaceRepository(getPrismaClient());
   }
 
-  return projectRepository;
+  return workspaceRepository;
 }
 
 /**
@@ -59,7 +59,7 @@ export function getProblemRepository(prisma?: PrismaClient): IProblemRepository 
  * Reset repository singletons (for testing)
  */
 export function resetRepositories(): void {
-  projectRepository = null;
+  workspaceRepository = null;
   problemRepository = null;
 }
 

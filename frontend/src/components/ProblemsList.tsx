@@ -15,11 +15,11 @@ import { DeleteButton } from './DeleteButton';
 import { ListCell } from './ListCell';
 
 interface ProblemsListProps {
-  projectId: string;
+  workspaceId: string;
   searchQuery?: string;
 }
 
-export function ProblemsList({ projectId, searchQuery: externalSearchQuery }: ProblemsListProps) {
+export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: ProblemsListProps) {
   const { problemId: urlProblemId } = useParams<{ problemId: string }>();
   const navigate = useNavigate();
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -98,7 +98,7 @@ export function ProblemsList({ projectId, searchQuery: externalSearchQuery }: Pr
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchProblems(projectId);
+        const data = await fetchProblems(workspaceId);
         setProblems(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load problems');
@@ -108,7 +108,7 @@ export function ProblemsList({ projectId, searchQuery: externalSearchQuery }: Pr
     }
 
     loadProblems();
-  }, [projectId]);
+  }, [workspaceId]);
 
   // Helper function to clear URL if taking action on a different problem
   const clearUrlIfDifferentProblem = (actionProblemId: string) => {
@@ -357,7 +357,7 @@ export function ProblemsList({ projectId, searchQuery: externalSearchQuery }: Pr
       await deleteProblem(problemId);
 
       // Refresh list to ensure consistent ordering/state from server
-      const data = await fetchProblems(projectId);
+      const data = await fetchProblems(workspaceId);
       setProblems(data);
     } catch (err) {
       // Revert on error
@@ -749,7 +749,7 @@ export function ProblemsList({ projectId, searchQuery: externalSearchQuery }: Pr
       await moveProblem(draggedProblemId, newParentId, afterProblemId);
       
       // Reload problems to get updated idPaths
-      const data = await fetchProblems(projectId);
+      const data = await fetchProblems(workspaceId);
       setProblems(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to move problem';
@@ -779,7 +779,7 @@ export function ProblemsList({ projectId, searchQuery: externalSearchQuery }: Pr
       
       await moveProblem(draggedProblemId, null, lastRootProblem?.id ?? null);
       
-      const data = await fetchProblems(projectId);
+      const data = await fetchProblems(workspaceId);
       setProblems(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to move problem';
@@ -844,7 +844,7 @@ export function ProblemsList({ projectId, searchQuery: externalSearchQuery }: Pr
       }
       
       // Reload problems to get updated priorities
-      const data = await fetchProblems(projectId);
+      const data = await fetchProblems(workspaceId);
       setProblems(data);
       
       // Highlight the row to draw attention (without scrolling)
@@ -911,7 +911,7 @@ export function ProblemsList({ projectId, searchQuery: externalSearchQuery }: Pr
       }
       
       // Reload problems to get updated priorities
-      const data = await fetchProblems(projectId);
+      const data = await fetchProblems(workspaceId);
       setProblems(data);
       
       // Highlight the row to draw attention (without scrolling)
@@ -957,10 +957,10 @@ export function ProblemsList({ projectId, searchQuery: externalSearchQuery }: Pr
       };
 
       // Create the problem
-      const created = await createProblem(projectId, newProblem);
+      const created = await createProblem(workspaceId, newProblem);
       
       // Reload problems to get the new one with correct idPath and proper sorting
-      const data = await fetchProblems(projectId);
+      const data = await fetchProblems(workspaceId);
       setProblems(data);
       
       // Auto-open the problem editor for the newly created problem

@@ -1,0 +1,334 @@
+/**
+ * Tests for Workspaces API
+ */
+
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
+import request from 'supertest';
+import express from 'express';
+import workspacesRouter from './workspaces';
+import { setupTestDatabase, cleanupTestDatabase } from '../test-helpers/database';
+import { getWorkspaceRepository, getProblemRepository } from '../models/repository-factory';
+import { PrismaClient } from '@prisma/client';
+import { Status } from '../../../shared/types';
+import { resetIdCounter } from '../utils/id-generator';
+
+describe('Workspaces API', () => {
+  let app: express.Application;
+  let prisma: PrismaClient;
+  let databaseUrl: string;
+
+  beforeEach(async () => {
+    // Create isolated database
+    const { prisma: client, databaseUrl: url } = await setupTestDatabase();
+    prisma = client;
+    databaseUrl = url;
+
+    // Reset ID counter
+    await resetIdCounter();
+
+    // Create Express app with routes
+    app = express();
+    app.use(express.json());
+    // Middleware to attach Prisma client to request (for testing)
+    app.use((req, res, next) => {
+      (req as any).prisma = prisma;
+      next();
+    });
+    app.use('/api/workspaces', workspacesRouter);
+  });
+
+  afterAll(async () => {
+    await cleanupTestDatabase(prisma, databaseUrl);
+  });
+
+  describe('GET /api/workspaces', () => {
+    it('should return empty array when no workspaces exist', async () => {
+      const response = await request(app).get('/api/workspaces');
+      
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual([]);
+    });
+
+    it('should return all workspaces', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      await repo.create({ id: 'workspace-1', name: 'Workspace 1' });
+      await repo.create({ id: 'workspace-2', name: 'Workspace 2' });
+
+      const response = await request(app).get('/api/workspaces');
+      
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(2);
+      expect(response.body.map((w: any) => w.id)).toContain('workspace-1');
+      expect(response.body.map((w: any) => w.id)).toContain('workspace-2');
+    });
+
+    it('should exclude soft-deleted workspaces', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      await repo.create({ id: 'workspace-1', name: 'Workspace 1' });
+      await repo.create({ id: 'workspace-2', name: 'Workspace 2' });
+      await repo.softDelete('workspace-2');
+
+      const response = await request(app).get('/api/workspaces');
+      
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].id).toBe('workspace-1');
+    });
+  });
+
+  describe('GET /api/workspaces/:id', () => {
+    it('should return workspace by ID', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      await repo.create({ id: 'workspace-1', name: 'Test Workspace' });
+
+      const response = await request(app).get('/api/workspaces/workspace-1');
+      
+      expect(response.status).toBe(200);
+      expect(response.body.id).toBe('workspace-1');
+      expect(response.body.name).toBe('Test Workspace');
+    });
+
+    it('should return 404 for non-existent workspace', async () => {
+      const response = await request(app).get('/api/workspaces/non-existent');
+      
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Workspace not found');
+    });
+
+    it('should return 404 for soft-deleted workspace', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      await repo.create({ id: 'workspace-1', name: 'Test Workspace' });
+      await repo.softDelete('workspace-1');
+
+      const response = await request(app).get('/api/workspaces/workspace-1');
+      
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Workspace not found');
+    });
+  });
+
+  describe('POST /api/workspaces', () => {
+    it('should create a new workspace', async () => {
+      const response = await request(app)
+        .post('/api/workspaces')
+        .send({ name: 'New Workspace' });
+      
+      expect(response.status).toBe(201);
+      expect(response.body.name).toBe('New Workspace');
+      expect(response.body.id).toBeDefined();
+      expect(response.body.createdAt).toBeDefined();
+    });
+
+    it('should return 400 when name is missing', async () => {
+      const response = await request(app)
+        .post('/api/workspaces')
+        .send({});
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Workspace name is required');
+    });
+
+    it('should return 400 when name is empty', async () => {
+      const response = await request(app)
+        .post('/api/workspaces')
+        .send({ name: '   ' });
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Workspace name is required');
+    });
+
+    it('should trim workspace name', async () => {
+      const response = await request(app)
+        .post('/api/workspaces')
+        .send({ name: '  Trimmed Workspace  ' });
+      
+      expect(response.status).toBe(201);
+      expect(response.body.name).toBe('Trimmed Workspace');
+    });
+  });
+
+  describe('GET /api/workspaces/:workspaceId/problems', () => {
+    it('should return problems for a workspace', async () => {
+      const workspaceRepo = getWorkspaceRepository(prisma);
+      const workspace = await workspaceRepo.create({ id: 'workspace-1', name: 'Workspace 1' });
+      
+      const problemRepo = getProblemRepository(prisma);
+      await problemRepo.create({
+        workspaceId: workspace.id,
+        problem: 'Problem 1',
+        objective: 'Objective 1',
+      });
+      await problemRepo.create({
+        workspaceId: workspace.id,
+        problem: 'Problem 2',
+        objective: 'Objective 2',
+      });
+
+      const response = await request(app).get(`/api/workspaces/${workspace.id}/problems`);
+      
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(2);
+      expect(response.body.map((p: any) => p.problem)).toContain('Problem 1');
+      expect(response.body.map((p: any) => p.problem)).toContain('Problem 2');
+    });
+
+    it('should return empty array when workspace has no problems', async () => {
+      const workspaceRepo = getWorkspaceRepository(prisma);
+      const workspace = await workspaceRepo.create({ id: 'workspace-1', name: 'Workspace 1' });
+
+      const response = await request(app).get(`/api/workspaces/${workspace.id}/problems`);
+      
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual([]);
+    });
+
+    it('should return 404 for non-existent workspace', async () => {
+      const response = await request(app).get('/api/workspaces/non-existent/problems');
+      
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Workspace not found');
+    });
+
+    it('should exclude soft-deleted problems', async () => {
+      const workspaceRepo = getWorkspaceRepository(prisma);
+      const workspace = await workspaceRepo.create({ id: 'workspace-1', name: 'Workspace 1' });
+      
+      const problemRepo = getProblemRepository(prisma);
+      const problem1 = await problemRepo.create({
+        workspaceId: workspace.id,
+        problem: 'Problem 1',
+        objective: 'Objective 1',
+      });
+      await problemRepo.create({
+        workspaceId: workspace.id,
+        problem: 'Problem 2',
+        objective: 'Objective 2',
+      });
+      await problemRepo.softDelete(problem1.id);
+
+      const response = await request(app).get(`/api/workspaces/${workspace.id}/problems`);
+      
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].problem).toBe('Problem 2');
+    });
+  });
+
+  describe('POST /api/workspaces/:workspaceId/problems', () => {
+    let workspaceId: string;
+
+    beforeEach(async () => {
+      const workspaceRepo = getWorkspaceRepository(prisma);
+      const workspace = await workspaceRepo.create({ id: 'workspace-1', name: 'Test Workspace' });
+      workspaceId = workspace.id;
+    });
+
+    it('should create a new problem', async () => {
+      const response = await request(app)
+        .post(`/api/workspaces/${workspaceId}/problems`)
+        .send({
+          problem: JSON.stringify({ summary: 'Test problem', detail: 'Detail' }),
+          objective: JSON.stringify({ summary: 'Test objective', detail: 'Detail' }),
+          status: Status.NotStarted,
+        });
+      
+      expect(response.status).toBe(201);
+      expect(response.body.problem).toBe(JSON.stringify({ summary: 'Test problem', detail: 'Detail' }));
+      expect(response.body.objective).toBe(JSON.stringify({ summary: 'Test objective', detail: 'Detail' }));
+      expect(response.body.workspaceId).toBe(workspaceId);
+      expect(response.body.id).toBeDefined();
+    });
+
+    it('should return 404 for non-existent workspace', async () => {
+      const response = await request(app)
+        .post('/api/workspaces/non-existent/problems')
+        .send({
+          problem: JSON.stringify({ summary: 'Test', detail: '' }),
+          objective: JSON.stringify({ summary: 'Test', detail: '' }),
+        });
+      
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Workspace not found');
+    });
+
+    it('should return 400 when problem field is missing', async () => {
+      const response = await request(app)
+        .post(`/api/workspaces/${workspaceId}/problems`)
+        .send({
+          objective: JSON.stringify({ summary: 'Test', detail: '' }),
+        });
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Problem field is required');
+    });
+
+    it('should return 400 when objective field is missing', async () => {
+      const response = await request(app)
+        .post(`/api/workspaces/${workspaceId}/problems`)
+        .send({
+          problem: JSON.stringify({ summary: 'Test', detail: '' }),
+        });
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Objective field is required');
+    });
+
+    it('should create a child problem with valid parentId', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const parent = await problemRepo.create({
+        workspaceId,
+        problem: 'Parent',
+        objective: 'Parent objective',
+      });
+
+      const response = await request(app)
+        .post(`/api/workspaces/${workspaceId}/problems`)
+        .send({
+          problem: JSON.stringify({ summary: 'Child', detail: '' }),
+          objective: JSON.stringify({ summary: 'Child objective', detail: '' }),
+          parentId: parent.id,
+        });
+      
+      expect(response.status).toBe(201);
+      expect(response.body.parentId).toBe(parent.id);
+      expect(response.body.idPath).toContain(parent.id);
+    });
+
+    it('should return 400 when parentId belongs to different workspace', async () => {
+      const workspaceRepo = getWorkspaceRepository(prisma);
+      const otherWorkspace = await workspaceRepo.create({ id: 'workspace-2', name: 'Other Workspace' });
+      
+      const problemRepo = getProblemRepository(prisma);
+      const otherProblem = await problemRepo.create({
+        workspaceId: otherWorkspace.id,
+        problem: 'Other problem',
+        objective: 'Other objective',
+      });
+
+      const response = await request(app)
+        .post(`/api/workspaces/${workspaceId}/problems`)
+        .send({
+          problem: JSON.stringify({ summary: 'Child', detail: '' }),
+          objective: JSON.stringify({ summary: 'Child objective', detail: '' }),
+          parentId: otherProblem.id,
+        });
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Parent problem not found or belongs to different workspace');
+    });
+
+    it('should return 400 with invalid status', async () => {
+      const response = await request(app)
+        .post(`/api/workspaces/${workspaceId}/problems`)
+        .send({
+          problem: JSON.stringify({ summary: 'Test', detail: '' }),
+          objective: JSON.stringify({ summary: 'Test', detail: '' }),
+          status: 'InvalidStatus',
+        });
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('Invalid status value');
+    });
+  });
+});
+

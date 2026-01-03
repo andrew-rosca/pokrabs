@@ -25,7 +25,7 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 - **Migration system**: Schema versioning with migration files
 - **Soft delete**: All deletions are soft (deletedAt field) to support future undo functionality
 - **Hierarchical IDs**: Problems use parent chain IDs (e.g., "a2-df-7f") stored as strings
-- **Data isolation**: All queries filter by projectId (and userId in Phase 2)
+- **Data isolation**: All queries filter by workspaceId (and userId in Phase 2)
 
 ### ID Generation Strategy
 - **LCG-based**: Linear Congruential Generator traverses ID space non-sequentially

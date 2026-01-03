@@ -5,15 +5,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import App from './App';
-import { fetchProjects, fetchProblems } from './services/api';
+import { fetchWorkspaces, fetchProblems } from './services/api';
 
 // Mock the API service
 vi.mock('./services/api', () => ({
-  fetchProjects: vi.fn(),
+  fetchWorkspaces: vi.fn(),
   fetchProblems: vi.fn(),
 }));
 
-const mockFetchProjects = fetchProjects as ReturnType<typeof vi.fn>;
+const mockFetchWorkspaces = fetchWorkspaces as ReturnType<typeof vi.fn>;
 const mockFetchProblems = fetchProblems as ReturnType<typeof vi.fn>;
 
 describe('App', () => {
@@ -22,16 +22,16 @@ describe('App', () => {
   });
 
   it('should render without crashing', async () => {
-    mockFetchProjects.mockResolvedValue([
-      { id: 'test-project', name: 'Test Project', createdAt: '2024-01-01T00:00:00Z' },
+    mockFetchWorkspaces.mockResolvedValue([
+      { id: 'test-workspace', name: 'Test Workspace', createdAt: '2024-01-01T00:00:00Z' },
     ]);
     mockFetchProblems.mockResolvedValue([]);
     
     render(<App />);
     
-    // Wait for the app to load and show the project name
+    // Wait for the app to load and show the workspace name
     await waitFor(() => {
-      expect(screen.getByText('Test Project')).toBeInTheDocument();
+      expect(screen.getByText('Test Workspace')).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 });

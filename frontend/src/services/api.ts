@@ -4,26 +4,26 @@
  * Handles all communication with the backend API.
  */
 
-import { Problem, Project } from '../../../shared/types';
+import { Problem, Workspace } from '../../../shared/types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 /**
- * Fetch all projects
+ * Fetch all workspaces
  */
-export async function fetchProjects(): Promise<Project[]> {
-  const response = await fetch(`${API_URL}/api/projects`);
+export async function fetchWorkspaces(): Promise<Workspace[]> {
+  const response = await fetch(`${API_URL}/api/workspaces`);
   if (!response.ok) {
-    throw new Error(`Failed to fetch projects: ${response.statusText}`);
+    throw new Error(`Failed to fetch workspaces: ${response.statusText}`);
   }
   return response.json();
 }
 
 /**
- * Fetch all problems for a project
+ * Fetch all problems for a workspace
  */
-export async function fetchProblems(projectId: string): Promise<Problem[]> {
-  const response = await fetch(`${API_URL}/api/projects/${projectId}/problems`);
+export async function fetchProblems(workspaceId: string): Promise<Problem[]> {
+  const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}/problems`);
   if (!response.ok) {
     throw new Error(`Failed to fetch problems: ${response.statusText}`);
   }
@@ -45,7 +45,7 @@ export async function fetchProblem(problemId: string): Promise<Problem> {
  * Create a new problem
  */
 export async function createProblem(
-  projectId: string,
+  workspaceId: string,
   problem: {
     problem: string;
     objective: string;
@@ -58,7 +58,7 @@ export async function createProblem(
     parentId?: string | null;
   }
 ): Promise<Problem> {
-  const response = await fetch(`${API_URL}/api/projects/${projectId}/problems`, {
+  const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}/problems`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

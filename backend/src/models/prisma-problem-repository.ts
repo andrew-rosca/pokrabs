@@ -15,7 +15,7 @@ export class PrismaProblemRepository implements IProblemRepository {
   constructor(private prisma: PrismaClient) {}
 
   async create(data: {
-    projectId: string;
+    workspaceId: string;
     parentId?: string | null;
     problem?: string;
     objective?: string;
@@ -30,7 +30,7 @@ export class PrismaProblemRepository implements IProblemRepository {
     const id = await generateProblemId();
 
     // Compute idPath
-    const idPath = await computeIdPath(id, data.parentId ?? null, data.projectId);
+    const idPath = await computeIdPath(id, data.parentId ?? null, data.workspaceId);
 
     // Map Status enum from shared types to Prisma enum
     const prismaStatus = this.mapStatusToPrisma(data.status ?? Status.NotStarted);
@@ -40,7 +40,7 @@ export class PrismaProblemRepository implements IProblemRepository {
       data: {
         id,
         idPath,
-        projectId: data.projectId,
+        workspaceId: data.workspaceId,
         parentId: data.parentId ?? null,
         problem: data.problem ?? '{"summary": "", "detail": ""}',
         objective: data.objective ?? '{"summary": "", "detail": ""}',
@@ -67,10 +67,10 @@ export class PrismaProblemRepository implements IProblemRepository {
     return problem ? this.mapToProblem(problem) : null;
   }
 
-  async findByProjectId(projectId: string): Promise<Problem[]> {
+  async findByWorkspaceId(workspaceId: string): Promise<Problem[]> {
     const problems = await this.prisma.problem.findMany({
       where: {
-        projectId,
+        workspaceId,
         deletedAt: null, // Exclude soft-deleted
       },
       orderBy: [
@@ -162,11 +162,11 @@ export class PrismaProblemRepository implements IProblemRepository {
     ]);
   }
 
-  async checkIdExists(id: string, projectId: string): Promise<boolean> {
+  async checkIdExists(id: string, workspaceId: string): Promise<boolean> {
     const problem = await this.prisma.problem.findFirst({
       where: {
         id,
-        projectId,
+        workspaceId,
         deletedAt: null, // Exclude soft-deleted
       },
       select: {
@@ -188,7 +188,7 @@ export class PrismaProblemRepository implements IProblemRepository {
       select: {
         id: true,
         idPath: true,
-        projectId: true,
+        workspaceId: true,
         parentId: true,
       },
     });
@@ -205,13 +205,13 @@ export class PrismaProblemRepository implements IProblemRepository {
       // Moving under a new parent - get parent's idPath
       const newParent = await this.prisma.problem.findUnique({
         where: { id: newParentId },
-        select: { idPath: true, projectId: true },
+        select: { idPath: true, workspaceId: true },
       });
       if (!newParent) {
         throw new Error('New parent not found');
       }
-      if (newParent.projectId !== problem.projectId) {
-        throw new Error('Cannot move problem to a different project');
+      if (newParent.workspaceId !== problem.workspaceId) {
+        throw new Error('Cannot move problem to a different workspace');
       }
       // Prevent moving a problem under itself or its descendants
       if (newParent.idPath.startsWith(oldIdPath + '-') || newParent.idPath === oldIdPath) {
@@ -296,7 +296,7 @@ export class PrismaProblemRepository implements IProblemRepository {
         await tx.problem.updateMany({
           where: {
             parentId: null,
-            projectId: problem.projectId,
+            workspaceId: problem.workspaceId,
             id: { not: id },
             priority: { gte: newPriority },
             deletedAt: null,
@@ -326,7 +326,7 @@ export class PrismaProblemRepository implements IProblemRepository {
       select: {
         id: true,
         parentId: true,
-        projectId: true,
+        workspaceId: true,
         priority: true,
       },
     });
@@ -339,7 +339,7 @@ export class PrismaProblemRepository implements IProblemRepository {
     const allSiblings = await this.prisma.problem.findMany({
       where: {
         parentId: problem.parentId,
-        projectId: problem.projectId,
+        workspaceId: problem.workspaceId,
         deletedAt: null,
       },
       orderBy: [
@@ -451,7 +451,7 @@ export class PrismaProblemRepository implements IProblemRepository {
     priority: number;
     labels: string;
     parentId: string | null;
-    projectId: string;
+    workspaceId: string;
     createdAt: Date;
     updatedAt: Date;
     deletedAt: Date | null;
@@ -469,7 +469,7 @@ export class PrismaProblemRepository implements IProblemRepository {
       priority: problem.priority,
       labels: JSON.parse(problem.labels),
       parentId: problem.parentId,
-      projectId: problem.projectId,
+      workspaceId: problem.workspaceId,
       createdAt: problem.createdAt.toISOString(),
       updatedAt: problem.updatedAt.toISOString(),
       deletedAt: problem.deletedAt?.toISOString() ?? null,

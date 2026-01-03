@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { seedDatabase } from './seed';
-import { getProjectRepository, getProblemRepository } from '../models/repository-factory';
+import { getWorkspaceRepository, getProblemRepository } from '../models/repository-factory';
 import { setupTestDatabase, cleanupTestDatabase } from '../test-helpers/database';
 import { PrismaClient } from '@prisma/client';
 
@@ -24,19 +24,19 @@ describe('Database Seeding', () => {
 
   describe('seedDatabase', () => {
     it('should seed small dataset with sample problems', async () => {
-      const projectRepo = getProjectRepository(prisma);
+      const workspaceRepo = getWorkspaceRepository(prisma);
       const problemRepo = getProblemRepository(prisma);
 
       // Run small seed
       await seedDatabase({ large: false });
 
       // Verify project was created
-      const projects = await projectRepo.findAll();
-      expect(projects.length).toBe(1);
-      expect(projects[0].name).toBe('Default Project');
+      const workspaces = await workspaceRepo.findAll();
+      expect(workspaces.length).toBe(1);
+      expect(workspaces[0].name).toBe('Default Workspace');
 
       // Verify problems were created
-      const problems = await problemRepo.findByProjectId(projects[0].id);
+      const problems = await problemRepo.findByWorkspaceId(workspaces[0].id);
       
       // Small seed creates: 1 root + 2 children + 2 grandchildren + 1 more child + 1 grandchild = 7 total
       expect(problems.length).toBeGreaterThanOrEqual(6);
@@ -57,19 +57,19 @@ describe('Database Seeding', () => {
     });
 
     it('should seed large dataset with many problems', async () => {
-      const projectRepo = getProjectRepository(prisma);
+      const workspaceRepo = getWorkspaceRepository(prisma);
       const problemRepo = getProblemRepository(prisma);
 
       // Run large seed
       await seedDatabase({ large: true });
 
       // Verify project was created
-      const projects = await projectRepo.findAll();
-      expect(projects.length).toBe(1);
-      expect(projects[0].name).toBe('Default Project');
+      const workspaces = await workspaceRepo.findAll();
+      expect(workspaces.length).toBe(1);
+      expect(workspaces[0].name).toBe('Default Workspace');
 
       // Verify many problems were created
-      const problems = await problemRepo.findByProjectId(projects[0].id);
+      const problems = await problemRepo.findByWorkspaceId(workspaces[0].id);
       
       // Large seed creates: 50 root + 2-5 children each = 150-300 total
       expect(problems.length).toBeGreaterThanOrEqual(150);
@@ -104,21 +104,21 @@ describe('Database Seeding', () => {
     });
 
     it('should allow reseeding by clearing existing data', async () => {
-      const projectRepo = getProjectRepository(prisma);
+      const workspaceRepo = getWorkspaceRepository(prisma);
       const problemRepo = getProblemRepository(prisma);
 
       // Seed once
       await seedDatabase({ large: false });
       
-      const firstProjects = await projectRepo.findAll();
-      const firstProblems = await problemRepo.findByProjectId(firstProjects[0].id);
+      const firstProjects = await workspaceRepo.findAll();
+      const firstProblems = await problemRepo.findByWorkspaceId(firstProjects[0].id);
       const firstProblemCount = firstProblems.length;
 
       // Seed again
       await seedDatabase({ large: false });
       
-      const secondProjects = await projectRepo.findAll();
-      const secondProblems = await problemRepo.findByProjectId(secondProjects[0].id);
+      const secondProjects = await workspaceRepo.findAll();
+      const secondProblems = await problemRepo.findByWorkspaceId(secondProjects[0].id);
       
       // Should have same count (not doubled)
       expect(secondProjects.length).toBe(1);

@@ -15,7 +15,7 @@ describe('PrismaProblemRepository', () => {
   let repository: PrismaProblemRepository;
   let prisma: PrismaClient;
   let databaseUrl: string;
-  let projectId: string;
+  let workspaceId: string;
 
   beforeEach(async () => {
     // Create a fresh isolated database for this test file
@@ -27,12 +27,12 @@ describe('PrismaProblemRepository', () => {
     // Reset ID counter for predictable test IDs
     await resetIdCounter();
 
-    // Create a test project
-    projectId = 'test-project-1';
-    await prisma.project.create({
+    // Create a test workspace
+    workspaceId = 'test-workspace-1';
+    await prisma.workspace.create({
       data: {
-        id: projectId,
-        name: 'Test Project',
+        id: workspaceId,
+        name: 'Test Workspace',
       },
     });
   });
@@ -45,12 +45,12 @@ describe('PrismaProblemRepository', () => {
   describe('create', () => {
     it('should create a new root problem', async () => {
       const problem = await repository.create({
-        projectId,
+        workspaceId,
       });
 
       expect(problem.id).toMatch(/^[0-9a-z]{2,}$/);
       expect(problem.idPath).toBe(problem.id);
-      expect(problem.projectId).toBe(projectId);
+      expect(problem.workspaceId).toBe(workspaceId);
       expect(problem.parentId).toBeNull();
       expect(problem.status).toBe(Status.NotStarted);
       expect(problem.votes).toBe(0);
@@ -59,17 +59,17 @@ describe('PrismaProblemRepository', () => {
     });
 
     it('should generate unique IDs', async () => {
-      const problem1 = await repository.create({ projectId });
-      const problem2 = await repository.create({ projectId });
+      const problem1 = await repository.create({ workspaceId });
+      const problem2 = await repository.create({ workspaceId });
 
       expect(problem1.id).not.toBe(problem2.id);
     });
 
     it('should create a child problem with correct idPath', async () => {
-      const parent = await repository.create({ projectId });
+      const parent = await repository.create({ workspaceId });
 
       const child = await repository.create({
-        projectId,
+        workspaceId,
         parentId: parent.id,
       });
 
@@ -78,14 +78,14 @@ describe('PrismaProblemRepository', () => {
     });
 
     it('should create a grandchild problem with correct idPath', async () => {
-      const parent = await repository.create({ projectId });
+      const parent = await repository.create({ workspaceId });
       const child = await repository.create({
-        projectId,
+        workspaceId,
         parentId: parent.id,
       });
 
       const grandchild = await repository.create({
-        projectId,
+        workspaceId,
         parentId: child.id,
       });
 
@@ -94,7 +94,7 @@ describe('PrismaProblemRepository', () => {
 
     it('should accept custom fields', async () => {
       const problem = await repository.create({
-        projectId,
+        workspaceId,
         status: Status.InProgress,
         labels: ['urgent', 'important'],
       });
@@ -106,7 +106,7 @@ describe('PrismaProblemRepository', () => {
 
   describe('findById', () => {
     it('should find a problem by ID', async () => {
-      const created = await repository.create({ projectId });
+      const created = await repository.create({ workspaceId });
 
       const found = await repository.findById(created.id);
 
@@ -121,7 +121,7 @@ describe('PrismaProblemRepository', () => {
     });
 
     it('should exclude soft-deleted problems', async () => {
-      const created = await repository.create({ projectId });
+      const created = await repository.create({ workspaceId });
 
       await repository.softDelete(created.id);
 
@@ -130,42 +130,42 @@ describe('PrismaProblemRepository', () => {
     });
   });
 
-  describe('findByProjectId', () => {
-    it('should find all problems in a project', async () => {
-      await repository.create({ projectId });
-      await repository.create({ projectId });
-      await repository.create({ projectId });
+  describe('findByWorkspaceId', () => {
+    it('should find all problems in a workspace', async () => {
+      await repository.create({ workspaceId });
+      await repository.create({ workspaceId });
+      await repository.create({ workspaceId });
 
-      const problems = await repository.findByProjectId(projectId);
+      const problems = await repository.findByWorkspaceId(workspaceId);
 
       expect(problems).toHaveLength(3);
       problems.forEach(p => {
-        expect(p.projectId).toBe(projectId);
+        expect(p.workspaceId).toBe(workspaceId);
       });
     });
 
     it('should exclude soft-deleted problems', async () => {
-      const problem1 = await repository.create({ projectId });
-      const problem2 = await repository.create({ projectId });
+      const problem1 = await repository.create({ workspaceId });
+      const problem2 = await repository.create({ workspaceId });
       await repository.softDelete(problem1.id);
 
-      const problems = await repository.findByProjectId(projectId);
+      const problems = await repository.findByWorkspaceId(workspaceId);
 
       expect(problems).toHaveLength(1);
       expect(problems[0].id).toBe(problem2.id);
     });
 
     it('should return empty array when no problems exist', async () => {
-      const problems = await repository.findByProjectId(projectId);
+      const problems = await repository.findByWorkspaceId(workspaceId);
       expect(problems).toHaveLength(0);
     });
   });
 
   describe('findByParentId', () => {
     it('should find all child problems', async () => {
-      const parent = await repository.create({ projectId });
-      await repository.create({ projectId, parentId: parent.id });
-      await repository.create({ projectId, parentId: parent.id });
+      const parent = await repository.create({ workspaceId });
+      await repository.create({ workspaceId, parentId: parent.id });
+      await repository.create({ workspaceId, parentId: parent.id });
 
       const children = await repository.findByParentId(parent.id);
 
@@ -176,9 +176,9 @@ describe('PrismaProblemRepository', () => {
     });
 
     it('should exclude soft-deleted problems', async () => {
-      const parent = await repository.create({ projectId });
-      const child1 = await repository.create({ projectId, parentId: parent.id });
-      await repository.create({ projectId, parentId: parent.id });
+      const parent = await repository.create({ workspaceId });
+      const child1 = await repository.create({ workspaceId, parentId: parent.id });
+      await repository.create({ workspaceId, parentId: parent.id });
       await repository.softDelete(child1.id);
 
       const children = await repository.findByParentId(parent.id);
@@ -189,7 +189,7 @@ describe('PrismaProblemRepository', () => {
 
   describe('update', () => {
     it('should update problem fields', async () => {
-      const created = await repository.create({ projectId });
+      const created = await repository.create({ workspaceId });
 
       const updated = await repository.update(created.id, {
         status: Status.InProgress,
@@ -206,7 +206,7 @@ describe('PrismaProblemRepository', () => {
 
     it('should not update fields that are not provided', async () => {
       const created = await repository.create({
-        projectId,
+        workspaceId,
         status: Status.InProgress,
       });
 
@@ -219,7 +219,7 @@ describe('PrismaProblemRepository', () => {
 
   describe('softDelete', () => {
     it('should set deletedAt timestamp', async () => {
-      const created = await repository.create({ projectId });
+      const created = await repository.create({ workspaceId });
 
       await repository.softDelete(created.id);
 
@@ -230,24 +230,24 @@ describe('PrismaProblemRepository', () => {
 
   describe('checkIdExists', () => {
     it('should return true if ID exists', async () => {
-      const created = await repository.create({ projectId });
+      const created = await repository.create({ workspaceId });
 
-      const exists = await repository.checkIdExists(created.id, projectId);
+      const exists = await repository.checkIdExists(created.id, workspaceId);
 
       expect(exists).toBe(true);
     });
 
     it('should return false if ID does not exist', async () => {
-      const exists = await repository.checkIdExists('non-existent', projectId);
+      const exists = await repository.checkIdExists('non-existent', workspaceId);
       expect(exists).toBe(false);
     });
 
     it('should return false for soft-deleted problems', async () => {
-      const created = await repository.create({ projectId });
+      const created = await repository.create({ workspaceId });
 
       await repository.softDelete(created.id);
 
-      const exists = await repository.checkIdExists(created.id, projectId);
+      const exists = await repository.checkIdExists(created.id, workspaceId);
       expect(exists).toBe(false);
     });
   });

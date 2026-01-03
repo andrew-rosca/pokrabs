@@ -2,7 +2,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import projectsRouter from './api/projects';
+import workspacesRouter from './api/workspaces';
 import problemsRouter from './api/problems';
 
 dotenv.config();
@@ -20,7 +20,7 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use('/api/projects', projectsRouter);
+app.use('/api/workspaces', workspacesRouter);
 app.use('/api/problems', problemsRouter);
 
 // Error handling middleware

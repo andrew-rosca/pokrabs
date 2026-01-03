@@ -17,13 +17,13 @@ import { getPrismaClient } from '../database/prisma-client';
  * 
  * @param id - The problem's unique ID
  * @param parentId - The parent problem's ID (null for root problems)
- * @param projectId - The project ID (for querying parent)
+ * @param workspaceId - The workspace ID (for querying parent)
  * @returns The full hierarchical path
  */
 export async function computeIdPath(
   id: string,
   parentId: string | null,
-  projectId: string
+  workspaceId: string
 ): Promise<string> {
   // Root problems: idPath = id
   if (!parentId) {
@@ -36,7 +36,7 @@ export async function computeIdPath(
   const parent = await prisma.problem.findUnique({
     where: {
       id: parentId,
-      projectId, // Ensure parent is in same project
+      workspaceId, // Ensure parent is in same workspace
     },
     select: {
       idPath: true,
@@ -44,7 +44,7 @@ export async function computeIdPath(
   });
   
   if (!parent) {
-    throw new Error(`Parent problem with id "${parentId}" not found in project "${projectId}"`);
+    throw new Error(`Parent problem with id "${parentId}" not found in workspace "${workspaceId}"`);
   }
   
   return `${parent.idPath}-${id}`;

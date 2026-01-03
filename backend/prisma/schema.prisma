@@ -16,18 +16,18 @@ datasource db {
 }
 
 /**
- * Projects Table
- * Projects are top-level containers for problems.
- * Each problem belongs to exactly one project.
+ * Workspaces Table
+ * Workspaces are top-level containers for problems.
+ * Each problem belongs to exactly one workspace.
  */
-model Project {
-  /// Unique identifier for the project (UUID)
+model Workspace {
+  /// Unique identifier for the workspace (UUID)
   id String @id
 
-  /// Project name
+  /// Workspace name
   name String
 
-  /// Timestamp when project was created
+  /// Timestamp when workspace was created
   createdAt DateTime @default(now())
 
   /// Soft delete timestamp (null means not deleted)
@@ -37,13 +37,13 @@ model Project {
   problems Problem[]
 
   @@index([deletedAt])
-  @@map("projects")
+  @@map("workspaces")
 }
 
 /**
  * Problems Table
  * Problems are the core entities in POKRABS.
- * They form a hierarchical tree structure within a project.
+ * They form a hierarchical tree structure within a workspace.
  */
 model Problem {
   /// Unique identifier for the problem (2+ chars, e.g., "a2", "df", "7f1")
@@ -88,8 +88,8 @@ model Problem {
   /// Parent Problem ID (null for root problems)
   parentId String?
 
-  /// Project ID (required - every problem belongs to a project)
-  projectId String
+  /// Workspace ID (required - every problem belongs to a workspace)
+  workspaceId String
 
   /// Timestamp when problem was created
   createdAt DateTime @default(now())
@@ -104,13 +104,13 @@ model Problem {
   parent   Problem?  @relation("ProblemHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
   children Problem[] @relation("ProblemHierarchy")
 
-  /// Relationship to project
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// Relationship to workspace
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  @@index([projectId])
+  @@index([workspaceId])
   @@index([parentId])
   @@index([deletedAt])
-  @@index([projectId, deletedAt])
+  @@index([workspaceId, deletedAt])
   @@index([status])
   @@index([priority])
   @@index([votes])

@@ -22,7 +22,7 @@ describe('ID Path Computation', () => {
 
   describe('computeIdPath', () => {
     it('should return id for root problems (no parent)', async () => {
-      const idPath = await computeIdPath('a2', null, 'project-1');
+      const idPath = await computeIdPath('a2', null, 'workspaceId');
       
       expect(idPath).toBe('a2');
       expect(mockPrisma.problem.findUnique).not.toHaveBeenCalled();
@@ -33,13 +33,13 @@ describe('ID Path Computation', () => {
         idPath: 'a2',
       });
       
-      const idPath = await computeIdPath('df', 'a2', 'project-1');
+      const idPath = await computeIdPath('df', 'a2', 'workspaceId');
       
       expect(idPath).toBe('a2-df');
       expect(mockPrisma.problem.findUnique).toHaveBeenCalledWith({
         where: {
           id: 'a2',
-          projectId: 'project-1',
+          workspaceId: 'workspaceId',
         },
         select: {
           idPath: true,
@@ -52,7 +52,7 @@ describe('ID Path Computation', () => {
         idPath: 'a2-df',
       });
       
-      const idPath = await computeIdPath('7f', 'df', 'project-1');
+      const idPath = await computeIdPath('7f', 'df', 'workspaceId');
       
       expect(idPath).toBe('a2-df-7f');
     });
@@ -62,7 +62,7 @@ describe('ID Path Computation', () => {
         idPath: 'a2-df-7f',
       });
       
-      const idPath = await computeIdPath('x9', '7f', 'project-1');
+      const idPath = await computeIdPath('x9', '7f', 'workspaceId');
       
       expect(idPath).toBe('a2-df-7f-x9');
     });
@@ -71,21 +71,21 @@ describe('ID Path Computation', () => {
       mockPrisma.problem.findUnique.mockResolvedValue(null);
       
       await expect(
-        computeIdPath('df', 'nonexistent', 'project-1')
+        computeIdPath('df', 'nonexistent', 'workspaceId')
       ).rejects.toThrow('Parent problem with id "nonexistent" not found');
     });
 
-    it('should ensure parent is in same project', async () => {
+    it('should ensure parent is in same workspace', async () => {
       mockPrisma.problem.findUnique.mockResolvedValue(null);
       
       await expect(
-        computeIdPath('df', 'a2', 'project-1')
+        computeIdPath('df', 'a2', 'workspaceId')
       ).rejects.toThrow();
       
       expect(mockPrisma.problem.findUnique).toHaveBeenCalledWith({
         where: {
           id: 'a2',
-          projectId: 'project-1',
+          workspaceId: 'workspaceId',
         },
         select: {
           idPath: true,

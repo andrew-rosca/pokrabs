@@ -103,9 +103,9 @@ The deepest problem (x7m-k3p-w9n-r2t) has no blockers, so work can start immedia
 * **priority**: Integer (for manual ordering)  
 * **labels**: Array of strings  
 * **parentId**: Reference to parent problem ID (null for root problems)  
-* **projectId**: Reference to project
+* **workspaceId**: Reference to workspace
 
-### **Project**
+### **Workspace**
 
 * **id**: UUID  
 * **name**: String  
@@ -121,11 +121,11 @@ The deepest problem (x7m-k3p-w9n-r2t) has no blockers, so work can start immedia
 
 ### **Phase 1 (MVP)**
 
-**Project Management**
+**Workspace Management**
 
-* Default project created on first run  
-* Seed default project with sample problem chain (see Data Seeding section)  
-* Support multiple projects in parallel
+* Default workspace created on first run  
+* Seed default workspace with sample problem chain (see Data Seeding section)  
+* Support multiple workspaces in parallel
 
 **Problem Management**
 
@@ -134,7 +134,7 @@ The deepest problem (x7m-k3p-w9n-r2t) has no blockers, so work can start immedia
   * Root problems: Generate random 2-char alphanumeric code (e.g., "x7")  
     * More than 2 characters if all IDs have been exhausted  
   * Child problems: Append "-" \+ 2-char code to parent ID (e.g., "x7-p3")  
-  * Ensure uniqueness within project  
+  * Ensure uniqueness within workspace  
   * Each ID is unique across all problems  
 * **"Decompose" operation**: Create child problem from parent's blocker  
   * Takes blocker text and converts it to new child problem  
