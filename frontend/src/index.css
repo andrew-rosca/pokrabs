@@ -665,19 +665,39 @@ code {
 }  /* ID - auto size to fit content, with reasonable limits */
 
 .problems-table th:nth-child(3),
-.problems-table td:nth-child(3) { width: 17%; } /* Problem */
+.problems-table td:nth-child(3) { 
+  width: auto;
+  min-width: 150px;
+  max-width: 400px;
+} /* Problem - wider column for detailed descriptions */
 
 .problems-table th:nth-child(4),
-.problems-table td:nth-child(4) { width: 17%; } /* Objective */
+.problems-table td:nth-child(4) { 
+  width: auto;
+  min-width: 150px;
+  max-width: 400px;
+} /* Objective - wider column for detailed objectives */
 
 .problems-table th:nth-child(5),
-.problems-table td:nth-child(5) { width: 17%; } /* Key Results */
+.problems-table td:nth-child(5) { 
+  width: auto;
+  min-width: 100px;
+  max-width: 300px;
+} /* Key Results - medium width for concise metrics */
 
 .problems-table th:nth-child(6),
-.problems-table td:nth-child(6) { width: 17%; } /* Actions */
+.problems-table td:nth-child(6) { 
+  width: auto;
+  min-width: 100px;
+  max-width: 300px;
+} /* Actions - medium width for action items */
 
 .problems-table th:nth-child(7),
-.problems-table td:nth-child(7) { width: 16%; } /* Blockers */
+.problems-table td:nth-child(7) { 
+  width: auto;
+  min-width: 100px;
+  max-width: 300px;
+} /* Blockers - medium width for blockers */
 
 .problems-table th:nth-child(8),
 .problems-table td:nth-child(8) { 
