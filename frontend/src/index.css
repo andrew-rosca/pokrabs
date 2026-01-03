@@ -11,6 +11,7 @@
   --bg-primary: #ffffff;
   --bg-secondary: #f8f9fa;
   --bg-tertiary: #e9ecef;
+  --bg-list-alt: rgba(0, 0, 0, 0.02);
   --text-primary: #212529;
   --text-secondary: #6c757d;
   --text-muted: #adb5bd;
@@ -39,6 +40,7 @@
   --bg-primary: #1a1a1a;
   --bg-secondary: #2d2d2d;
   --bg-tertiary: #3d3d3d;
+  --bg-list-alt: rgba(255, 255, 255, 0.03);
   --text-primary: #e9ecef;
   --text-secondary: #adb5bd;
   --text-muted: #6c757d;

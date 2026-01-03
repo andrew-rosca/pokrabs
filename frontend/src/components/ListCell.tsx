@@ -122,6 +122,10 @@ export function ListCell({ value, onSave, title = 'Edit list', className = '' }:
             overflowWrap: 'anywhere',
             whiteSpace: 'pre-wrap',
             lineHeight: 1.3,
+            backgroundColor: index % 2 === 0 ? 'transparent' : 'var(--bg-list-alt)',
+            padding: '0.125rem 0.25rem',
+            marginLeft: '-0.25rem',
+            marginRight: '-0.25rem',
           }}
         >
           {item}
