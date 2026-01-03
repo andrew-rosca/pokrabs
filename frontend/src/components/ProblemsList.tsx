@@ -68,6 +68,13 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
     loadProblems();
   }, [projectId]);
 
+  // Helper function to clear URL if taking action on a different problem
+  const clearUrlIfDifferentProblem = (actionProblemId: string) => {
+    if (urlProblemId && urlProblemId !== actionProblemId) {
+      navigate('/', { replace: true });
+    }
+  };
+
   // Handle URL navigation to specific problem
   useEffect(() => {
     if (!urlProblemId || problems.length === 0) return;
@@ -172,6 +179,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
 
   // Handle saving a field
   const handleSaveField = async (problemId: string, fieldName: string, value: string) => {
+    clearUrlIfDifferentProblem(problemId);
+    
     const problem = problems.find(p => p.id === problemId);
     if (!problem) return;
     
@@ -212,6 +221,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
 
   // Handle status change
   const handleStatusChange = async (problemId: string, newStatus: Status) => {
+    clearUrlIfDifferentProblem(problemId);
+    
     const problem = problems.find(p => p.id === problemId);
     if (!problem) return;
     
@@ -250,6 +261,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
 
   // Handle vote increment
   const handleVoteIncrement = async (problemId: string) => {
+    clearUrlIfDifferentProblem(problemId);
+    
     const problem = problems.find(p => p.id === problemId);
     if (!problem) return;
     
@@ -290,6 +303,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
 
   // Handle deleting a problem
   const handleDeleteProblem = async (problemId: string) => {
+    clearUrlIfDifferentProblem(problemId);
+    
     const previousProblems = problems;
     try {
       setError(null);
@@ -383,6 +398,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
 
   // Toggle collapse for a single problem (show/hide direct children)
   const toggleCollapse = (problemId: string) => {
+    clearUrlIfDifferentProblem(problemId);
+    
     setCollapsedIds(prev => {
       const next = new Set(prev);
       if (next.has(problemId)) {
@@ -396,6 +413,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
 
   // Expand all descendants (remove from collapsed set)
   const expandAll = (problemId: string) => {
+    clearUrlIfDifferentProblem(problemId);
+    
     const descendantIds = getDescendantIds(problemId);
     setCollapsedIds(prev => {
       const next = new Set(prev);
@@ -410,6 +429,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
 
   // Collapse all descendants (add all with children to collapsed set)
   const collapseAll = (problemId: string) => {
+    clearUrlIfDifferentProblem(problemId);
+    
     const descendantIds = getDescendantIds(problemId);
     setCollapsedIds(prev => {
       const next = new Set(prev);
@@ -623,6 +644,9 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
       return;
     }
     
+    // Clear URL if dragging a different problem
+    clearUrlIfDifferentProblem(draggedProblemId);
+    
     // Don't allow dropping on itself or its descendants
     const draggedProblems = getDraggedProblems(draggedProblemId);
     if (draggedProblems.has(targetProblem.id)) {
@@ -737,6 +761,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
 
   // Handle reordering a problem to top or bottom of visible list
   const handleReorder = async (problemId: string, position: 'top' | 'bottom') => {
+    clearUrlIfDifferentProblem(problemId);
+    
     try {
       setError(null);
       
@@ -771,6 +797,8 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
 
   // Handle reordering to a specific visible row position
   const handleReorderToPosition = async (problemId: string) => {
+    clearUrlIfDifferentProblem(problemId);
+    
     const targetRowNumber = parseInt(positionInputValue, 10);
     
     if (isNaN(targetRowNumber) || targetRowNumber < 1) {
@@ -1196,6 +1224,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       autoOpen={autoOpenEditor?.problemId === problem.id && autoOpenEditor?.field === 'problem'}
                       onEditorOpened={() => setAutoOpenEditor(null)}
                       forceExpanded={expandedDetails.has(`${problem.id}-problem`)}
+                      problemId={problem.id}
                     />
                   </td>
                   <td className="problem-text">
@@ -1206,6 +1235,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       autoOpen={autoOpenEditor?.problemId === problem.id && autoOpenEditor?.field === 'objective'}
                       onEditorOpened={() => setAutoOpenEditor(null)}
                       forceExpanded={expandedDetails.has(`${problem.id}-objective`)}
+                      problemId={problem.id}
                     />
                   </td>
                   <td className="problem-text">
@@ -1214,6 +1244,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       onSave={(value) => handleSaveField(problem.id, 'keyResults', value)}
                       title="Key Results"
                       className="problem-text"
+                      problemId={problem.id}
                     />
                   </td>
                   <td className="problem-text">
@@ -1222,6 +1253,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       onSave={(value) => handleSaveField(problem.id, 'actions', value)}
                       title="Actions"
                       className="problem-text"
+                      problemId={problem.id}
                     />
                   </td>
                   <td className="problem-text">
@@ -1230,6 +1262,7 @@ export function ProblemsList({ projectId }: ProblemsListProps) {
                       onSave={(value) => handleSaveField(problem.id, 'blockers', value)}
                       title="Blockers"
                       className="problem-text"
+                      problemId={problem.id}
                     />
                   </td>
                   <td>

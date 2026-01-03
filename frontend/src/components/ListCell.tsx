@@ -10,6 +10,8 @@ interface ListCellProps {
   title?: string;
   /** CSS class for styling */
   className?: string;
+  /** Problem ID for parent component tracking (not used in this component directly) */
+  problemId?: string;
 }
 
 /** Max height for collapsed content (~3 lines at 1.3 line-height, 12px font) */

@@ -18,6 +18,7 @@ interface SummaryDetailCellProps {
   autoOpen?: boolean; // If true, automatically open the editor
   onEditorOpened?: () => void; // Callback when editor opens
   forceExpanded?: boolean; // If true, force detail to be expanded
+  problemId?: string; // Problem ID for parent component tracking (not used in this component directly)
 }
 
 /** Height of the summary row (approximately 1 line) */

@@ -1392,3 +1392,51 @@ The position numbers correspond to the **visible row numbers** shown in the left
 - The backend `reorder` endpoint was implemented but is not used; all operations use `moveProblem` for consistency
 - This matches drag-and-drop behavior: user sees row numbers and can type a number instead of dragging
 
+---
+
+## 2025-01-03: URL Navigation Fix - Clear URL on Different Problem Actions
+
+**Problem:**
+When navigating to a specific problem via URL (e.g., `/problem-123`), the page correctly scrolls to that problem and highlights it. However, if the user then takes any action on a **different** problem (editing, changing status, voting, reordering, etc.), upon save/completion the page would refresh and navigate back to the original problem from the URL. This was confusing and disruptive to the user's workflow.
+
+**Solution:**
+Implemented centralized URL clearing logic in `ProblemsList` that clears the URL (navigates to `/`) whenever any action is taken on a problem that's different from the one specified in the URL parameter.
+
+**Implementation:**
+- Added `clearUrlIfDifferentProblem(actionProblemId: string)` helper function in `ProblemsList.tsx`
+  - Compares the problem being acted upon with `urlProblemId` from `useParams`
+  - If they differ, navigates to `/` with `replace: true` to clear the URL without adding history
+- Called this helper at the start of ALL action handlers:
+  - `handleSaveField()` - when editing any field (problem, objective, key results, actions, blockers)
+  - `handleStatusChange()` - when changing problem status
+  - `handleVoteIncrement()` - when incrementing votes
+  - `handleDeleteProblem()` - when deleting a problem
+  - `toggleCollapse()` - when collapsing/expanding children
+  - `expandAll()` / `collapseAll()` - when expanding/collapsing all descendants
+  - `handleReorder()` - when moving to top/bottom
+  - `handleReorderToPosition()` - when moving to specific position
+  - `handleDrop()` - when drag-and-drop reordering
+
+**Behavior:**
+- Navigate to `/problem-123` → page scrolls to problem 123 ✓
+- Take any action on problem 123 → URL stays as `/problem-123` ✓
+- Take any action on problem 456 → URL clears to `/` ✓
+- Subsequent saves/actions → no unexpected navigation jumps ✓
+
+**Files Modified:**
+- `frontend/src/components/ProblemsList.tsx` - Added URL clearing logic to all action handlers
+- `frontend/src/components/ListCell.tsx` - Updated interface comments (URL clearing now handled by parent)
+- `frontend/src/components/SummaryDetailCell.tsx` - Updated interface comments (URL clearing now handled by parent)
+
+**User Experience Improvement:**
+- Users can now navigate to a problem via URL, then freely work on any other problem without the page jumping back
+- URL is preserved only when working on the same problem that was navigated to
+- Natural, predictable behavior that doesn't interrupt workflow
+- Works consistently across all types of actions (editing, status changes, voting, reordering, etc.)
+
+**Technical Notes:**
+- URL clearing is centralized in `ProblemsList` for consistency and maintainability
+- Uses `replace: true` to avoid polluting browser history
+- `problemId` prop is still passed to cell components for future extensibility but URL logic is handled at parent level
+- All action handlers now follow the pattern: clear URL first, then perform action
+
