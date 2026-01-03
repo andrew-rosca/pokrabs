@@ -1255,3 +1255,38 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 - Could add custom seed size parameter (e.g., `--size=100`)
 - Could add seed profiles for specific testing scenarios
 
+---
+
+## 2025-01-02: Fixed Summary/Detail Cell Text Overlap and Jumping Issues
+
+**Problem:**
+In the `SummaryDetailCell` component (used for Problem and Objective columns), when the summary text wrapped to multiple lines, it would overlap with the detail text shown below it. Additionally, the detail text would jump slightly when toggling between collapsed and expanded states.
+
+**Root Causes:**
+1. **Text Overlap**: The detail text was positioned using a hardcoded `SUMMARY_HEIGHT` constant (20px) instead of measuring the actual height of the summary, which could span multiple lines when text wrapped.
+2. **Jumping Text**: The expanded and collapsed states used different positioning calculations that didn't account for the cell's padding consistently.
+
+**Solution Implemented:**
+1. Added `summaryRef` to measure the actual rendered height of the summary element
+2. Added `summaryHeight` state to store the measured height
+3. Added `wordBreak: 'break-word'` and `overflowWrap: 'anywhere'` to summary span for proper text wrapping
+4. Updated the overflow detection logic to use measured summary height instead of constant
+5. Fixed collapsed detail positioning to account for cell padding: `top: ${summaryHeight + 4}px` (4px = cell's top padding)
+6. Ensured both states use consistent spacing: expanded uses `marginTop: 0.25rem`, collapsed uses `paddingTop: 0.25rem`
+7. Added `opacity: 0.25` to collapsed detail so it's very dim and doesn't interfere with reading the summary
+
+**Files Modified:**
+- `frontend/src/components/SummaryDetailCell.tsx` - Fixed positioning and spacing logic
+
+**Visual Improvements:**
+- Summary text can now wrap to multiple lines without overlapping detail
+- Detail text stays at exactly the same position when toggling expanded/collapsed
+- Collapsed detail is very dim (25% opacity) so summary stands out clearly
+- Smooth transitions with no jumping or layout shifts
+
+**Technical Details:**
+- Uses `ResizeObserver` to detect when summary height changes
+- Calculates detail position: `cell-padding-top (4px) + summaryHeight + spacing (4px)`
+- Both states result in detail at position: `summaryHeight + 8px` from cell top
+- Maintains fade effect on collapsed overflow for visual polish
+

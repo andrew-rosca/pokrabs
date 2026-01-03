@@ -28,8 +28,10 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasOverflow, setHasOverflow] = useState(false);
   const [hasSpaceForDetail, setHasSpaceForDetail] = useState(false);
+  const [summaryHeight, setSummaryHeight] = useState(SUMMARY_HEIGHT);
   const [cellRect, setCellRect] = useState<DOMRect | null>(null);
   const cellRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
   const detailWrapperRef = useRef<HTMLDivElement>(null);
   const detailContentRef = useRef<HTMLDivElement>(null);
 
@@ -122,10 +124,17 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
   // Check if there's space for detail and if it overflows
   useEffect(() => {
     const checkOverflow = () => {
-      if (!isExpanded && cellRef.current) {
-        // Check if cell has enough height beyond the summary row
+      if (summaryRef.current) {
+        // Always update summary height for consistent positioning
+        const currentSummaryHeight = summaryRef.current.clientHeight;
+        setSummaryHeight(currentSummaryHeight);
+      }
+      
+      if (!isExpanded && cellRef.current && summaryRef.current) {
+        // Get the actual height of the summary (which can wrap to multiple lines)
+        const currentSummaryHeight = summaryRef.current.clientHeight;
         const cellHeight = cellRef.current.clientHeight;
-        const availableSpace = cellHeight - SUMMARY_HEIGHT - 8; // 8px for margins/padding
+        const availableSpace = cellHeight - currentSummaryHeight - 8; // 8px for margins/padding
         setHasSpaceForDetail(availableSpace > 10); // Need at least 10px of space
         
         if (detailWrapperRef.current && detailContentRef.current) {
@@ -148,6 +157,9 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
     const resizeObserver = new ResizeObserver(checkOverflow);
     if (cellRef.current) {
       resizeObserver.observe(cellRef.current);
+    }
+    if (summaryRef.current) {
+      resizeObserver.observe(summaryRef.current);
     }
 
     return () => {
@@ -224,8 +236,8 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
         title="Click to edit summary and detail"
       >
         {/* Summary row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', width: '100%' }}>
-          <span style={{ flex: 1 }}>
+        <div ref={summaryRef} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', width: '100%' }}>
+          <span style={{ flex: 1, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
             {summary || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>[none]</span>}
           </span>
           {showCaret && (
@@ -245,6 +257,7 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
                 justifyContent: 'center',
                 minWidth: '16px',
                 height: '16px',
+                flexShrink: 0,
               }}
               title={isExpanded ? 'Collapse detail' : 'Expand detail'}
               onMouseEnter={(e) => {
@@ -280,10 +293,11 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
             ref={detailWrapperRef}
             style={{
               position: 'absolute',
-              top: `${SUMMARY_HEIGHT + 4}px`, // Below summary
+              top: `${summaryHeight + 4}px`, // summaryHeight + cell's padding-top (0.25rem = 4px)
               left: 0,
               right: 0,
               bottom: '0.25rem',
+              paddingTop: '0.25rem', // Match the marginTop from expanded state
               overflow: 'hidden',
             }}
           >
@@ -292,6 +306,7 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
               style={{
                 fontSize: '0.7rem',
                 color: 'var(--text-secondary)',
+                opacity: 0.25, // Very dim to not interfere with summary
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 height: '100%',
