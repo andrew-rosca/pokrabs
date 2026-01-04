@@ -2053,5 +2053,546 @@ describe('ProblemsList', () => {
       });
     });
   });
+
+  describe('Label Filter Integration', () => {
+    const mixedLabelProblems: Problem[] = [
+      {
+        id: 'p1',
+        idPath: 'p1',
+        problem: JSON.stringify({ summary: 'Bug Problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'Objective', detail: '' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.NotStarted,
+        votes: 0,
+        priority: 0,
+        labels: ['bug', 'urgent'],
+        parentId: null,
+        workspaceId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'p2',
+        idPath: 'p2',
+        problem: JSON.stringify({ summary: 'Feature Problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'Objective', detail: '' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.NotStarted,
+        votes: 0,
+        priority: 1,
+        labels: ['feature', 'frontend'],
+        parentId: null,
+        workspaceId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'p3',
+        idPath: 'p3',
+        problem: JSON.stringify({ summary: 'Backend Problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'Objective', detail: '' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.NotStarted,
+        votes: 0,
+        priority: 2,
+        labels: ['backend'],
+        parentId: null,
+        workspaceId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'p4',
+        idPath: 'p4',
+        problem: JSON.stringify({ summary: 'No Labels Problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'Objective', detail: '' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.NotStarted,
+        votes: 0,
+        priority: 3,
+        labels: [],
+        parentId: null,
+        workspaceId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+    ];
+
+    beforeEach(() => {
+      mockFetchProblems.mockResolvedValue(mixedLabelProblems);
+      // Clear localStorage before each test
+      localStorage.clear();
+    });
+
+    it('should render label filter button', async () => {
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByLabelText('Filter by labels')).toBeInTheDocument();
+      });
+    });
+
+    it('should show all problems by default (no filter)', async () => {
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Bug Problem')).toBeInTheDocument();
+        expect(screen.getByText('Feature Problem')).toBeInTheDocument();
+        expect(screen.getByText('Backend Problem')).toBeInTheDocument();
+        expect(screen.getByText('No Labels Problem')).toBeInTheDocument();
+      });
+    });
+
+    it('should filter problems by selected labels', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Bug Problem')).toBeInTheDocument();
+      });
+
+      // Open filter dropdown
+      const filterButton = screen.getByLabelText('Filter by labels');
+      await user.click(filterButton);
+
+      // Wait for dropdown to appear
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Add label...')).toBeInTheDocument();
+      });
+
+      // Type 'bug' to filter suggestions
+      const input = screen.getByPlaceholderText('Add label...');
+      await user.type(input, 'bug');
+
+      // Wait for suggestions to appear and find the bug button
+      await waitFor(() => {
+        const allBugElements = screen.getAllByText('bug');
+        // Find the one that's in a button (suggestion)
+        const bugButton = allBugElements.find(
+          el => {
+            const button = el.closest('button');
+            return button !== null && button.textContent?.includes('bug');
+          }
+        );
+        expect(bugButton).toBeInTheDocument();
+      });
+
+      // Find and click the bug label button in suggestions
+      const allBugElements = screen.getAllByText('bug');
+      const bugButtonElement = allBugElements.find(
+        el => {
+          const button = el.closest('button');
+          return button !== null && button.textContent?.includes('bug');
+        }
+      );
+      
+      if (bugButtonElement) {
+        const bugButton = bugButtonElement.closest('button') as HTMLElement;
+        await user.click(bugButton);
+      }
+
+      // Wait for filtering to take effect - need to wait for state update
+      await waitFor(() => {
+        expect(screen.getByText('Bug Problem')).toBeInTheDocument();
+        // Other problems should be hidden (they don't have 'bug' label)
+        expect(screen.queryByText('Feature Problem')).not.toBeInTheDocument();
+        expect(screen.queryByText('Backend Problem')).not.toBeInTheDocument();
+        expect(screen.queryByText('No Labels Problem')).not.toBeInTheDocument();
+      }, { timeout: 3000 });
+    });
+
+    it('should show problems with any of the selected labels', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Bug Problem')).toBeInTheDocument();
+      });
+
+      // Open filter dropdown
+      const filterButton = screen.getByLabelText('Filter by labels');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Add label...')).toBeInTheDocument();
+      });
+
+      // Add 'bug' label
+      const input = screen.getByPlaceholderText('Add label...');
+      await user.click(input);
+
+      await waitFor(() => {
+        const bugButtons = screen.getAllByText('bug');
+        const bugButton = bugButtons.find(
+          btn => btn.closest('button') !== null && btn.textContent === 'bug'
+        )?.closest('button') as HTMLElement;
+        if (bugButton) {
+          return bugButton;
+        }
+      });
+
+      const bugButtons = screen.getAllByText('bug');
+      const bugButton = bugButtons.find(
+        btn => btn.closest('button') !== null && btn.textContent === 'bug'
+      )?.closest('button') as HTMLElement;
+      if (bugButton) {
+        await user.click(bugButton);
+      }
+
+      // Add 'backend' label
+      await waitFor(() => {
+        const input2 = screen.getByPlaceholderText('Add label...');
+        expect(input2).toBeInTheDocument();
+      });
+
+      const input2 = screen.getByPlaceholderText('Add label...');
+      await user.click(input2);
+      await user.type(input2, 'backend');
+
+      await waitFor(() => {
+        const backendButtons = screen.getAllByText('backend');
+        const backendButton = backendButtons.find(
+          btn => btn.closest('button') !== null && btn.textContent === 'backend'
+        )?.closest('button') as HTMLElement;
+        if (backendButton) {
+          return backendButton;
+        }
+      });
+
+      const backendButtons = screen.getAllByText('backend');
+      const backendButton = backendButtons.find(
+        btn => btn.closest('button') !== null && btn.textContent === 'backend'
+      )?.closest('button') as HTMLElement;
+      if (backendButton) {
+        await user.click(backendButton);
+      }
+
+      // Should show problems with either 'bug' or 'backend' labels
+      await waitFor(() => {
+        expect(screen.getByText('Bug Problem')).toBeInTheDocument();
+        expect(screen.getByText('Backend Problem')).toBeInTheDocument();
+        expect(screen.queryByText('Feature Problem')).not.toBeInTheDocument();
+        expect(screen.queryByText('No Labels Problem')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should clear all filters with Clear button', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Bug Problem')).toBeInTheDocument();
+      });
+
+      // Open filter dropdown
+      const filterButton = screen.getByLabelText('Filter by labels');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Add label...')).toBeInTheDocument();
+      });
+
+      // Add a label first
+      const input = screen.getByPlaceholderText('Add label...');
+      await user.click(input);
+
+      await waitFor(() => {
+        const bugButtons = screen.getAllByText('bug');
+        const bugButton = bugButtons.find(
+          btn => btn.closest('button') !== null && btn.textContent === 'bug'
+        )?.closest('button') as HTMLElement;
+        if (bugButton) {
+          return bugButton;
+        }
+      });
+
+      const bugButtons = screen.getAllByText('bug');
+      const bugButton = bugButtons.find(
+        btn => btn.closest('button') !== null && btn.textContent === 'bug'
+      )?.closest('button') as HTMLElement;
+      if (bugButton) {
+        await user.click(bugButton);
+      }
+
+      // Wait for filter to apply
+      await waitFor(() => {
+        expect(screen.queryByText('Feature Problem')).not.toBeInTheDocument();
+      });
+
+      // Click Clear button
+      const clearButton = screen.getByRole('button', { name: /Clear/i });
+      await user.click(clearButton);
+
+      // All problems should be visible again (no filter)
+      await waitFor(() => {
+        expect(screen.getByText('Bug Problem')).toBeInTheDocument();
+        expect(screen.getByText('Feature Problem')).toBeInTheDocument();
+        expect(screen.getByText('Backend Problem')).toBeInTheDocument();
+        expect(screen.getByText('No Labels Problem')).toBeInTheDocument();
+      });
+    });
+
+    it('should select all labels with Select All button', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Bug Problem')).toBeInTheDocument();
+      });
+
+      // Open filter dropdown
+      const filterButton = screen.getByLabelText('Filter by labels');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Select All/i })).toBeInTheDocument();
+      });
+
+      // Click Select All
+      const selectAllButton = screen.getByRole('button', { name: /Select All/i });
+      await user.click(selectAllButton);
+
+      // All problems with labels should be visible
+      await waitFor(() => {
+        expect(screen.getByText('Bug Problem')).toBeInTheDocument();
+        expect(screen.getByText('Feature Problem')).toBeInTheDocument();
+        expect(screen.getByText('Backend Problem')).toBeInTheDocument();
+        // Problem with no labels should be hidden
+        expect(screen.queryByText('No Labels Problem')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should persist filter state to localStorage', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Bug Problem')).toBeInTheDocument();
+      });
+
+      // Open filter dropdown and add 'bug' label
+      const filterButton = screen.getByLabelText('Filter by labels');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Add label...')).toBeInTheDocument();
+      });
+
+      const input = screen.getByPlaceholderText('Add label...');
+      await user.click(input);
+
+      await waitFor(() => {
+        const bugButtons = screen.getAllByText('bug');
+        const bugButton = bugButtons.find(
+          btn => btn.closest('button') !== null && btn.textContent === 'bug'
+        )?.closest('button') as HTMLElement;
+        if (bugButton) {
+          return bugButton;
+        }
+      });
+
+      const bugButtons = screen.getAllByText('bug');
+      const bugButton = bugButtons.find(
+        btn => btn.closest('button') !== null && btn.textContent === 'bug'
+      )?.closest('button') as HTMLElement;
+      if (bugButton) {
+        await user.click(bugButton);
+      }
+
+      // Check localStorage
+      await waitFor(() => {
+        const stored = localStorage.getItem('pokrabs-label-filter');
+        expect(stored).toBeTruthy();
+        const parsed = JSON.parse(stored!);
+        expect(parsed).toContain('bug');
+      });
+    });
+
+    it('should restore filter state from localStorage on mount', async () => {
+      // Set up localStorage with 'bug' label selected
+      localStorage.setItem('pokrabs-label-filter', JSON.stringify(['bug']));
+
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      // Only problems with 'bug' label should be visible
+      await waitFor(() => {
+        expect(screen.getByText('Bug Problem')).toBeInTheDocument();
+        expect(screen.queryByText('Feature Problem')).not.toBeInTheDocument();
+        expect(screen.queryByText('Backend Problem')).not.toBeInTheDocument();
+        expect(screen.queryByText('No Labels Problem')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should combine label filter with search', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(
+        <ProblemsList 
+          workspaceId={workspaceId} 
+          searchQuery="Feature" 
+        />
+      );
+      
+      await waitFor(() => {
+        expect(screen.getByText('Feature Problem')).toBeInTheDocument();
+        expect(screen.queryByText('Bug Problem')).not.toBeInTheDocument();
+      });
+
+      // Now apply label filter for 'feature'
+      const filterButton = screen.getByLabelText('Filter by labels');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Add label...')).toBeInTheDocument();
+      });
+
+      const input = screen.getByPlaceholderText('Add label...');
+      await user.click(input);
+
+      await waitFor(() => {
+        const featureButtons = screen.getAllByText('feature');
+        const featureButton = featureButtons.find(
+          btn => btn.closest('button') !== null && btn.textContent === 'feature'
+        )?.closest('button') as HTMLElement;
+        if (featureButton) {
+          return featureButton;
+        }
+      });
+
+      const featureButtons = screen.getAllByText('feature');
+      const featureButton = featureButtons.find(
+        btn => btn.closest('button') !== null && btn.textContent === 'feature'
+      )?.closest('button') as HTMLElement;
+      if (featureButton) {
+        await user.click(featureButton);
+      }
+
+      // "Feature Problem" should still be visible (matches both search and filter)
+      await waitFor(() => {
+        expect(screen.getByText('Feature Problem')).toBeInTheDocument();
+      });
+    });
+
+    it('should show filter badge count when filters active', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Bug Problem')).toBeInTheDocument();
+      });
+
+      // Open filter dropdown
+      const filterButton = screen.getByLabelText('Filter by labels');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Add label...')).toBeInTheDocument();
+      });
+
+      // Type 'bug' to filter suggestions
+      const input = screen.getByPlaceholderText('Add label...');
+      await user.type(input, 'bug');
+
+      // Wait for suggestions and click bug
+      await waitFor(() => {
+        const allBugElements = screen.getAllByText('bug');
+        const bugButtonElement = allBugElements.find(
+          el => {
+            const button = el.closest('button');
+            return button !== null && button.textContent?.includes('bug');
+          }
+        );
+        expect(bugButtonElement).toBeInTheDocument();
+      });
+
+      const allBugElements = screen.getAllByText('bug');
+      const bugButtonElement = allBugElements.find(
+        el => {
+          const button = el.closest('button');
+          return button !== null && button.textContent?.includes('bug');
+        }
+      );
+      
+      if (bugButtonElement) {
+        const bugButton = bugButtonElement.closest('button') as HTMLElement;
+        await user.click(bugButton);
+      }
+
+      // Close the dropdown by clicking outside or the button again
+      await user.click(filterButton);
+
+      // The filter button should now have the "active" class and show badge
+      await waitFor(() => {
+        const updatedFilterButton = screen.getByLabelText('Filter by labels');
+        expect(updatedFilterButton).toHaveClass('active');
+        // Find the badge specifically within the filter button container
+        const filterButtonContainer = updatedFilterButton.closest('.label-filter-container');
+        const badge = filterButtonContainer?.querySelector('.filter-count');
+        expect(badge).toBeInTheDocument();
+        expect(badge?.textContent).toBe('1');
+      }, { timeout: 3000 });
+    });
+
+    it('should not show badge when no labels selected', async () => {
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        const filterButton = screen.getByLabelText('Filter by labels');
+        expect(filterButton).not.toHaveClass('active');
+        expect(screen.queryByText('0')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should update row count display when filtering', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      // Initially should show "4 4" (4 visible, 4 total)
+      await waitFor(() => {
+        expect(screen.getByTitle(/4 visible rows \/ 4 total rows/i)).toBeInTheDocument();
+      });
+
+      // Open filter dropdown and add 'bug' label
+      const filterButton = screen.getByLabelText('Filter by labels');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Add label...')).toBeInTheDocument();
+      });
+
+      const input = screen.getByPlaceholderText('Add label...');
+      await user.click(input);
+
+      await waitFor(() => {
+        const bugButtons = screen.getAllByText('bug');
+        const bugButton = bugButtons.find(
+          btn => btn.closest('button') !== null && btn.textContent === 'bug'
+        )?.closest('button') as HTMLElement;
+        if (bugButton) {
+          return bugButton;
+        }
+      });
+
+      const bugButtons = screen.getAllByText('bug');
+      const bugButton = bugButtons.find(
+        btn => btn.closest('button') !== null && btn.textContent === 'bug'
+      )?.closest('button') as HTMLElement;
+      if (bugButton) {
+        await user.click(bugButton);
+      }
+
+      // Should now show "1 4" (1 visible, 4 total)
+      await waitFor(() => {
+        expect(screen.getByTitle(/1 visible rows \/ 4 total rows/i)).toBeInTheDocument();
+      });
+    });
+  });
 });
 

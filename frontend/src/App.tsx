@@ -83,10 +83,6 @@ function App() {
         <main className="app-main">
           <Routes>
             <Route 
-              path="/label-editor-prototype" 
-              element={<LabelEditorPrototype />} 
-            />
-            <Route 
               path="/" 
               element={
                 selectedWorkspaceId ? (

@@ -3,9 +3,11 @@
  * 
  * A component for editing labels with pill display.
  * Supports selecting from predefined labels and creating new ones.
+ * Uses LabelSelector for the core selection UI.
  */
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { LabelSelector } from './LabelSelector';
 
 interface LabelEditorProps {
   labels: string[];
@@ -27,9 +29,6 @@ export function LabelEditor({
   const [labels, setLabels] = useState<string[]>(initialLabels);
   // If cellRect is provided, we're in overlay mode and always editing
   const [isEditing, setIsEditing] = useState(cellRect !== undefined);
-  const [inputValue, setInputValue] = useState('');
-  const [filteredPredefined, setFilteredPredefined] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -37,47 +36,6 @@ export function LabelEditor({
   useEffect(() => {
     setLabels(initialLabels);
   }, [initialLabels]);
-
-  // Get all unique predefined labels that aren't already selected
-  const availablePredefined = useMemo(
-    () => predefinedLabels.filter(label => !labels.includes(label)),
-    [predefinedLabels, labels]
-  );
-
-  // Filter predefined labels based on input
-  useEffect(() => {
-    if (inputValue.trim()) {
-      const filtered = availablePredefined.filter(label =>
-        label.toLowerCase().includes(inputValue.toLowerCase())
-      );
-      setFilteredPredefined(filtered);
-      setShowSuggestions(filtered.length > 0 || inputValue.trim().length > 0);
-    } else {
-      setFilteredPredefined(availablePredefined);
-      setShowSuggestions(availablePredefined.length > 0);
-    }
-  }, [inputValue, availablePredefined]);
-
-  // Close suggestions when clicking outside (only in inline mode)
-  useEffect(() => {
-    if (cellRect) return; // Overlay mode handles this differently
-    
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    }
-
-    if (isEditing) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
-  }, [isEditing, cellRect]);
 
   // Focus input when overlay opens
   useEffect(() => {
@@ -88,54 +46,18 @@ export function LabelEditor({
     }
   }, [cellRect]);
 
-  const handleAddLabel = (label: string) => {
-    const trimmedLabel = label.trim();
-    if (trimmedLabel && !labels.includes(trimmedLabel)) {
-      setLabels([...labels, trimmedLabel]);
-      setInputValue('');
-      setShowSuggestions(false);
-      inputRef.current?.focus();
-    }
-  };
-
-  const handleRemoveLabel = (labelToRemove: string) => {
-    setLabels(labels.filter(label => label !== labelToRemove));
-  };
-
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (inputValue.trim()) {
-        handleAddLabel(inputValue);
-      }
-    } else if (e.key === 'Escape') {
-      setInputValue('');
-      setShowSuggestions(false);
-      if (onCancel) {
-        onCancel();
-      }
-    } else if (e.key === 'Backspace' && inputValue === '' && labels.length > 0) {
-      // Remove last label when backspace is pressed on empty input
-      handleRemoveLabel(labels[labels.length - 1]);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
+  const handleLabelsChange = (newLabels: string[]) => {
+    setLabels(newLabels);
   };
 
   const handleSave = async () => {
     await onSave(labels);
     setIsEditing(false);
-    setInputValue('');
-    setShowSuggestions(false);
   };
 
   const handleCancel = () => {
     setLabels(initialLabels);
     setIsEditing(false);
-    setInputValue('');
-    setShowSuggestions(false);
     if (onCancel) {
       onCancel();
     }
@@ -285,208 +207,29 @@ export function LabelEditor({
         </button>
       </div>
       
-      {/* Editor content area */}
+      {/* Editor content area - use LabelSelector */}
       <div
         style={{
-          position: 'relative',
           padding: '0.5rem',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.25rem',
-          alignItems: 'center',
-          minHeight: '2rem',
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            handleCancel();
+          }
         }}
       >
-      {/* Existing label pills */}
-      {labels.map(label => (
-        <span
-          key={label}
-          className="label-pill"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.125rem',
-            padding: '0.0625rem',
-            borderRadius: '4px',
-            fontSize: '0.6875rem',
-            backgroundColor: 'var(--bg-tertiary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-color)',
-            whiteSpace: 'nowrap',
-            lineHeight: '1.2',
-          }}
-        >
-          {label}
-          <button
-            type="button"
-            onClick={() => handleRemoveLabel(label)}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              margin: 0,
-              marginLeft: '0.125rem',
-              fontSize: '0.75rem',
-              color: 'var(--text-secondary)',
-              lineHeight: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '12px',
-              height: '12px',
-            }}
-            title="Remove label"
-            aria-label={`Remove ${label}`}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-secondary)';
-            }}
-          >
-            ×
-          </button>
-        </span>
-      ))}
-
-      {/* Input field */}
-      <input
-        ref={inputRef}
-        type="text"
-        value={inputValue}
-        onChange={handleInputChange}
-        onKeyDown={handleInputKeyDown}
-        onFocus={() => setShowSuggestions(true)}
-        placeholder="Add label..."
-        style={{
-          border: 'none',
-          outline: 'none',
-          background: 'transparent',
-          color: 'var(--text-primary)',
-          fontSize: '0.75rem',
-          minWidth: '100px',
-          flex: 1,
-        }}
-      />
-
-      {/* Suggestions dropdown */}
-      {showSuggestions && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            marginTop: '0.25rem',
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '4px',
-            boxShadow: '0 4px 12px var(--shadow-lg)',
-            zIndex: cellRect ? 1002 : 1000,
-            maxHeight: '200px',
-            overflowY: 'auto',
-          }}
-        >
-          {/* Predefined label suggestions */}
-          {filteredPredefined.length > 0 && (
-            <>
-              <div
-                style={{
-                  padding: '0.5rem',
-                  fontSize: '0.7rem',
-                  color: 'var(--text-secondary)',
-                  borderBottom: '1px solid var(--border-color)',
-                  fontWeight: 600,
-                }}
-              >
-                Existing labels
-              </div>
-              {filteredPredefined.map(label => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => handleAddLabel(label)}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    border: 'none',
-                    background: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      padding: '0.0625rem',
-                      borderRadius: '4px',
-                      fontSize: '0.6875rem',
-                      backgroundColor: 'var(--bg-tertiary)',
-                      color: 'var(--text-primary)',
-                      border: '1px solid var(--border-color)',
-                      lineHeight: '1.2',
-                    }}
-                  >
-                    {label}
-                  </span>
-                </button>
-              ))}
-            </>
-          )}
-
-          {/* Create new label option */}
-          {inputValue.trim() &&
-            !labels.includes(inputValue.trim()) &&
-            !predefinedLabels.includes(inputValue.trim()) && (
-              <div
-                style={{
-                  borderTop:
-                    filteredPredefined.length > 0
-                      ? '1px solid var(--border-color)'
-                      : 'none',
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => handleAddLabel(inputValue)}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    border: 'none',
-                    background: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <span style={{ marginRight: '0.5rem' }}>+</span>
-                  Create "{inputValue.trim()}"
-                </button>
-              </div>
-            )}
-        </div>
-      )}
+        <LabelSelector
+          selectedLabels={labels}
+          predefinedLabels={predefinedLabels}
+          onLabelsChange={handleLabelsChange}
+          allowCreate={true}
+          showRemoveButtons={true}
+          inputRef={inputRef}
+          containerRef={containerRef}
+          autoFocus={cellRect !== undefined}
+          zIndex={cellRect ? 1002 : 1000}
+        />
       </div>
     </div>
   );
@@ -516,4 +259,3 @@ export function LabelEditor({
   // Inline mode
   return editorContent;
 }
-

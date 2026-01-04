@@ -513,6 +513,100 @@ code {
   flex: 1;
 }
 
+/* Label Filter - reuse status filter styles */
+.label-filter-container {
+  position: relative;
+  display: inline-block;
+}
+
+.label-filter-button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.label-filter-button:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-hover);
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.label-filter-button.active {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+  opacity: 1;
+}
+
+.label-filter-button svg {
+  display: block;
+}
+
+.label-filter-dropdown {
+  position: fixed;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px var(--shadow-lg);
+  min-width: 350px;
+  z-index: 1001;
+}
+
+.label-filter-header {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 6px;
+}
+
+.label-filter-actions {
+  display: flex;
+  gap: 6px;
+  padding: 4px 8px;
+  margin-bottom: 6px;
+}
+
+.label-filter-action {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-primary);
+}
+
+.label-filter-action:hover:not(:disabled) {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-hover);
+}
+
+.label-filter-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.label-filter-content {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
 .problems-table tbody tr {
   border-bottom: 1px solid var(--border-color);
   transition: background-color 0.15s ease;

@@ -14,6 +14,7 @@ import { SummaryDetailCell } from './SummaryDetailCell';
 import { DeleteButton } from './DeleteButton';
 import { ListCell } from './ListCell';
 import { StatusFilter } from './StatusFilter';
+import { LabelFilter } from './LabelFilter';
 import { LabelCell } from './LabelCell';
 
 interface ProblemsListProps {
@@ -97,6 +98,20 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
     return new Set([Status.NotStarted, Status.InProgress, Status.Blocked, Status.Resolved]);
   });
 
+  // Label filter state - persisted to localStorage
+  const [selectedLabels, setSelectedLabels] = useState<Set<string>>(() => {
+    const stored = localStorage.getItem('pokrabs-label-filter');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return new Set(parsed);
+      } catch {
+        return new Set();
+      }
+    }
+    return new Set();
+  });
+
   // Persist column visibility to localStorage
   useEffect(() => {
     localStorage.setItem('pokrabs-column-visibility', JSON.stringify(visibleColumns));
@@ -107,6 +122,11 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
     localStorage.setItem('pokrabs-status-filter', JSON.stringify(Array.from(selectedStatuses)));
   }, [selectedStatuses]);
 
+  // Persist label filter to localStorage
+  useEffect(() => {
+    localStorage.setItem('pokrabs-label-filter', JSON.stringify(Array.from(selectedLabels)));
+  }, [selectedLabels]);
+
   // Toggle column visibility
   const toggleColumn = (column: keyof typeof visibleColumns) => {
     setVisibleColumns(prev => ({ ...prev, [column]: !prev[column] }));
@@ -115,6 +135,11 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
   // Handle status filter change
   const handleStatusFilterChange = (statuses: Set<Status>) => {
     setSelectedStatuses(statuses);
+  };
+
+  // Handle label filter change
+  const handleLabelFilterChange = (labels: Set<string>) => {
+    setSelectedLabels(labels);
   };
 
   // Auto-select the position input field when it opens
@@ -679,11 +704,26 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
       // When searching, show all matching problems regardless of collapse state
       // Apply status filter
       filtered = filtered.filter(p => selectedStatuses.has(p.status));
+      // Apply label filter
+      if (selectedLabels.size > 0) {
+        filtered = filtered.filter(p => 
+          p.labels && p.labels.length > 0 && 
+          p.labels.some(label => selectedLabels.has(label))
+        );
+      }
       return filtered;
     }
     
     // Apply status filter
     filtered = filtered.filter(p => selectedStatuses.has(p.status));
+    
+    // Apply label filter
+    if (selectedLabels.size > 0) {
+      filtered = filtered.filter(p => 
+        p.labels && p.labels.length > 0 && 
+        p.labels.some(label => selectedLabels.has(label))
+      );
+    }
     
     // When not searching, filter out problems hidden by collapsed parents
     return filtered.filter(p => !isHiddenByCollapse(p));
@@ -1177,7 +1217,18 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
                   </div>
                 </div>
               </th>
-              {visibleColumns.labels && <th>Labels</th>}
+              {visibleColumns.labels && (
+                <th>
+                  <div className="header-with-action">
+                    <span>Labels</span>
+                    <LabelFilter
+                      selectedLabels={selectedLabels}
+                      predefinedLabels={predefinedLabels}
+                      onFilterChange={handleLabelFilterChange}
+                    />
+                  </div>
+                </th>
+              )}
               {visibleColumns.objective && <th>Objective</th>}
               {visibleColumns.keyResults && <th>Key Results</th>}
               {visibleColumns.actions && <th>Actions</th>}
