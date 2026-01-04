@@ -14,7 +14,7 @@ import { SummaryDetailCell } from './SummaryDetailCell';
 import { DeleteButton } from './DeleteButton';
 import { ListCell } from './ListCell';
 import { StatusFilter } from './StatusFilter';
-import { EditableCell } from './EditableCell';
+import { LabelCell } from './LabelCell';
 
 interface ProblemsListProps {
   workspaceId: string;
@@ -641,6 +641,19 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
     traverse(null); // Start from root problems
     
     return result;
+  })();
+
+  // Get all unique labels from all problems for predefined labels
+  const predefinedLabels = (() => {
+    const allLabels = new Set<string>();
+    for (const problem of problems) {
+      if (problem.labels && problem.labels.length > 0) {
+        for (const label of problem.labels) {
+          allLabels.add(label);
+        }
+      }
+    }
+    return Array.from(allLabels).sort();
   })();
 
   // Filter out problems hidden by collapsed parents
@@ -1443,9 +1456,14 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
                   </td>
                   {visibleColumns.labels && (
                     <td className="problem-text">
-                      <EditableCell
-                        value={problem.labels && problem.labels.length > 0 ? problem.labels.join(', ') : ''}
-                        onSave={(value) => handleSaveField(problem.id, 'labels', value)}
+                      <LabelCell
+                        labels={problem.labels || []}
+                        predefinedLabels={predefinedLabels}
+                        onSave={async (newLabels: string[]) => {
+                          // Convert array to comma-separated string for handleSaveField
+                          const value = newLabels.join(', ');
+                          await handleSaveField(problem.id, 'labels', value);
+                        }}
                         className="problem-text"
                       />
                     </td>

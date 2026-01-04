@@ -460,15 +460,16 @@ describe('ProblemsList', () => {
     });
   });
 
-  it('should display labels as comma-separated values', async () => {
+  it('should display labels as pills', async () => {
     renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
       expect(screen.getByText('Problem 1')).toBeInTheDocument();
     });
 
-    // Labels should be displayed as comma-separated
-    expect(screen.getByText('urgent, frontend')).toBeInTheDocument();
+    // Labels should be displayed as pills
+    expect(screen.getByText('urgent')).toBeInTheDocument();
+    expect(screen.getByText('frontend')).toBeInTheDocument();
     
     // Problem with no labels should show [none] placeholder
     await waitFor(() => {
@@ -477,7 +478,7 @@ describe('ProblemsList', () => {
     });
   });
 
-  it('should allow editing labels field', async () => {
+  it('should allow editing labels field via LabelEditor', async () => {
     const user = userEvent.setup();
     const updatedProblem = { ...mockProblems[0], labels: ['urgent', 'frontend', 'bug'] };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
@@ -485,22 +486,25 @@ describe('ProblemsList', () => {
     renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
-      expect(screen.getByText('urgent, frontend')).toBeInTheDocument();
+      expect(screen.getByText('urgent')).toBeInTheDocument();
     });
     
-    // Click on the labels cell to open the editor
-    const labelsCell = screen.getByText('urgent, frontend');
+    // Click on the labels cell to open the LabelEditor overlay
+    const labelsCell = screen.getByText('urgent').closest('.label-cell') as HTMLElement;
     await user.click(labelsCell);
     
-    // Wait for the input to appear
+    // Wait for LabelEditor to appear with input field
     const input = await waitFor(() => {
-      return screen.getByDisplayValue('urgent, frontend') as HTMLInputElement;
+      return screen.getByPlaceholderText('Add label...') as HTMLInputElement;
     });
     
-    // Update the labels
-    await user.clear(input);
-    await user.type(input, 'urgent, frontend, bug');
+    // Add a new label
+    await user.type(input, 'bug');
     await user.keyboard('{Enter}');
+    
+    // Click Save button
+    const saveButton = screen.getByRole('button', { name: /Save/i });
+    await user.click(saveButton);
     
     await waitFor(() => {
       expect(mockUpdateProblem).toHaveBeenCalledWith('i0', {
@@ -508,12 +512,13 @@ describe('ProblemsList', () => {
       });
     });
     
+    // Verify new label appears
     await waitFor(() => {
-      expect(screen.getByText('urgent, frontend, bug')).toBeInTheDocument();
+      expect(screen.getByText('bug')).toBeInTheDocument();
     });
   });
 
-  it('should save empty labels when cleared', async () => {
+  it('should save empty labels when all removed', async () => {
     const user = userEvent.setup();
     const updatedProblem = { ...mockProblems[0], labels: [] };
     mockUpdateProblem.mockResolvedValue(updatedProblem);
@@ -521,21 +526,27 @@ describe('ProblemsList', () => {
     renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
-      expect(screen.getByText('urgent, frontend')).toBeInTheDocument();
+      expect(screen.getByText('urgent')).toBeInTheDocument();
     });
     
-    // Click on the labels cell to open the editor
-    const labelsCell = screen.getByText('urgent, frontend');
+    // Click on the labels cell to open the LabelEditor overlay
+    const labelsCell = screen.getByText('urgent').closest('.label-cell') as HTMLElement;
     await user.click(labelsCell);
     
-    // Wait for the input to appear
-    const input = await waitFor(() => {
-      return screen.getByDisplayValue('urgent, frontend') as HTMLInputElement;
+    // Wait for LabelEditor to appear
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Add label...')).toBeInTheDocument();
     });
     
-    // Clear the labels
-    await user.clear(input);
-    await user.keyboard('{Enter}');
+    // Remove all labels by clicking remove buttons
+    const removeButtons = screen.getAllByRole('button', { name: /Remove/i });
+    for (const button of removeButtons) {
+      await user.click(button);
+    }
+    
+    // Click Save button
+    const saveButton = screen.getByRole('button', { name: /Save/i });
+    await user.click(saveButton);
     
     await waitFor(() => {
       expect(mockUpdateProblem).toHaveBeenCalledWith('i0', {

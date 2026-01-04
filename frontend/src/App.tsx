@@ -4,6 +4,7 @@ import { Workspace } from '../../../shared/types';
 import { fetchWorkspaces } from './services/api';
 import { ProblemsList } from './components/ProblemsList';
 import { ThemeToggle } from './components/ThemeToggle';
+import { LabelEditorPrototype } from './pages/LabelEditorPrototype';
 
 function App() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -81,6 +82,10 @@ function App() {
         </header>
         <main className="app-main">
           <Routes>
+            <Route 
+              path="/label-editor-prototype" 
+              element={<LabelEditorPrototype />} 
+            />
             <Route 
               path="/" 
               element={
