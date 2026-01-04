@@ -1352,7 +1352,7 @@ describe('ProblemsList', () => {
         keyResults: JSON.stringify(['Metric 1 reaches target']),
         actions: JSON.stringify(['Action step 1']),
         blockers: JSON.stringify([]),
-        status: Status.Actionable,
+        status: Status.NotStarted,
         votes: 0,
         priority: 0,
         labels: ['ux', 'frontend'],
@@ -1399,6 +1399,8 @@ describe('ProblemsList', () => {
 
     beforeEach(() => {
       mockFetchProblems.mockResolvedValue(searchProblems);
+      // Clear localStorage to ensure status filter doesn't interfere with search tests
+      localStorage.clear();
     });
 
     it('should filter problems by ID', async () => {
@@ -1573,6 +1575,356 @@ describe('ProblemsList', () => {
       await waitFor(() => {
         expect(screen.queryByText('UX: No dark mode support')).not.toBeInTheDocument();
         expect(screen.queryByText('Security: Missing rate limiting')).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Status Filter Integration', () => {
+    const mixedStatusProblems: Problem[] = [
+      {
+        id: 'p1',
+        idPath: 'p1',
+        problem: JSON.stringify({ summary: 'Not Started Problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'Objective', detail: '' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.NotStarted,
+        votes: 0,
+        priority: 0,
+        labels: [],
+        parentId: null,
+        workspaceId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'p2',
+        idPath: 'p2',
+        problem: JSON.stringify({ summary: 'In Progress Problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'Objective', detail: '' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.InProgress,
+        votes: 0,
+        priority: 1,
+        labels: [],
+        parentId: null,
+        workspaceId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'p3',
+        idPath: 'p3',
+        problem: JSON.stringify({ summary: 'Blocked Problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'Objective', detail: '' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.Blocked,
+        votes: 0,
+        priority: 2,
+        labels: [],
+        parentId: null,
+        workspaceId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'p4',
+        idPath: 'p4',
+        problem: JSON.stringify({ summary: 'Resolved Problem', detail: '' }),
+        objective: JSON.stringify({ summary: 'Objective', detail: '' }),
+        keyResults: JSON.stringify([]),
+        actions: JSON.stringify([]),
+        blockers: JSON.stringify([]),
+        status: Status.Resolved,
+        votes: 0,
+        priority: 3,
+        labels: [],
+        parentId: null,
+        workspaceId,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+    ];
+
+    beforeEach(() => {
+      mockFetchProblems.mockResolvedValue(mixedStatusProblems);
+      // Clear localStorage before each test
+      localStorage.clear();
+    });
+
+    it('should render status filter button', async () => {
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByLabelText('Filter by status')).toBeInTheDocument();
+      });
+    });
+
+    it('should show all problems by default', async () => {
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Not Started Problem')).toBeInTheDocument();
+        expect(screen.getByText('In Progress Problem')).toBeInTheDocument();
+        expect(screen.getByText('Blocked Problem')).toBeInTheDocument();
+        expect(screen.getByText('Resolved Problem')).toBeInTheDocument();
+      });
+    });
+
+    it('should filter out problems when status is unchecked', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Blocked Problem')).toBeInTheDocument();
+      });
+
+      // Open filter dropdown
+      const filterButton = screen.getByLabelText('Filter by status');
+      await user.click(filterButton);
+
+      // Wait for dropdown to appear
+      await waitFor(() => {
+        expect(screen.getByLabelText('Blocked')).toBeInTheDocument();
+      });
+
+      // Uncheck "Blocked"
+      const blockedCheckbox = screen.getByLabelText('Blocked');
+      await user.click(blockedCheckbox);
+
+      // Wait for filtering to take effect
+      await waitFor(() => {
+        expect(screen.queryByText('Blocked Problem')).not.toBeInTheDocument();
+      });
+
+      // Other problems should still be visible
+      expect(screen.getByText('Not Started Problem')).toBeInTheDocument();
+      expect(screen.getByText('In Progress Problem')).toBeInTheDocument();
+      expect(screen.getByText('Resolved Problem')).toBeInTheDocument();
+    });
+
+    it('should show only selected statuses', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Blocked Problem')).toBeInTheDocument();
+      });
+
+      // Open filter dropdown
+      const filterButton = screen.getByLabelText('Filter by status');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Actionable')).toBeInTheDocument();
+      });
+
+      // Uncheck all except "In Progress"
+      await user.click(screen.getByLabelText('Actionable'));
+      await user.click(screen.getByLabelText('Blocked'));
+      await user.click(screen.getByLabelText('Resolved'));
+
+      // Only "In Progress" problem should be visible
+      await waitFor(() => {
+        expect(screen.queryByText('Not Started Problem')).not.toBeInTheDocument();
+        expect(screen.getByText('In Progress Problem')).toBeInTheDocument();
+        expect(screen.queryByText('Blocked Problem')).not.toBeInTheDocument();
+        expect(screen.queryByText('Resolved Problem')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should clear all filters with Clear button', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Blocked Problem')).toBeInTheDocument();
+      });
+
+      // Open filter dropdown
+      const filterButton = screen.getByLabelText('Filter by status');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /clear/i })).toBeInTheDocument();
+      });
+
+      // Click Clear button
+      const clearButton = screen.getByRole('button', { name: /clear/i });
+      await user.click(clearButton);
+
+      // All problems should be hidden (no statuses selected)
+      await waitFor(() => {
+        expect(screen.queryByText('Not Started Problem')).not.toBeInTheDocument();
+        expect(screen.queryByText('In Progress Problem')).not.toBeInTheDocument();
+        expect(screen.queryByText('Blocked Problem')).not.toBeInTheDocument();
+        expect(screen.queryByText('Resolved Problem')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should select all statuses with Select All button', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Blocked Problem')).toBeInTheDocument();
+      });
+
+      // Open filter dropdown
+      const filterButton = screen.getByLabelText('Filter by status');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /clear/i })).toBeInTheDocument();
+      });
+
+      // First clear all
+      await user.click(screen.getByRole('button', { name: /clear/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByText('Blocked Problem')).not.toBeInTheDocument();
+      });
+
+      // Then select all
+      const selectAllButton = screen.getByRole('button', { name: /select all/i });
+      await user.click(selectAllButton);
+
+      // All problems should be visible again
+      await waitFor(() => {
+        expect(screen.getByText('Not Started Problem')).toBeInTheDocument();
+        expect(screen.getByText('In Progress Problem')).toBeInTheDocument();
+        expect(screen.getByText('Blocked Problem')).toBeInTheDocument();
+        expect(screen.getByText('Resolved Problem')).toBeInTheDocument();
+      });
+    });
+
+    it('should persist filter state to localStorage', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Blocked Problem')).toBeInTheDocument();
+      });
+
+      // Open filter dropdown and uncheck "Blocked"
+      const filterButton = screen.getByLabelText('Filter by status');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Blocked')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByLabelText('Blocked'));
+
+      // Check localStorage
+      await waitFor(() => {
+        const stored = localStorage.getItem('pokrabs-status-filter');
+        expect(stored).toBeTruthy();
+        const parsed = JSON.parse(stored!);
+        expect(parsed).toContain('Actionable');
+        expect(parsed).toContain('In Progress');
+        expect(parsed).toContain('Resolved');
+        expect(parsed).not.toContain('Blocked');
+      });
+    });
+
+    it('should restore filter state from localStorage on mount', async () => {
+      // Set up localStorage with only "In Progress" selected
+      localStorage.setItem('pokrabs-status-filter', JSON.stringify(['In Progress']));
+
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      // Only "In Progress" problem should be visible
+      await waitFor(() => {
+        expect(screen.queryByText('Not Started Problem')).not.toBeInTheDocument();
+        expect(screen.getByText('In Progress Problem')).toBeInTheDocument();
+        expect(screen.queryByText('Blocked Problem')).not.toBeInTheDocument();
+        expect(screen.queryByText('Resolved Problem')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should combine status filter with search', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(
+        <ProblemsList 
+          workspaceId={workspaceId} 
+          searchQuery="Progress" 
+        />
+      );
+      
+      await waitFor(() => {
+        expect(screen.getByText('In Progress Problem')).toBeInTheDocument();
+        expect(screen.queryByText('Blocked Problem')).not.toBeInTheDocument();
+      });
+
+      // Now apply status filter to exclude "In Progress"
+      const filterButton = screen.getByLabelText('Filter by status');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('In Progress')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByLabelText('In Progress'));
+
+      // "In Progress Problem" should now be hidden (excluded by status filter)
+      await waitFor(() => {
+        expect(screen.queryByText('In Progress Problem')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show filter badge count when filters active', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Blocked Problem')).toBeInTheDocument();
+      });
+
+      // Open filter dropdown
+      const filterButton = screen.getByLabelText('Filter by status');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Blocked')).toBeInTheDocument();
+      });
+
+      // Uncheck "Blocked" - should show badge with "3"
+      await user.click(screen.getByLabelText('Blocked'));
+
+      // The filter button should now have the "active" class
+      await waitFor(() => {
+        expect(filterButton).toHaveClass('active');
+      });
+    });
+
+    it('should update row count display when filtering', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      // Initially should show "4 4" (4 visible, 4 total)
+      await waitFor(() => {
+        expect(screen.getByTitle(/4 visible rows \/ 4 total rows/i)).toBeInTheDocument();
+      });
+
+      // Open filter dropdown and uncheck "Blocked"
+      const filterButton = screen.getByLabelText('Filter by status');
+      await user.click(filterButton);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Blocked')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByLabelText('Blocked'));
+
+      // Should now show "3 4" (3 visible, 4 total)
+      await waitFor(() => {
+        expect(screen.getByTitle(/3 visible rows \/ 4 total rows/i)).toBeInTheDocument();
       });
     });
   });

@@ -24,13 +24,13 @@
   
   /* Status colors */
   --status-blocked: #dc3545;
-  --status-in-progress: #0dcaf0;
+  --status-in-progress: #ffc107;
   --status-resolved: #198754;
   --status-not-started: #6c757d;
   
   /* Status backgrounds */
   --status-blocked-bg: #f8d7da;
-  --status-in-progress-bg: #cff4fc;
+  --status-in-progress-bg: #fff3cd;
   --status-resolved-bg: #d1e7dd;
   --status-not-started-bg: #e9ecef;
 }
@@ -53,13 +53,13 @@
   
   /* Status colors (lighter in dark mode) */
   --status-blocked: #ff6b6b;
-  --status-in-progress: #51cf66;
+  --status-in-progress: #ffd43b;
   --status-resolved: #69db7c;
   --status-not-started: #adb5bd;
   
   /* Status backgrounds (darker in dark mode) */
   --status-blocked-bg: #3d1f1f;
-  --status-in-progress-bg: #1f3d1f;
+  --status-in-progress-bg: #3d3520;
   --status-resolved-bg: #1f3d2f;
   --status-not-started-bg: #2d2d2d;
 }
@@ -341,6 +341,176 @@ code {
 .column-toggle-button.inactive:hover {
   background-color: var(--bg-tertiary);
   border-color: var(--border-hover);
+}
+
+/* Status Filter */
+.status-filter-container {
+  position: relative;
+  display: inline-block;
+}
+
+.status-filter-button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.status-filter-button:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-hover);
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.status-filter-button.active {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+  opacity: 1;
+}
+
+.status-filter-button svg {
+  display: block;
+}
+
+.filter-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background-color: var(--text-secondary);
+  color: var(--bg-primary);
+  font-size: 8px;
+  font-weight: 700;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bg-secondary);
+}
+
+.status-filter-dropdown {
+  position: fixed;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px var(--shadow-lg);
+  min-width: 200px;
+  z-index: 1000;
+  padding: 8px;
+}
+
+.status-filter-header {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 6px;
+}
+
+.status-filter-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-filter-actions {
+  display: flex;
+  gap: 6px;
+  padding: 4px 8px;
+  margin-bottom: 6px;
+}
+
+.status-filter-action {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-primary);
+}
+
+.status-filter-action:hover:not(:disabled) {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-hover);
+}
+
+.status-filter-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.status-filter-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.status-filter-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+  gap: 8px;
+}
+
+.status-filter-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.status-filter-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.status-filter-indicator {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  background-color: var(--bg-primary);
+}
+
+.status-filter-indicator.checked {
+  background-color: var(--bg-tertiary);
+  border-color: var(--text-secondary);
+}
+
+.status-filter-indicator svg {
+  color: var(--text-primary);
+}
+
+.status-filter-label {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-weight: 500;
+  flex: 1;
 }
 
 .problems-table tbody tr {

@@ -1838,3 +1838,115 @@ Voting functionality requires user authentication to be meaningful. Without user
 
 ---
 
+## 2026-01-03 - Status Filter Feature Implementation
+
+**Feature:** Add Google Sheets-style status filtering to the STATUS column header.
+
+**Implementation:**
+Created a comprehensive status filter component with the following features:
+- Filter icon button next to STATUS header (matches O, K, A, B, S toggle button styling)
+- Dropdown dialog with checkboxes for each status (Actionable, In Progress, Blocked, Resolved)
+- "Select All" and "Clear" buttons for bulk selection
+- Filter count badge showing number of selected statuses when filtered
+- Real-time filtering of problems list based on selected statuses
+- Filter state persisted to localStorage across sessions
+
+**Technical Decisions:**
+1. **React Portal for Dropdown**: Used `createPortal` to render dropdown at document.body level
+   - Prevents clipping by table header overflow constraints
+   - Allows dropdown to appear above all other content with fixed positioning
+   
+2. **Smart Viewport Detection**: Implemented boundary detection to prevent off-screen rendering
+   - Calculates if dropdown would go off-screen horizontally or vertically
+   - Adjusts position to stay within viewport bounds
+   - Falls back to showing above button if no room below
+   
+3. **Subtle Styling**: Matched existing UI patterns instead of blue accent colors
+   - Filter button uses gray/tertiary background like column toggles (not blue)
+   - Badge count uses gray instead of blue accent color
+   - Checkboxes use gray with tertiary background when checked (not blue)
+   - Maintains consistency with O, K, A, B, S column visibility buttons
+
+4. **Status Color Update**: Changed "In Progress" from cyan/blue to yellow/gold
+   - Light mode: `#ffc107` with `#fff3cd` background
+   - Dark mode: `#ffd43b` with `#3d3520` background
+   - Consistent across table dropdowns, filter dialog, and all status displays
+
+**Files Created:**
+- `frontend/src/components/StatusFilter.tsx` - Filter component with dialog UI
+
+**Files Modified:**
+- `frontend/src/components/ProblemsList.tsx`:
+  - Added StatusFilter component import and usage
+  - Added `selectedStatuses` state with localStorage persistence
+  - Updated `visibleProblems` calculation to apply status filter
+  - Integrated filter with existing search functionality
+  
+- `frontend/src/index.css`:
+  - Added `.status-filter-*` classes for button, dropdown, checkboxes
+  - Updated status color variables for "In Progress" (cyan → yellow)
+  - Styled filter to match existing column toggle buttons
+  - Added portal-compatible fixed positioning styles
+
+**User Experience:**
+- Filter icon appears next to STATUS header
+- Clicking opens dropdown below button (or above if no room)
+- All statuses selected by default (no filtering on first use)
+- Unchecking statuses immediately filters the table
+- Badge shows count when filters are active (e.g., "3" when 3 of 4 selected)
+- "Select All" restores all statuses
+- "Clear" removes all statuses (shows no rows)
+- Filter state survives page refreshes
+- Click outside to close dropdown
+
+**Testing Performed:**
+- ✅ Filter dropdown opens and positions correctly
+- ✅ Viewport boundary detection prevents off-screen rendering
+- ✅ Checkbox toggling filters problems in real-time
+- ✅ "Select All" and "Clear" buttons work correctly
+- ✅ Filter badge shows correct count
+- ✅ Filter state persists to localStorage
+- ✅ Dropdown closes when clicking outside
+- ✅ Status colors consistent throughout UI (yellow for In Progress)
+- ✅ Styling matches column toggle buttons (no blue highlights)
+
+**Automated Tests:**
+Created comprehensive test coverage for the status filter feature:
+
+1. **StatusFilter Component Tests** (`StatusFilter.test.tsx`) - 25 tests:
+   - Filter button rendering and active states
+   - Dropdown dialog open/close behavior
+   - Status checkbox interactions (select/deselect individual statuses)
+   - Select All button (selects all 4 statuses, disabled when all selected)
+   - Clear button (clears all selections, disabled when none selected)
+   - Badge count display (shows count when filtered, hidden when all selected)
+   - Accessibility (aria-labels, keyboard navigation, helpful titles)
+   - Edge cases (empty selection, single selection, sequential toggles)
+   - Filter state edge cases
+
+2. **ProblemsList Integration Tests** - 14 new tests:
+   - Filter button rendering in table header
+   - Default state (all problems visible)
+   - Filtering by unchecking statuses
+   - Multiple status selections
+   - Clear and Select All buttons functionality
+   - LocalStorage persistence (save and restore filter state)
+   - Filter + search combination (both filters work together)
+   - Badge count display in active state
+   - Row count updates when filtering
+
+3. **Test Results:**
+   - ✅ All 137 tests passing (25 StatusFilter + 70 ProblemsList + 42 others)
+   - ✅ 100% of new filter functionality covered by tests
+   - ✅ No regressions in existing tests
+   - ✅ Fixed `Status.Actionable` typo in existing Search/Filter tests
+   - ✅ Added localStorage.clear() to Search/Filter tests to prevent cross-test interference
+
+**Integration:**
+- Works seamlessly with existing search functionality
+- Filter applies on top of search results
+- Maintains hierarchical collapse/expand state
+- Updates row count display (e.g., "3 6" = 3 visible, 6 total)
+
+---
+

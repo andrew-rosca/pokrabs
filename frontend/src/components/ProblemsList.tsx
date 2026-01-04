@@ -13,6 +13,7 @@ import { fetchProblems, updateProblem, createProblem, deleteProblem, moveProblem
 import { SummaryDetailCell } from './SummaryDetailCell';
 import { DeleteButton } from './DeleteButton';
 import { ListCell } from './ListCell';
+import { StatusFilter } from './StatusFilter';
 
 interface ProblemsListProps {
   workspaceId: string;
@@ -80,14 +81,38 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
     return { objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: false };
   });
 
+  // Status filter state - persisted to localStorage
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<Status>>(() => {
+    const stored = localStorage.getItem('pokrabs-status-filter');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return new Set(parsed);
+      } catch {
+        return new Set([Status.NotStarted, Status.InProgress, Status.Blocked, Status.Resolved]);
+      }
+    }
+    return new Set([Status.NotStarted, Status.InProgress, Status.Blocked, Status.Resolved]);
+  });
+
   // Persist column visibility to localStorage
   useEffect(() => {
     localStorage.setItem('pokrabs-column-visibility', JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
+  // Persist status filter to localStorage
+  useEffect(() => {
+    localStorage.setItem('pokrabs-status-filter', JSON.stringify(Array.from(selectedStatuses)));
+  }, [selectedStatuses]);
+
   // Toggle column visibility
   const toggleColumn = (column: keyof typeof visibleColumns) => {
     setVisibleColumns(prev => ({ ...prev, [column]: !prev[column] }));
+  };
+
+  // Handle status filter change
+  const handleStatusFilterChange = (statuses: Set<Status>) => {
+    setSelectedStatuses(statuses);
   };
 
   // Auto-select the position input field when it opens
@@ -620,8 +645,13 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
       });
       
       // When searching, show all matching problems regardless of collapse state
+      // Apply status filter
+      filtered = filtered.filter(p => selectedStatuses.has(p.status));
       return filtered;
     }
+    
+    // Apply status filter
+    filtered = filtered.filter(p => selectedStatuses.has(p.status));
     
     // When not searching, filter out problems hidden by collapsed parents
     return filtered.filter(p => !isHiddenByCollapse(p));
@@ -1111,7 +1141,17 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
               {visibleColumns.keyResults && <th>Key Results</th>}
               {visibleColumns.actions && <th>Actions</th>}
               {visibleColumns.blockers && <th>Blockers</th>}
-              {visibleColumns.status && <th>Status</th>}
+              {visibleColumns.status && (
+                <th>
+                  <div className="header-with-action">
+                    <span>Status</span>
+                    <StatusFilter
+                      selectedStatuses={selectedStatuses}
+                      onFilterChange={handleStatusFilterChange}
+                    />
+                  </div>
+                </th>
+              )}
               {visibleColumns.votes && <th>Votes</th>}
             </tr>
           </thead>
