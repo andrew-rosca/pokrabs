@@ -1313,15 +1313,31 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
                         </div>
                       )}
                     </div>
-                    <div className="id-content" style={{ paddingLeft: `${depth * 8}px`, position: 'relative' }}>
+                    <div className="id-content" style={{ position: 'relative' }}>
                       <span 
                         className="id-path clickable"
                         onClick={() => handleCopyProblemUrl(problem.id)}
                         title={copiedId === problem.id ? "Copied!" : "Click to copy link"}
                         style={{ 
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px'
                         }}
                       >
+                        {depth > 0 && (
+                          <span style={{ 
+                            color: '#888',
+                            fontSize: '0.75em',
+                            lineHeight: 1,
+                            display: 'inline-flex',
+                            gap: '2px'
+                          }}>
+                            {Array(depth).fill(null).map((_, i) => (
+                              <span key={i}>&mdash;</span>
+                            ))}
+                          </span>
+                        )}
                         {problem.idPath}
                       </span>
                       {copiedId === problem.id && (
