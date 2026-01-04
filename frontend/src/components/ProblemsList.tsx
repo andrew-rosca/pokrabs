@@ -14,6 +14,7 @@ import { SummaryDetailCell } from './SummaryDetailCell';
 import { DeleteButton } from './DeleteButton';
 import { ListCell } from './ListCell';
 import { StatusFilter } from './StatusFilter';
+import { EditableCell } from './EditableCell';
 
 interface ProblemsListProps {
   workspaceId: string;
@@ -61,6 +62,7 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
   // Column visibility state - persisted to localStorage
   // Note: votes column hidden until user authentication is implemented (voting requires user identity)
   const [visibleColumns, setVisibleColumns] = useState<{
+    labels: boolean;
     objective: boolean;
     keyResults: boolean;
     actions: boolean;
@@ -73,12 +75,12 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
       try {
         const parsed = JSON.parse(stored);
         // Default votes to false if not present in stored config
-        return { ...parsed, votes: parsed.votes ?? false };
+        return { ...parsed, labels: parsed.labels ?? true, votes: parsed.votes ?? false };
       } catch {
-        return { objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: false };
+        return { labels: true, objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: false };
       }
     }
-    return { objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: false };
+    return { labels: true, objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: false };
   });
 
   // Status filter state - persisted to localStorage
@@ -245,6 +247,12 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
       return value; // Already JSON from the cell components
     }
     
+    // For labels, convert comma-separated string to JSON array
+    if (fieldName === 'labels') {
+      const labelsArray = value.split(',').map(l => l.trim()).filter(l => l.length > 0);
+      return JSON.stringify(labelsArray);
+    }
+    
     return value;
   };
 
@@ -257,18 +265,29 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
     
     const formattedValue = formatFieldForSave(fieldName, value);
     
+    // For labels, convert to array for optimistic update
+    let updateData: any = { [fieldName]: formattedValue };
+    if (fieldName === 'labels') {
+      const labelsArray = JSON.parse(formattedValue);
+      updateData.labels = labelsArray;
+    }
+    
     // Optimistically update the UI
     setProblems(prevProblems =>
       prevProblems.map(p =>
         p.id === problemId
-          ? { ...p, [fieldName]: formattedValue }
+          ? { ...p, ...updateData }
           : p
       )
     );
 
     try {
-      // Save to backend
-      const updated = await updateProblem(problemId, { [fieldName]: formattedValue });
+      // Save to backend - for labels, send as array directly
+      let backendUpdate: any = { [fieldName]: formattedValue };
+      if (fieldName === 'labels') {
+        backendUpdate.labels = JSON.parse(formattedValue);
+      }
+      const updated = await updateProblem(problemId, backendUpdate);
       
       // Update with server response
       setProblems(prevProblems =>
@@ -1095,6 +1114,14 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
                   </div>
                   <div className="column-visibility-toggles">
                     <button
+                      className={`column-toggle-button ${visibleColumns.labels ? 'active' : 'inactive'}`}
+                      onClick={() => toggleColumn('labels')}
+                      title={`${visibleColumns.labels ? 'Hide' : 'Show'} Labels column`}
+                      aria-label={`${visibleColumns.labels ? 'Hide' : 'Show'} Labels column`}
+                    >
+                      L
+                    </button>
+                    <button
                       className={`column-toggle-button ${visibleColumns.objective ? 'active' : 'inactive'}`}
                       onClick={() => toggleColumn('objective')}
                       title={`${visibleColumns.objective ? 'Hide' : 'Show'} Objective column`}
@@ -1137,6 +1164,7 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
                   </div>
                 </div>
               </th>
+              {visibleColumns.labels && <th>Labels</th>}
               {visibleColumns.objective && <th>Objective</th>}
               {visibleColumns.keyResults && <th>Key Results</th>}
               {visibleColumns.actions && <th>Actions</th>}
@@ -1397,6 +1425,15 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
                       problemId={problem.id}
                     />
                   </td>
+                  {visibleColumns.labels && (
+                    <td className="problem-text">
+                      <EditableCell
+                        value={problem.labels && problem.labels.length > 0 ? problem.labels.join(', ') : ''}
+                        onSave={(value) => handleSaveField(problem.id, 'labels', value)}
+                        className="problem-text"
+                      />
+                    </td>
+                  )}
                   {visibleColumns.objective && (
                     <td className="problem-text">
                       <SummaryDetailCell
@@ -1506,12 +1543,13 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
                   +
                 </button>
               </td>
-              <td className="insert-button-cell"></td>
-              <td className="insert-button-cell"></td>
-              <td className="insert-button-cell"></td>
-              <td className="insert-button-cell"></td>
-              <td className="insert-button-cell"></td>
-              <td className="insert-button-cell"></td>
+              {visibleColumns.labels && <td className="insert-button-cell"></td>}
+              {visibleColumns.objective && <td className="insert-button-cell"></td>}
+              {visibleColumns.keyResults && <td className="insert-button-cell"></td>}
+              {visibleColumns.actions && <td className="insert-button-cell"></td>}
+              {visibleColumns.blockers && <td className="insert-button-cell"></td>}
+              {visibleColumns.status && <td className="insert-button-cell"></td>}
+              {visibleColumns.votes && <td className="insert-button-cell"></td>}
             </tr>
           </tbody>
         </table>

@@ -44,7 +44,7 @@ describe('ProblemsList', () => {
       status: Status.NotStarted,
       votes: 0,
       priority: 0,
-      labels: [],
+      labels: ['urgent', 'frontend'],
       parentId: null,
       workspaceId,
       createdAt: '2024-01-01T00:00:00Z',
@@ -456,6 +456,90 @@ describe('ProblemsList', () => {
     await waitFor(() => {
       expect(mockUpdateProblem).toHaveBeenCalledWith('i5', {
         blockers: JSON.stringify(['Blocker 1', 'Blocker 2']),
+      });
+    });
+  });
+
+  it('should display labels as comma-separated values', async () => {
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Problem 1')).toBeInTheDocument();
+    });
+
+    // Labels should be displayed as comma-separated
+    expect(screen.getByText('urgent, frontend')).toBeInTheDocument();
+    
+    // Problem with no labels should show [none] placeholder
+    await waitFor(() => {
+      const nonePlaceholders = screen.getAllByText('[none]');
+      expect(nonePlaceholders.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('should allow editing labels field', async () => {
+    const user = userEvent.setup();
+    const updatedProblem = { ...mockProblems[0], labels: ['urgent', 'frontend', 'bug'] };
+    mockUpdateProblem.mockResolvedValue(updatedProblem);
+    
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('urgent, frontend')).toBeInTheDocument();
+    });
+    
+    // Click on the labels cell to open the editor
+    const labelsCell = screen.getByText('urgent, frontend');
+    await user.click(labelsCell);
+    
+    // Wait for the input to appear
+    const input = await waitFor(() => {
+      return screen.getByDisplayValue('urgent, frontend') as HTMLInputElement;
+    });
+    
+    // Update the labels
+    await user.clear(input);
+    await user.type(input, 'urgent, frontend, bug');
+    await user.keyboard('{Enter}');
+    
+    await waitFor(() => {
+      expect(mockUpdateProblem).toHaveBeenCalledWith('i0', {
+        labels: ['urgent', 'frontend', 'bug'],
+      });
+    });
+    
+    await waitFor(() => {
+      expect(screen.getByText('urgent, frontend, bug')).toBeInTheDocument();
+    });
+  });
+
+  it('should save empty labels when cleared', async () => {
+    const user = userEvent.setup();
+    const updatedProblem = { ...mockProblems[0], labels: [] };
+    mockUpdateProblem.mockResolvedValue(updatedProblem);
+    
+    renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('urgent, frontend')).toBeInTheDocument();
+    });
+    
+    // Click on the labels cell to open the editor
+    const labelsCell = screen.getByText('urgent, frontend');
+    await user.click(labelsCell);
+    
+    // Wait for the input to appear
+    const input = await waitFor(() => {
+      return screen.getByDisplayValue('urgent, frontend') as HTMLInputElement;
+    });
+    
+    // Clear the labels
+    await user.clear(input);
+    await user.keyboard('{Enter}');
+    
+    await waitFor(() => {
+      expect(mockUpdateProblem).toHaveBeenCalledWith('i0', {
+        labels: [],
       });
     });
   });
@@ -1109,6 +1193,32 @@ describe('ProblemsList', () => {
       });
 
       // Check that all column headers are visible
+      expect(screen.getByText('Labels')).toBeInTheDocument();
+      expect(screen.getByText('Objective')).toBeInTheDocument();
+      expect(screen.getByText('Key Results')).toBeInTheDocument();
+      expect(screen.getByText('Actions')).toBeInTheDocument();
+      expect(screen.getByText('Blockers')).toBeInTheDocument();
+      expect(screen.getByText('Status')).toBeInTheDocument();
+    });
+
+    it('should hide Labels column when L button is clicked', async () => {
+      const user = userEvent.setup();
+      renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+
+      // Find and click the Labels toggle button
+      const labelsToggle = screen.getByTitle('Hide Labels column');
+      await user.click(labelsToggle);
+
+      // Labels column should be hidden
+      await waitFor(() => {
+        expect(screen.queryByText('Labels')).not.toBeInTheDocument();
+      });
+
+      // Other columns should still be visible
       expect(screen.getByText('Objective')).toBeInTheDocument();
       expect(screen.getByText('Key Results')).toBeInTheDocument();
       expect(screen.getByText('Actions')).toBeInTheDocument();
@@ -1134,6 +1244,7 @@ describe('ProblemsList', () => {
       });
 
       // Other columns should still be visible
+      expect(screen.getByText('Labels')).toBeInTheDocument();
       expect(screen.getByText('Key Results')).toBeInTheDocument();
       expect(screen.getByText('Actions')).toBeInTheDocument();
       expect(screen.getByText('Blockers')).toBeInTheDocument();
@@ -1291,6 +1402,7 @@ describe('ProblemsList', () => {
       
       const parsed = JSON.parse(storedValue!);
       expect(parsed.actions).toBe(false);
+      expect(parsed.labels).toBe(true);
       expect(parsed.objective).toBe(true);
       expect(parsed.keyResults).toBe(true);
       expect(parsed.blockers).toBe(true);
@@ -1300,6 +1412,7 @@ describe('ProblemsList', () => {
     it('should restore column visibility from localStorage', async () => {
       // Set initial state in localStorage
       localStorage.setItem('pokrabs-column-visibility', JSON.stringify({
+        labels: false,
         objective: true,
         keyResults: false,
         actions: false,
@@ -1313,7 +1426,8 @@ describe('ProblemsList', () => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
       });
 
-      // Key Results and Actions should be hidden
+      // Labels, Key Results and Actions should be hidden
+      expect(screen.queryByText('Labels')).not.toBeInTheDocument();
       expect(screen.queryByText('Key Results')).not.toBeInTheDocument();
       expect(screen.queryByText('Actions')).not.toBeInTheDocument();
 
