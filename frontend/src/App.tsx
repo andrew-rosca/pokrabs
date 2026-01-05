@@ -221,10 +221,11 @@ function App() {
     >
       <div className="app">
         <header className="app-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <h1 className="app-title">{selectedWorkspace?.name || 'POKRABS'}</h1>
             {selectedWorkspaceId && (
               <>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>|</span>
                 <ViewSelector
                   views={views}
                   selectedViewId={selectedViewId}
@@ -251,7 +252,7 @@ function App() {
                     color: 'var(--text-primary)',
                     textDecoration: 'underline',
                     cursor: 'pointer',
-                    fontSize: '0.9rem',
+                    fontSize: '0.8rem',
                   }}
                 >
                   Save
@@ -266,7 +267,7 @@ function App() {
                     color: 'var(--text-primary)',
                     textDecoration: 'underline',
                     cursor: 'pointer',
-                    fontSize: '0.9rem',
+                    fontSize: '0.8rem',
                   }}
                 >
                   Save As...

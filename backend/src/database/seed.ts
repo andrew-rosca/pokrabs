@@ -136,7 +136,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
     await viewRepo.create({
       id: uuidv4(),
       workspaceId: workspace.id,
-      name: 'Default View',
+      name: 'All Problems',
       filters: {
         selectedStatuses: [Status.NotStarted, Status.InProgress, Status.Blocked, Status.Resolved],
         selectedLabels: [],

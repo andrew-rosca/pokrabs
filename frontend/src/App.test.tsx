@@ -47,7 +47,7 @@ describe('App', () => {
       {
         id: 'default-view',
         workspaceId: 'test-workspace',
-        name: 'Default View',
+        name: 'All Problems',
         filters: { selectedStatuses: ['Actionable', 'In Progress', 'Blocked', 'Resolved'], selectedLabels: [] },
         lastUsedAt: '2024-01-01T00:00:00Z',
         isDefault: true,
