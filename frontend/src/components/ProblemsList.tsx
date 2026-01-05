@@ -30,7 +30,11 @@ export function ProblemsList({
   viewFilters,
   onFiltersChange,
 }: ProblemsListProps) {
-  const { problemId: urlProblemId } = useParams<{ problemId: string }>();
+  const { workspaceId: urlWorkspaceId, viewId: urlViewId, problemId: urlProblemId } = useParams<{ 
+    workspaceId?: string;
+    viewId?: string;
+    problemId?: string;
+  }>();
   const navigate = useNavigate();
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -206,7 +210,14 @@ export function ProblemsList({
   // Helper function to clear URL if taking action on a different problem
   const clearUrlIfDifferentProblem = (actionProblemId: string) => {
     if (urlProblemId && urlProblemId !== actionProblemId) {
-      navigate('/', { replace: true });
+      // Clear problem segment but keep workspace and view
+      if (urlWorkspaceId && urlViewId) {
+        navigate(`/w/${urlWorkspaceId}/v/${urlViewId}`, { replace: true });
+      } else if (urlWorkspaceId) {
+        navigate(`/w/${urlWorkspaceId}`, { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     }
   };
 
@@ -217,8 +228,14 @@ export function ProblemsList({
     // Find the problem by ID
     const targetProblem = problems.find(p => p.id === urlProblemId);
     if (!targetProblem) {
-      // Problem not found, clear URL
-      navigate('/', { replace: true });
+      // Problem not found, clear problem segment but keep workspace/view
+      if (urlWorkspaceId && urlViewId) {
+        navigate(`/w/${urlWorkspaceId}/v/${urlViewId}`, { replace: true });
+      } else if (urlWorkspaceId) {
+        navigate(`/w/${urlWorkspaceId}`, { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
       return;
     }
 
@@ -954,7 +971,16 @@ export function ProblemsList({
   // Handle copying problem URL to clipboard
   const handleCopyProblemUrl = async (problemId: string) => {
     try {
-      const url = `${window.location.origin}/${problemId}`;
+      // Use workspaceId and viewId from URL params, fallback to props/state if needed
+      const wsId = urlWorkspaceId || workspaceId;
+      const vId = urlViewId;
+      
+      if (!wsId || !vId) {
+        console.error('Cannot copy problem URL: missing workspaceId or viewId');
+        return;
+      }
+      
+      const url = `${window.location.origin}/w/${wsId}/v/${vId}/p/${problemId}`;
       await navigator.clipboard.writeText(url);
       
       // Show visual feedback

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Workspace, View, ViewFilters } from '../../../shared/types';
@@ -9,6 +9,26 @@ import { ViewSelector } from './components/ViewSelector';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 
 function App() {
+  return (
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
+      <AppContent />
+    </BrowserRouter>
+  );
+}
+
+function AppContent() {
+  const { workspaceId: urlWorkspaceId, viewId: urlViewId, problemId: urlProblemId } = useParams<{
+    workspaceId?: string;
+    viewId?: string;
+    problemId?: string;
+  }>();
+  const navigate = useNavigate();
+  
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +47,7 @@ function App() {
   const [saveAsName, setSaveAsName] = useState('');
   const saveAsInputRef = useRef<HTMLInputElement>(null);
 
+  // Load workspaces on mount
   useEffect(() => {
     async function loadWorkspaces() {
       try {
@@ -34,9 +55,17 @@ function App() {
         setError(null);
         const data = await fetchWorkspaces();
         setWorkspaces(data);
-        // Auto-select first workspace (should be "Default" if seeded)
-        if (data.length > 0) {
-          setSelectedWorkspaceId(data[0].id);
+        
+        // If URL has workspaceId, use it; otherwise auto-select first
+        if (urlWorkspaceId && data.find(w => w.id === urlWorkspaceId)) {
+          setSelectedWorkspaceId(urlWorkspaceId);
+        } else if (data.length > 0) {
+          // If URL workspace doesn't exist, navigate to first available
+          if (urlWorkspaceId) {
+            navigate(`/w/${data[0].id}`, { replace: true });
+          } else {
+            setSelectedWorkspaceId(data[0].id);
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load workspaces');
@@ -46,7 +75,7 @@ function App() {
     }
 
     loadWorkspaces();
-  }, []);
+  }, [urlWorkspaceId, navigate]);
 
   // Load views when workspace changes
   useEffect(() => {
@@ -62,17 +91,45 @@ function App() {
         const viewsData = await fetchViews(selectedWorkspaceId);
         setViews(viewsData);
         
-        // Select default view if available
+        // If URL has viewId and it exists in this workspace, use it
+        if (urlViewId && viewsData.find(v => v.id === urlViewId && v.workspaceId === selectedWorkspaceId)) {
+          const view = viewsData.find(v => v.id === urlViewId);
+          if (view) {
+            setSelectedViewId(view.id);
+            setCurrentFilters(view.filters);
+            setHasUnsavedChanges(false);
+            return;
+          }
+        }
+        
+        // Otherwise, select default view if available
         const defaultView = viewsData.find(v => v.isDefault);
         if (defaultView) {
           setSelectedViewId(defaultView.id);
           setCurrentFilters(defaultView.filters);
           setHasUnsavedChanges(false);
+          
+          // If URL had viewId but it was invalid, update URL to default view
+          if (urlViewId && urlViewId !== defaultView.id) {
+            if (urlProblemId) {
+              navigate(`/w/${selectedWorkspaceId}/v/${defaultView.id}/p/${urlProblemId}`, { replace: true });
+            } else {
+              navigate(`/w/${selectedWorkspaceId}/v/${defaultView.id}`, { replace: true });
+            }
+          } else if (!urlViewId) {
+            // If no viewId in URL, navigate to include default view
+            navigate(`/w/${selectedWorkspaceId}/v/${defaultView.id}`, { replace: true });
+          }
         } else if (viewsData.length > 0) {
           // If no default view, select the first one
           setSelectedViewId(viewsData[0].id);
           setCurrentFilters(viewsData[0].filters);
           setHasUnsavedChanges(false);
+          
+          // Update URL to include first view
+          if (!urlViewId) {
+            navigate(`/w/${selectedWorkspaceId}/v/${viewsData[0].id}`, { replace: true });
+          }
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load views';
@@ -82,14 +139,21 @@ function App() {
     }
 
     loadViews();
-  }, [selectedWorkspaceId]);
+  }, [selectedWorkspaceId, urlViewId, urlProblemId, navigate]);
 
   const handleViewSelect = (viewId: string) => {
     const view = views.find(v => v.id === viewId);
-    if (view) {
+    if (view && selectedWorkspaceId) {
       setSelectedViewId(viewId);
       setCurrentFilters(view.filters);
       setHasUnsavedChanges(false);
+      
+      // Update URL - preserve problemId if present
+      if (urlProblemId) {
+        navigate(`/w/${selectedWorkspaceId}/v/${viewId}/p/${urlProblemId}`, { replace: true });
+      } else {
+        navigate(`/w/${selectedWorkspaceId}/v/${viewId}`, { replace: true });
+      }
     }
   };
 
@@ -157,6 +221,13 @@ function App() {
       setHasUnsavedChanges(false);
       setShowSaveAsDialog(false);
       setSaveAsName('');
+      
+      // Update URL to include new view
+      if (urlProblemId) {
+        navigate(`/w/${selectedWorkspaceId}/v/${newView.id}/p/${urlProblemId}`, { replace: true });
+      } else {
+        navigate(`/w/${selectedWorkspaceId}/v/${newView.id}`, { replace: true });
+      }
     } catch (err) {
       console.error('Failed to create view:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to create view';
@@ -188,6 +259,12 @@ function App() {
       if (defaultView) {
         setSelectedViewId(defaultView.id);
         setCurrentFilters(defaultView.filters);
+        // Update URL
+        if (urlProblemId) {
+          navigate(`/w/${selectedWorkspaceId}/v/${defaultView.id}/p/${urlProblemId}`, { replace: true });
+        } else {
+          navigate(`/w/${selectedWorkspaceId}/v/${defaultView.id}`, { replace: true });
+        }
       }
     }
   };
@@ -208,7 +285,9 @@ function App() {
     }
     
     setSelectedWorkspaceId(workspaceId);
-    // Views will be reloaded by the useEffect that depends on selectedWorkspaceId
+    // Navigate to workspace URL - views will be loaded and default view selected
+    // The useEffect for views will handle navigating to include the view
+    navigate(`/w/${workspaceId}`, { replace: true });
   };
 
   const handleWorkspaceCreated = async () => {
@@ -229,6 +308,7 @@ function App() {
       // If current workspace was deleted, select first available
       if (data.length > 0 && !data.find(w => w.id === selectedWorkspaceId)) {
         setSelectedWorkspaceId(data[0].id);
+        navigate(`/w/${data[0].id}`, { replace: true });
       }
     } catch (err) {
       console.error('Failed to reload workspaces:', err);
@@ -257,15 +337,8 @@ function App() {
     return <div>No workspaces found. Please seed the database.</div>;
   }
 
-
   return (
-    <BrowserRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
-      <div className="app">
+    <div className="app">
         <header className="app-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <WorkspaceSelector
@@ -353,7 +426,7 @@ function App() {
         <main className="app-main">
           <Routes>
             <Route 
-              path="/" 
+              path="/w/:workspaceId/v/:viewId/p/:problemId" 
               element={
                 selectedWorkspaceId ? (
                   <ProblemsList 
@@ -368,7 +441,37 @@ function App() {
               } 
             />
             <Route 
-              path="/:problemId" 
+              path="/w/:workspaceId/v/:viewId" 
+              element={
+                selectedWorkspaceId ? (
+                  <ProblemsList 
+                    workspaceId={selectedWorkspaceId}
+                    searchQuery={searchQuery}
+                    viewFilters={currentFilters}
+                    onFiltersChange={handleFiltersChange}
+                  />
+                ) : (
+                  <div>No workspace selected</div>
+                )
+              } 
+            />
+            <Route 
+              path="/w/:workspaceId" 
+              element={
+                selectedWorkspaceId ? (
+                  <ProblemsList 
+                    workspaceId={selectedWorkspaceId}
+                    searchQuery={searchQuery}
+                    viewFilters={currentFilters}
+                    onFiltersChange={handleFiltersChange}
+                  />
+                ) : (
+                  <div>No workspace selected</div>
+                )
+              } 
+            />
+            <Route 
+              path="/" 
               element={
                 selectedWorkspaceId ? (
                   <ProblemsList 
@@ -507,7 +610,6 @@ function App() {
           document.body
         )}
       </div>
-    </BrowserRouter>
   );
 }
 

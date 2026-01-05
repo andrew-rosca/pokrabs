@@ -2194,3 +2194,90 @@ Implemented comprehensive workspace management functionality that mirrors the vi
 
 ---
 
+## 2026-01-05 - Deep Linking with Workspace, View, and Problem IDs
+
+**Feature:** Enhanced deep linking to include workspace ID, view ID, and problem ID in URLs.
+
+**Problem:**
+The application previously supported deep linking to problems using only the problem ID (e.g., `/{problemId}`). However, to successfully share links, users needed to include the workspace ID and view ID context, as problems are workspace-scoped and views control which problems are visible.
+
+**Solution:**
+Implemented hierarchical URL structure with short prefixes that includes workspace, view, and problem IDs. All segments are optional, allowing flexible navigation.
+
+**URL Structure:**
+- `/w/{workspaceId}` - Workspace only
+- `/w/{workspaceId}/v/{viewId}` - Workspace + View
+- `/w/{workspaceId}/v/{viewId}/p/{problemId}` - Workspace + View + Problem
+
+**Implementation:**
+
+1. **Routing Updates (`frontend/src/App.tsx`):**
+   - Refactored App component to separate `App` (BrowserRouter wrapper) and `AppContent` (routing logic)
+   - Added routes for all URL patterns:
+     - `/w/:workspaceId/v/:viewId/p/:problemId` (full path)
+     - `/w/:workspaceId/v/:viewId` (workspace + view)
+     - `/w/:workspaceId` (workspace only)
+     - `/` (fallback)
+   - Added `useParams` to read `workspaceId`, `viewId`, and `problemId` from URL
+   - URL parameters sync to component state (`selectedWorkspaceId`, `selectedViewId`)
+
+2. **State Synchronization:**
+   - On mount, if URL contains `workspaceId`, it's used instead of auto-selecting first workspace
+   - If URL contains `viewId` and it exists in the workspace, it's selected
+   - If URL `viewId` is invalid or missing, default view is selected and URL is updated
+   - When workspace is selected via UI, URL navigates to `/w/{workspaceId}`
+   - When view is selected via UI, URL navigates to `/w/{workspaceId}/v/{viewId}` (preserving problemId if present)
+
+3. **ProblemsList Updates (`frontend/src/components/ProblemsList.tsx`):**
+   - Updated `useParams` to read from new route structure
+   - Updated `handleCopyProblemUrl()` to generate URLs in format: `/w/{workspaceId}/v/{viewId}/p/{problemId}`
+   - Updated `clearUrlIfDifferentProblem()` to preserve workspace/view segments when clearing problem
+   - Problem navigation still works with new URL format (expands ancestors, scrolls to problem)
+
+4. **Error Handling:**
+   - Invalid `workspaceId` in URL → redirects to first available workspace
+   - Invalid `viewId` in URL → selects default view and updates URL
+   - Invalid `problemId` in URL → clears problem segment, keeps workspace/view
+   - Missing segments handled gracefully (auto-selects defaults)
+
+5. **Navigation Behavior:**
+   - Workspace selection → navigates to `/w/{workspaceId}`, then auto-navigates to include default view
+   - View selection → navigates to `/w/{workspaceId}/v/{viewId}`, preserves problemId if present
+   - Problem link copy → includes all three IDs in URL
+   - Action on different problem → clears problem segment, keeps workspace/view
+
+**User Experience:**
+- Shareable links include full context (workspace, view, problem)
+- Browser back/forward buttons work correctly
+- URL reflects current application state
+- Invalid URLs automatically redirect to valid defaults
+- Seamless navigation between workspaces, views, and problems
+
+**Technical Decisions:**
+1. **Short URL Prefixes**: Used `/w/`, `/v/`, `/p/` for brevity while maintaining readability
+2. **Optional Segments**: All URL segments are optional, allowing flexible navigation patterns
+3. **State-Driven Navigation**: URL updates when state changes via UI interactions
+4. **URL-Driven State**: State updates when URL changes (browser navigation, direct links)
+5. **Error Recovery**: Invalid IDs automatically redirect to valid defaults instead of showing errors
+
+**Files Modified:**
+- `frontend/src/App.tsx` - Refactored routing, added URL parameter reading and state synchronization
+- `frontend/src/components/ProblemsList.tsx` - Updated to read from new route structure, updated URL generation
+- `frontend/src/App.test.tsx` - Added comprehensive URL routing tests
+- `frontend/src/components/ProblemsList.test.tsx` - Added URL and problem link tests
+
+**Testing:**
+- Added comprehensive test coverage:
+  - URL routing with different patterns (`/w/{workspaceId}`, `/w/{workspaceId}/v/{viewId}`, full path)
+  - URL parameter reading and state synchronization
+  - Error handling for invalid IDs
+  - URL generation for problem links
+  - Navigation behavior
+- All tests passing
+
+**Backward Compatibility:**
+- Old URLs with format `/{problemId}` are not supported (as per requirements)
+- All new URLs use the hierarchical structure
+
+---
+

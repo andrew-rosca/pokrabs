@@ -2594,5 +2594,112 @@ describe('ProblemsList', () => {
       });
     });
   });
+
+  describe('URL Routing and Problem Links', () => {
+    const mockProblem1: Problem = {
+      id: 'i0',
+      idPath: 'i0',
+      problem: JSON.stringify({ summary: 'Problem 1', detail: 'Detail 1' }),
+      objective: JSON.stringify({ summary: 'Objective 1', detail: 'Detail 1' }),
+      keyResults: JSON.stringify(['KR1']),
+      actions: JSON.stringify(['Action 1']),
+      blockers: JSON.stringify([]),
+      status: Status.NotStarted,
+      votes: 0,
+      priority: 0,
+      labels: [],
+      parentId: null,
+      workspaceId,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    const mockProblem2: Problem = {
+      id: 'i5',
+      idPath: 'i0-i5',
+      problem: JSON.stringify({ summary: 'Problem 2', detail: 'Detail 2' }),
+      objective: JSON.stringify({ summary: 'Objective 2', detail: 'Detail 2' }),
+      keyResults: JSON.stringify(['KR2']),
+      actions: JSON.stringify(['Action 2']),
+      blockers: JSON.stringify([]),
+      status: Status.InProgress,
+      votes: 0,
+      priority: 10,
+      labels: [],
+      parentId: 'i0',
+      workspaceId,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    beforeEach(() => {
+      mockFetchProblems.mockResolvedValue([mockProblem1, mockProblem2]);
+    });
+
+    it('should read problemId from URL /w/{workspaceId}/v/{viewId}/p/{problemId}', async () => {
+      const { container } = renderWithRouter(
+        <MemoryRouter initialEntries={['/w/workspace-1/v/view-1/p/i0']}>
+          <ProblemsList workspaceId={workspaceId} />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(mockFetchProblems).toHaveBeenCalled();
+      });
+
+      // Problem should be visible and expanded
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+    });
+
+    it('should generate correct URL format when copying problem link', async () => {
+      const user = userEvent.setup();
+      const writeTextSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+      renderWithRouter(
+        <MemoryRouter initialEntries={['/w/workspace-1/v/view-1']}>
+          <ProblemsList workspaceId={workspaceId} />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('i0')).toBeInTheDocument();
+      });
+
+      // Find and click the problem ID to copy URL
+      const problemIdElement = screen.getByText('i0').closest('.id-path.clickable');
+      if (problemIdElement) {
+        await user.click(problemIdElement);
+
+        await waitFor(() => {
+          expect(writeTextSpy).toHaveBeenCalled();
+        });
+
+        // Verify URL format
+        const copiedUrl = writeTextSpy.mock.calls[0][0];
+        expect(copiedUrl).toMatch(/\/w\/workspace-1\/v\/view-1\/p\/i0/);
+      }
+
+      writeTextSpy.mockRestore();
+    });
+
+    it('should handle invalid problemId in URL', async () => {
+      renderWithRouter(
+        <MemoryRouter initialEntries={['/w/workspace-1/v/view-1/p/invalid-problem']}>
+          <ProblemsList workspaceId={workspaceId} />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(mockFetchProblems).toHaveBeenCalled();
+      });
+
+      // Should still render the problems list (problem segment will be cleared)
+      await waitFor(() => {
+        expect(screen.getByText('Problem 1')).toBeInTheDocument();
+      });
+    });
+  });
 });
 

@@ -5,8 +5,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import App from './App';
-import { fetchWorkspaces, fetchProblems, fetchViews, createView, updateView } from './services/api';
+import { fetchWorkspaces, fetchProblems, fetchViews, createView, updateView, useWorkspace } from './services/api';
 
 // Mock the API service
 vi.mock('./services/api', () => ({
@@ -351,6 +352,149 @@ describe('App', () => {
 
       consoleErrorSpy.mockRestore();
       alertSpy.mockRestore();
+    });
+  });
+
+  describe('URL Routing', () => {
+    const mockWorkspace1 = {
+      id: 'workspace-1',
+      name: 'Workspace 1',
+      createdAt: '2024-01-01T00:00:00Z',
+      lastUsedAt: '2024-01-01T00:00:00Z',
+    };
+
+    const mockWorkspace2 = {
+      id: 'workspace-2',
+      name: 'Workspace 2',
+      createdAt: '2024-01-01T00:00:00Z',
+      lastUsedAt: '2024-01-01T00:00:00Z',
+    };
+
+    const mockDefaultView = {
+      id: 'default-view',
+      workspaceId: 'workspace-1',
+      name: 'Default View',
+      filters: {
+        selectedStatuses: ['Actionable', 'In Progress', 'Blocked', 'Resolved'],
+        selectedLabels: [],
+      },
+      lastUsedAt: '2024-01-01T00:00:00Z',
+      isDefault: true,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    const mockView2 = {
+      id: 'view-2',
+      workspaceId: 'workspace-1',
+      name: 'View 2',
+      filters: {
+        selectedStatuses: ['Actionable'],
+        selectedLabels: [],
+      },
+      lastUsedAt: '2024-01-01T00:00:00Z',
+      isDefault: false,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    beforeEach(() => {
+      mockFetchProblems.mockResolvedValue([]);
+    });
+
+    it('should load workspace from URL /w/{workspaceId}', async () => {
+      mockFetchWorkspaces.mockResolvedValue([mockWorkspace1]);
+      mockFetchViews.mockResolvedValue([mockDefaultView]);
+
+      render(
+        <MemoryRouter initialEntries={['/w/workspace-1']}>
+          <App />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Workspace 1')).toBeInTheDocument();
+      });
+
+      expect(mockFetchWorkspaces).toHaveBeenCalled();
+      expect(mockFetchViews).toHaveBeenCalledWith('workspace-1');
+    });
+
+    it('should load workspace and view from URL /w/{workspaceId}/v/{viewId}', async () => {
+      mockFetchWorkspaces.mockResolvedValue([mockWorkspace1]);
+      mockFetchViews.mockResolvedValue([mockDefaultView, mockView2]);
+
+      render(
+        <MemoryRouter initialEntries={['/w/workspace-1/v/view-2']}>
+          <App />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Workspace 1')).toBeInTheDocument();
+      });
+
+      expect(mockFetchViews).toHaveBeenCalledWith('workspace-1');
+    });
+
+    it('should handle invalid workspaceId in URL', async () => {
+      mockFetchWorkspaces.mockResolvedValue([mockWorkspace1]);
+      mockFetchViews.mockResolvedValue([mockDefaultView]);
+
+      render(
+        <MemoryRouter initialEntries={['/w/invalid-workspace']}>
+          <App />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(mockFetchWorkspaces).toHaveBeenCalled();
+      });
+
+      // Should eventually load the first available workspace
+      await waitFor(() => {
+        expect(screen.getByText('Workspace 1')).toBeInTheDocument();
+      }, { timeout: 3000 });
+    });
+
+    it('should handle invalid viewId in URL', async () => {
+      mockFetchWorkspaces.mockResolvedValue([mockWorkspace1]);
+      mockFetchViews.mockResolvedValue([mockDefaultView]);
+
+      render(
+        <MemoryRouter initialEntries={['/w/workspace-1/v/invalid-view']}>
+          <App />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(mockFetchViews).toHaveBeenCalled();
+      });
+
+      // Should eventually show the workspace (default view will be selected)
+      await waitFor(() => {
+        expect(screen.getByText('Workspace 1')).toBeInTheDocument();
+      }, { timeout: 3000 });
+    });
+
+    it('should auto-select default view when only workspaceId is in URL', async () => {
+      mockFetchWorkspaces.mockResolvedValue([mockWorkspace1]);
+      mockFetchViews.mockResolvedValue([mockDefaultView]);
+
+      render(
+        <MemoryRouter initialEntries={['/w/workspace-1']}>
+          <App />
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(mockFetchViews).toHaveBeenCalled();
+      });
+
+      // Should show the workspace
+      await waitFor(() => {
+        expect(screen.getByText('Workspace 1')).toBeInTheDocument();
+      }, { timeout: 3000 });
     });
   });
 });
