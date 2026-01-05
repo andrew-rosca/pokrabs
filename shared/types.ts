@@ -57,3 +57,31 @@ export interface UpdateProblemRequest {
   labels?: string[];
 }
 
+export interface ViewFilters {
+  selectedStatuses: string[];
+  selectedLabels: string[];
+}
+
+export interface View {
+  id: string;
+  workspaceId: string;
+  name: string;
+  filters: ViewFilters;
+  lastUsedAt: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+}
+
+export interface CreateViewRequest {
+  name: string;
+  filters: ViewFilters;
+  isDefault?: boolean;
+}
+
+export interface UpdateViewRequest {
+  name?: string;
+  filters?: ViewFilters;
+}
+

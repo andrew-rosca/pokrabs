@@ -9,11 +9,14 @@ import { PrismaClient } from '@prisma/client';
 import { getPrismaClient } from '../database/prisma-client';
 import { IWorkspaceRepository } from './workspace-repository';
 import { IProblemRepository } from './problem-repository';
+import { IViewRepository } from './view-repository';
 import { PrismaWorkspaceRepository } from './prisma-workspace-repository';
 import { PrismaProblemRepository } from './prisma-problem-repository';
+import { PrismaViewRepository } from './prisma-view-repository';
 
 let workspaceRepository: IWorkspaceRepository | null = null;
 let problemRepository: IProblemRepository | null = null;
+let viewRepository: IViewRepository | null = null;
 
 /**
  * Get or create Workspace repository instance
@@ -56,10 +59,31 @@ export function getProblemRepository(prisma?: PrismaClient): IProblemRepository 
 }
 
 /**
+ * Get or create View repository instance
+ * 
+ * @param prisma - Optional Prisma client (for testing)
+ * @returns View repository instance
+ */
+export function getViewRepository(prisma?: PrismaClient): IViewRepository {
+  if (prisma) {
+    // For testing: create new instance with provided client
+    return new PrismaViewRepository(prisma);
+  }
+
+  // Production: use singleton pattern
+  if (!viewRepository) {
+    viewRepository = new PrismaViewRepository(getPrismaClient());
+  }
+
+  return viewRepository;
+}
+
+/**
  * Reset repository singletons (for testing)
  */
 export function resetRepositories(): void {
   workspaceRepository = null;
   problemRepository = null;
+  viewRepository = null;
 }
 

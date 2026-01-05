@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import workspacesRouter from './api/workspaces';
 import problemsRouter from './api/problems';
+import viewsRouter from './api/views';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/workspaces', workspacesRouter);
 app.use('/api/problems', problemsRouter);
+app.use('/api/views', viewsRouter);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

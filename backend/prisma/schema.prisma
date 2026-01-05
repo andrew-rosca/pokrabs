@@ -36,6 +36,9 @@ model Workspace {
   /// Related problems
   problems Problem[]
 
+  /// Related views
+  views View[]
+
   @@index([deletedAt])
   @@map("workspaces")
 }
@@ -124,6 +127,49 @@ enum ProblemStatus {
   InProgress @map("In Progress")
   Blocked
   Resolved
+}
+
+/**
+ * Views Table
+ * Saved filter combinations for a workspace.
+ * Each view stores filter state (statuses, labels) and can be quickly switched.
+ */
+model View {
+  /// Unique identifier for the view (UUID)
+  id String @id
+
+  /// Workspace ID (required - every view belongs to a workspace)
+  workspaceId String
+
+  /// View name
+  name String
+
+  /// Filter configuration as JSON: { selectedStatuses: string[], selectedLabels: string[] }
+  filters String @default("{}")
+
+  /// Timestamp when view was last used (for sorting by most recent)
+  lastUsedAt DateTime @default(now())
+
+  /// Whether this is the default view (created at system initialization)
+  isDefault Boolean @default(false)
+
+  /// Timestamp when view was created
+  createdAt DateTime @default(now())
+
+  /// Timestamp when view was last updated
+  updatedAt DateTime @updatedAt
+
+  /// Soft delete timestamp (null means not deleted)
+  deletedAt DateTime?
+
+  /// Relationship to workspace
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([workspaceId, deletedAt])
+  @@index([workspaceId, lastUsedAt])
+  @@map("views")
 }
 
 /**

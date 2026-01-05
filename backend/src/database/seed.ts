@@ -8,8 +8,9 @@
  */
 
 import { getPrismaClient } from './prisma-client';
-import { getWorkspaceRepository, getProblemRepository } from '../models/repository-factory';
+import { getWorkspaceRepository, getProblemRepository, getViewRepository } from '../models/repository-factory';
 import { Status } from '../../../shared/types';
+import { v4 as uuidv4 } from 'uuid';
 
 // Sample data for generating varied problems
 const problemTemplates = [
@@ -129,6 +130,21 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
     });
 
     console.log('Created Default workspace');
+
+    // Create default view for the workspace
+    const viewRepo = getViewRepository(prisma);
+    await viewRepo.create({
+      id: uuidv4(),
+      workspaceId: workspace.id,
+      name: 'Default View',
+      filters: {
+        selectedStatuses: [Status.NotStarted, Status.InProgress, Status.Blocked, Status.Resolved],
+        selectedLabels: [],
+      },
+      isDefault: true,
+    });
+
+    console.log('Created default view');
 
     if (options.large) {
       // Generate large dataset for testing

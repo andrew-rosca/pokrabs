@@ -4,7 +4,7 @@
  * Handles all communication with the backend API.
  */
 
-import { Problem, Workspace } from '../../../shared/types';
+import { Problem, Workspace, View, CreateViewRequest, UpdateViewRequest, ViewFilters } from '../../../shared/types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -193,5 +193,113 @@ export async function reorderProblem(
     throw new Error(errorMessage);
   }
   return response.json();
+}
+
+/**
+ * Fetch all views for a workspace
+ */
+export async function fetchViews(workspaceId: string): Promise<View[]> {
+  const response = await fetch(`${API_URL}/api/views/workspaces/${workspaceId}/views`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch views: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Fetch a single view by ID
+ */
+export async function fetchView(viewId: string): Promise<View> {
+  const response = await fetch(`${API_URL}/api/views/${viewId}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch view: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Create a new view
+ */
+export async function createView(workspaceId: string, view: CreateViewRequest): Promise<View> {
+  const response = await fetch(`${API_URL}/api/views/workspaces/${workspaceId}/views`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(view),
+  });
+  if (!response.ok) {
+    let errorMessage = `Failed to create view: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+}
+
+/**
+ * Update a view
+ */
+export async function updateView(viewId: string, updates: UpdateViewRequest): Promise<View> {
+  const response = await fetch(`${API_URL}/api/views/${viewId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updates),
+  });
+  if (!response.ok) {
+    let errorMessage = `Failed to update view: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+}
+
+/**
+ * Update lastUsedAt timestamp for a view
+ */
+export async function useView(viewId: string): Promise<View> {
+  const response = await fetch(`${API_URL}/api/views/${viewId}/use`, {
+    method: 'PATCH',
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to update view usage: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Delete a view (soft delete)
+ */
+export async function deleteView(viewId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/views/${viewId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    let errorMessage = `Failed to delete view: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
+  }
 }
 

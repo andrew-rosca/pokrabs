@@ -8,7 +8,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Problem, Status, CreateProblemRequest } from '../../../shared/types';
+import { Problem, Status, CreateProblemRequest, ViewFilters } from '../../../shared/types';
 import { fetchProblems, updateProblem, createProblem, deleteProblem, moveProblem } from '../services/api';
 import { SummaryDetailCell } from './SummaryDetailCell';
 import { DeleteButton } from './DeleteButton';
@@ -20,9 +20,16 @@ import { LabelCell } from './LabelCell';
 interface ProblemsListProps {
   workspaceId: string;
   searchQuery?: string;
+  viewFilters?: ViewFilters | null;
+  onFiltersChange?: (filters: ViewFilters) => void;
 }
 
-export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: ProblemsListProps) {
+export function ProblemsList({ 
+  workspaceId, 
+  searchQuery: externalSearchQuery,
+  viewFilters,
+  onFiltersChange,
+}: ProblemsListProps) {
   const { problemId: urlProblemId } = useParams<{ problemId: string }>();
   const navigate = useNavigate();
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -84,8 +91,11 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
     return { labels: true, objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: false };
   });
 
-  // Status filter state - persisted to localStorage
+  // Status filter state - use viewFilters if provided, otherwise fallback to localStorage
   const [selectedStatuses, setSelectedStatuses] = useState<Set<Status>>(() => {
+    if (viewFilters) {
+      return new Set(viewFilters.selectedStatuses as Status[]);
+    }
     const stored = localStorage.getItem('pokrabs-status-filter');
     if (stored) {
       try {
@@ -98,8 +108,11 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
     return new Set([Status.NotStarted, Status.InProgress, Status.Blocked, Status.Resolved]);
   });
 
-  // Label filter state - persisted to localStorage
+  // Label filter state - use viewFilters if provided, otherwise fallback to localStorage
   const [selectedLabels, setSelectedLabels] = useState<Set<string>>(() => {
+    if (viewFilters) {
+      return new Set(viewFilters.selectedLabels);
+    }
     const stored = localStorage.getItem('pokrabs-label-filter');
     if (stored) {
       try {
@@ -112,20 +125,32 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
     return new Set();
   });
 
+  // Sync with viewFilters when they change
+  useEffect(() => {
+    if (viewFilters) {
+      setSelectedStatuses(new Set(viewFilters.selectedStatuses as Status[]));
+      setSelectedLabels(new Set(viewFilters.selectedLabels));
+    }
+  }, [viewFilters]);
+
   // Persist column visibility to localStorage
   useEffect(() => {
     localStorage.setItem('pokrabs-column-visibility', JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
-  // Persist status filter to localStorage
+  // Persist status filter to localStorage (only when not using viewFilters)
   useEffect(() => {
-    localStorage.setItem('pokrabs-status-filter', JSON.stringify(Array.from(selectedStatuses)));
-  }, [selectedStatuses]);
+    if (!viewFilters) {
+      localStorage.setItem('pokrabs-status-filter', JSON.stringify(Array.from(selectedStatuses)));
+    }
+  }, [selectedStatuses, viewFilters]);
 
-  // Persist label filter to localStorage
+  // Persist label filter to localStorage (only when not using viewFilters)
   useEffect(() => {
-    localStorage.setItem('pokrabs-label-filter', JSON.stringify(Array.from(selectedLabels)));
-  }, [selectedLabels]);
+    if (!viewFilters) {
+      localStorage.setItem('pokrabs-label-filter', JSON.stringify(Array.from(selectedLabels)));
+    }
+  }, [selectedLabels, viewFilters]);
 
   // Toggle column visibility
   const toggleColumn = (column: keyof typeof visibleColumns) => {
@@ -135,11 +160,23 @@ export function ProblemsList({ workspaceId, searchQuery: externalSearchQuery }: 
   // Handle status filter change
   const handleStatusFilterChange = (statuses: Set<Status>) => {
     setSelectedStatuses(statuses);
+    if (onFiltersChange) {
+      onFiltersChange({
+        selectedStatuses: Array.from(statuses),
+        selectedLabels: Array.from(selectedLabels),
+      });
+    }
   };
 
   // Handle label filter change
   const handleLabelFilterChange = (labels: Set<string>) => {
     setSelectedLabels(labels);
+    if (onFiltersChange) {
+      onFiltersChange({
+        selectedStatuses: Array.from(selectedStatuses),
+        selectedLabels: Array.from(labels),
+      });
+    }
   };
 
   // Auto-select the position input field when it opens

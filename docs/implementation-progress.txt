@@ -1950,3 +1950,121 @@ Created comprehensive test coverage for the status filter feature:
 
 ---
 
+## 2026-01-05 - Views Feature Implementation
+
+**Feature:** Save and switch between filter combinations as views.
+
+**Implementation:**
+Created a comprehensive views system that allows users to save filter combinations and quickly switch between different perspectives of the problem table.
+
+**Backend Implementation:**
+
+1. **Database Schema:**
+   - Added `View` model to Prisma schema with fields:
+     - `id` (UUID), `workspaceId`, `name`, `filters` (JSON), `lastUsedAt`, `isDefault`, timestamps
+   - Created migration `20260105112205_add_views_table`
+   - Views are workspace-scoped (each workspace has its own views)
+
+2. **Repository Layer:**
+   - Created `IViewRepository` interface and `PrismaViewRepository` implementation
+   - Methods: `create`, `findById`, `findByWorkspaceId`, `findDefaultByWorkspaceId`, `update`, `updateLastUsedAt`, `softDelete`
+   - Views sorted by `lastUsedAt` descending (most recently used first)
+
+3. **API Endpoints:**
+   - `GET /api/views/workspaces/:workspaceId/views` - List all views for a workspace
+   - `POST /api/views/workspaces/:workspaceId/views` - Create a new view
+   - `GET /api/views/:id` - Get a view by ID
+   - `PATCH /api/views/:id` - Update a view (name or filters)
+   - `PATCH /api/views/:id/use` - Update lastUsedAt timestamp
+   - `DELETE /api/views/:id` - Soft delete a view (cannot delete default view)
+
+4. **Seeding:**
+   - Updated seed script to create a default view for each workspace
+   - Default view has no filters (shows all problems with all statuses)
+
+**Frontend Implementation:**
+
+1. **Types:**
+   - Added `View`, `ViewFilters`, `CreateViewRequest`, `UpdateViewRequest` to `shared/types.ts`
+
+2. **API Functions:**
+   - Added view API functions to `frontend/src/services/api.ts`:
+     - `fetchViews`, `fetchView`, `createView`, `updateView`, `useView`, `deleteView`
+
+3. **ViewSelector Component:**
+   - Created `ViewSelector` component with:
+     - Dropdown button showing current view name
+     - Search input to filter views by name
+     - Recent views section (top 3 most recently used)
+     - All views section (remaining views)
+     - Context menu for each view (right-click or menu button):
+       - Rename (inline editing)
+       - Delete (cannot delete default view)
+     - Portal-based rendering for proper z-index handling
+     - Click-outside-to-close behavior
+
+4. **App Integration:**
+   - Added view management state in `App.tsx`
+   - ViewSelector displayed next to workspace name in header
+   - "Save" and "Save As..." links appear when filters have unsaved changes
+   - Save As opens a modal dialog (replaces unsupported `window.prompt()`)
+   - Modal dialog with:
+     - Input field for view name
+     - Cancel and Save buttons
+     - Keyboard support (Enter to save, Escape to cancel)
+     - Auto-focus and text selection
+
+5. **ProblemsList Integration:**
+   - Updated to accept `viewFilters` and `onFiltersChange` props
+   - Uses view filters when provided, falls back to localStorage when not
+   - Calls `onFiltersChange` when filters are modified
+   - Maintains backward compatibility (localStorage persistence when no views)
+
+**User Experience:**
+- Default view created automatically for each workspace
+- View dropdown shows 3 most recently used views at top
+- Search functionality to quickly find views
+- Context menu for rename/delete operations
+- Save/Save As links appear when filters differ from current view
+- Save overwrites current view, Save As creates new view
+- Newly created view is automatically selected
+- View usage tracked (lastUsedAt updated on selection)
+
+**Technical Decisions:**
+1. **Modal Dialog Instead of Prompt**: Replaced `window.prompt()` with custom modal dialog using React Portal for better UX and browser compatibility
+2. **Backward Compatibility**: ProblemsList still persists to localStorage when viewFilters not provided, ensuring existing tests pass
+3. **View Usage Tracking**: Updates `lastUsedAt` when view is selected to enable "recent views" sorting
+4. **Default View Protection**: Cannot delete the default view to ensure there's always at least one view
+
+**Files Created:**
+- `backend/src/models/view-repository.ts` - View repository interface
+- `backend/src/models/prisma-view-repository.ts` - Prisma implementation
+- `backend/src/api/views.ts` - Views API endpoints
+- `frontend/src/components/ViewSelector.tsx` - View selector dropdown component
+
+**Files Modified:**
+- `backend/prisma/schema.prisma` - Added View model
+- `backend/src/models/repository-factory.ts` - Added getViewRepository
+- `backend/src/index.ts` - Added views router
+- `backend/src/database/seed.ts` - Create default view on seeding
+- `shared/types.ts` - Added View types
+- `frontend/src/services/api.ts` - Added view API functions
+- `frontend/src/App.tsx` - Added view management and Save As dialog
+- `frontend/src/components/ProblemsList.tsx` - Integrated with views
+
+**Testing:**
+- Created comprehensive test suite for Save As functionality in `App.test.tsx`:
+  - Save As link visibility
+  - Prompt behavior (now modal dialog)
+  - View creation with correct parameters
+  - Edge cases (cancelled, empty name, whitespace trimming)
+  - Error handling
+  - State updates after Save As
+- All 208 tests passing (12 App tests + 196 other tests)
+
+**Migration:**
+- Created and applied migration `20260105112205_add_views_table`
+- Default view created automatically for existing workspaces via seed script
+
+---
+
