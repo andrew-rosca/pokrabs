@@ -20,6 +20,95 @@ export async function fetchWorkspaces(): Promise<Workspace[]> {
 }
 
 /**
+ * Create a new workspace
+ */
+export async function createWorkspace(name: string): Promise<Workspace> {
+  const response = await fetch(`${API_URL}/api/workspaces`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) {
+    let errorMessage = `Failed to create workspace: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // If response is not JSON, use the status text
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+}
+
+/**
+ * Update a workspace
+ */
+export async function updateWorkspace(
+  workspaceId: string,
+  updates: { name?: string }
+): Promise<Workspace> {
+  const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updates),
+  });
+  if (!response.ok) {
+    let errorMessage = `Failed to update workspace: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+}
+
+/**
+ * Update lastUsedAt timestamp for a workspace
+ */
+export async function useWorkspace(workspaceId: string): Promise<Workspace> {
+  const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}/use`, {
+    method: 'PATCH',
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to update workspace usage: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Delete a workspace (soft delete)
+ */
+export async function deleteWorkspace(workspaceId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    let errorMessage = `Failed to delete workspace: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
+  }
+}
+
+/**
  * Fetch all problems for a workspace
  */
 export async function fetchProblems(workspaceId: string): Promise<Problem[]> {

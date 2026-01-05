@@ -29,6 +29,11 @@ export interface IWorkspaceRepository {
   update(id: string, data: { name?: string }): Promise<Workspace>;
 
   /**
+   * Update lastUsedAt timestamp for a workspace
+   */
+  updateLastUsedAt(id: string): Promise<void>;
+
+  /**
    * Soft delete a workspace (sets deletedAt timestamp)
    */
   softDelete(id: string): Promise<void>;

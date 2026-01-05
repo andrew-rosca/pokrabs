@@ -2,10 +2,11 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Workspace, View, ViewFilters } from '../../../shared/types';
-import { fetchWorkspaces, fetchViews, createView, updateView } from './services/api';
+import { fetchWorkspaces, fetchViews, createView, updateView, useWorkspace } from './services/api';
 import { ProblemsList } from './components/ProblemsList';
 import { ThemeToggle } from './components/ThemeToggle';
 import { ViewSelector } from './components/ViewSelector';
+import { WorkspaceSelector } from './components/WorkspaceSelector';
 
 function App() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -198,6 +199,52 @@ function App() {
     }
   };
 
+  const handleWorkspaceSelect = async (workspaceId: string) => {
+    // Update lastUsedAt
+    try {
+      await useWorkspace(workspaceId);
+    } catch (error) {
+      console.error('Failed to update workspace usage:', error);
+    }
+    
+    setSelectedWorkspaceId(workspaceId);
+    // Views will be reloaded by the useEffect that depends on selectedWorkspaceId
+  };
+
+  const handleWorkspaceCreated = async () => {
+    // Reload workspaces list
+    try {
+      const data = await fetchWorkspaces();
+      setWorkspaces(data);
+    } catch (err) {
+      console.error('Failed to reload workspaces:', err);
+    }
+  };
+
+  const handleWorkspaceDeleted = async () => {
+    // Reload workspaces list
+    try {
+      const data = await fetchWorkspaces();
+      setWorkspaces(data);
+      // If current workspace was deleted, select first available
+      if (data.length > 0 && !data.find(w => w.id === selectedWorkspaceId)) {
+        setSelectedWorkspaceId(data[0].id);
+      }
+    } catch (err) {
+      console.error('Failed to reload workspaces:', err);
+    }
+  };
+
+  const handleWorkspaceRenamed = async () => {
+    // Reload workspaces list
+    try {
+      const data = await fetchWorkspaces();
+      setWorkspaces(data);
+    } catch (err) {
+      console.error('Failed to reload workspaces:', err);
+    }
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -210,7 +257,6 @@ function App() {
     return <div>No workspaces found. Please seed the database.</div>;
   }
 
-  const selectedWorkspace = workspaces.find(w => w.id === selectedWorkspaceId);
 
   return (
     <BrowserRouter
@@ -222,7 +268,14 @@ function App() {
       <div className="app">
         <header className="app-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <h1 className="app-title">{selectedWorkspace?.name || 'POKRABS'}</h1>
+            <WorkspaceSelector
+              workspaces={workspaces}
+              selectedWorkspaceId={selectedWorkspaceId}
+              onWorkspaceSelect={handleWorkspaceSelect}
+              onWorkspaceCreated={handleWorkspaceCreated}
+              onWorkspaceDeleted={handleWorkspaceDeleted}
+              onWorkspaceRenamed={handleWorkspaceRenamed}
+            />
             {selectedWorkspaceId && (
               <>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>|</span>

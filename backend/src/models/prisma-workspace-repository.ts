@@ -20,7 +20,7 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
       },
     });
 
-    return this.mapToWorkspace(workspace);
+    return this.mapToWorkspace(workspace as any);
   }
 
   async findById(id: string): Promise<Workspace | null> {
@@ -31,7 +31,7 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
       },
     });
 
-    return workspace ? this.mapToWorkspace(workspace) : null;
+    return workspace ? this.mapToWorkspace(workspace as any) : null;
   }
 
   async findAll(): Promise<Workspace[]> {
@@ -40,11 +40,11 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
         deletedAt: null, // Exclude soft-deleted
       },
       orderBy: {
-        createdAt: 'desc',
-      },
+        lastUsedAt: 'desc', // Most recently used first
+      } as any,
     });
 
-    return workspaces.map(this.mapToWorkspace);
+    return workspaces.map((w: any) => this.mapToWorkspace(w));
   }
 
   async update(id: string, data: { name?: string }): Promise<Workspace> {
@@ -55,7 +55,16 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
       },
     });
 
-    return this.mapToWorkspace(workspace);
+    return this.mapToWorkspace(workspace as any);
+  }
+
+  async updateLastUsedAt(id: string): Promise<void> {
+    await this.prisma.workspace.update({
+      where: { id },
+      data: {
+        lastUsedAt: new Date(),
+      } as any,
+    });
   }
 
   async softDelete(id: string): Promise<void> {
@@ -74,12 +83,14 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
     id: string;
     name: string;
     createdAt: Date;
+    lastUsedAt: Date;
     deletedAt: Date | null;
   }): Workspace {
     return {
       id: workspace.id,
       name: workspace.name,
       createdAt: workspace.createdAt.toISOString(),
+      lastUsedAt: workspace.lastUsedAt.toISOString(),
       deletedAt: workspace.deletedAt?.toISOString() ?? null,
     };
   }

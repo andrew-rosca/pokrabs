@@ -2068,3 +2068,129 @@ Created a comprehensive views system that allows users to save filter combinatio
 
 ---
 
+## Workspace Management Feature (2026-01-05)
+
+**Overview:**
+Implemented comprehensive workspace management functionality that mirrors the view management system. Users can now click the workspace name in the top-left header to open a dialog for selecting, creating, renaming, and deleting workspaces.
+
+**Backend Implementation:**
+
+1. **Database Schema:**
+   - Added `lastUsedAt DateTime @default(now())` field to Workspace model
+   - Created migration `20260105063708_add_workspace_last_used_at`
+   - Added index on `lastUsedAt` for efficient sorting
+
+2. **Repository Layer:**
+   - Added `updateLastUsedAt(id: string)` method to `IWorkspaceRepository` interface
+   - Implemented `updateLastUsedAt()` in `PrismaWorkspaceRepository`
+   - Updated `mapToWorkspace()` to include `lastUsedAt` field
+   - Modified `findAll()` to order by `lastUsedAt` descending (most recently used first)
+
+3. **API Endpoints:**
+   - `PATCH /api/workspaces/:id` - Update workspace name
+     - Validates name is non-empty string
+     - Trims whitespace
+     - Returns 404 for non-existent workspace
+   - `PATCH /api/workspaces/:id/use` - Update `lastUsedAt` timestamp
+     - Similar to views `/use` endpoint
+     - Returns updated workspace
+   - `DELETE /api/workspaces/:id` - Soft delete workspace
+     - Prevents deleting the last workspace (validation)
+     - Returns 404 for non-existent workspace
+   - `POST /api/workspaces` - Enhanced to automatically create default "All Problems" view
+     - Creates default view with all statuses selected when workspace is created
+
+4. **Default View Creation:**
+   - When a new workspace is created, automatically creates a default "All Problems" view
+   - View has `isDefault: true` and includes all statuses (Actionable, In Progress, Blocked, Resolved)
+   - Ensures every workspace has at least one view for immediate use
+
+**Frontend Implementation:**
+
+1. **API Functions:**
+   - Added `createWorkspace(name: string)` - Create new workspace
+   - Added `updateWorkspace(workspaceId: string, updates: { name?: string })` - Update workspace
+   - Added `useWorkspace(workspaceId: string)` - Update lastUsedAt
+   - Added `deleteWorkspace(workspaceId: string)` - Soft delete workspace
+
+2. **WorkspaceSelector Component:**
+   - Created `WorkspaceSelector` component based on `ViewSelector`
+   - Features:
+     - Clickable workspace name in header (replaces static `<h1>`)
+     - Search functionality to filter workspaces by name
+     - Recent workspaces section (top 3 most recently used, sorted by `lastUsedAt`)
+     - All workspaces section (remaining workspaces)
+     - Context menu for each workspace (rename, delete)
+     - **"Create Workspace" button** at top of dropdown (key difference from ViewSelector)
+     - Inline rename functionality
+     - Portal-based rendering for proper z-index
+     - Click-outside-to-close behavior
+   - Key differences from ViewSelector:
+     - No `isDefault` check (workspaces don't have default concept)
+     - Create Workspace functionality integrated into dropdown
+     - Calls `useWorkspace()` when workspace is selected to update `lastUsedAt`
+
+3. **App Integration:**
+   - Replaced static workspace name display with `WorkspaceSelector` component
+   - Added workspace management handlers:
+     - `handleWorkspaceSelect()` - Updates lastUsedAt and switches workspace
+     - `handleWorkspaceCreated()` - Reloads workspaces list after creation
+     - `handleWorkspaceDeleted()` - Reloads workspaces and handles selection
+     - `handleWorkspaceRenamed()` - Reloads workspaces list after rename
+   - When workspace changes:
+     - Updates `lastUsedAt` via `useWorkspace()` API call
+     - Automatically reloads views for the new workspace
+     - Resets view selection to default view
+
+4. **ProblemsList Enhancement:**
+   - Fixed issue where empty problem list didn't show table header
+   - Table header (with "+" button for adding problems) now always visible
+   - Allows users to add problems even when workspace is empty
+
+**User Experience:**
+- Click workspace name to open management dialog
+- Create new workspace directly from dropdown
+- Search workspaces by name
+- See 3 most recently used workspaces at top
+- Rename workspaces inline
+- Delete workspaces (with protection for last workspace)
+- Workspace usage tracked (lastUsedAt updated on selection)
+- Default "All Problems" view automatically created for new workspaces
+- Table header always visible, even with empty problem list
+
+**Technical Decisions:**
+1. **Reused ViewSelector Pattern**: Leveraged existing ViewSelector component structure for consistency
+2. **Create Workspace in Dropdown**: Integrated creation into selector rather than separate flow
+3. **Last Used Tracking**: Similar to views, tracks workspace usage for "recent" sorting
+4. **Default View Auto-Creation**: Ensures every workspace has at least one view immediately
+5. **Empty State Handling**: Always show table header to enable problem creation
+
+**Files Created:**
+- `frontend/src/components/WorkspaceSelector.tsx` - Workspace selector dropdown component
+- `backend/prisma/migrations/20260105063708_add_workspace_last_used_at/migration.sql` - Migration file
+
+**Files Modified:**
+- `backend/prisma/schema.prisma` - Added lastUsedAt to Workspace model
+- `backend/src/models/workspace-repository.ts` - Added updateLastUsedAt method
+- `backend/src/models/prisma-workspace-repository.ts` - Implemented updateLastUsedAt and updated mapping
+- `backend/src/api/workspaces.ts` - Added PATCH and DELETE endpoints, auto-create default view
+- `shared/types.ts` - Added lastUsedAt to Workspace interface
+- `frontend/src/services/api.ts` - Added workspace CRUD functions
+- `frontend/src/App.tsx` - Integrated WorkspaceSelector and workspace management
+- `frontend/src/components/ProblemsList.tsx` - Fixed empty state to always show header
+
+**Testing:**
+- Added comprehensive test suite in `backend/src/api/workspaces.test.ts`:
+  - PATCH /api/workspaces/:id - Update workspace name (5 tests)
+  - PATCH /api/workspaces/:id/use - Update lastUsedAt (3 tests)
+  - DELETE /api/workspaces/:id - Soft delete workspace (4 tests)
+  - Default view creation on workspace creation (1 test)
+- All 129 tests passing (34 workspace tests + 95 other tests)
+
+**Migration:**
+- Created migration `20260105063708_add_workspace_last_used_at`
+- Applied using `prisma db push` for development
+- Existing workspaces automatically get `lastUsedAt` set to `createdAt` via default value
+
+---
+

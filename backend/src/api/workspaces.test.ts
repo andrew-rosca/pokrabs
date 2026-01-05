@@ -7,7 +7,7 @@ import request from 'supertest';
 import express from 'express';
 import workspacesRouter from './workspaces';
 import { setupTestDatabase, cleanupTestDatabase } from '../test-helpers/database';
-import { getWorkspaceRepository, getProblemRepository } from '../models/repository-factory';
+import { getWorkspaceRepository, getProblemRepository, getViewRepository } from '../models/repository-factory';
 import { PrismaClient } from '@prisma/client';
 import { Status } from '../../../shared/types';
 import { resetIdCounter } from '../utils/id-generator';
@@ -144,6 +144,30 @@ describe('Workspaces API', () => {
       
       expect(response.status).toBe(201);
       expect(response.body.name).toBe('Trimmed Workspace');
+    });
+
+    it('should create default "All Problems" view when workspace is created', async () => {
+      const response = await request(app)
+        .post('/api/workspaces')
+        .send({ name: 'New Workspace' });
+      
+      expect(response.status).toBe(201);
+      const workspaceId = response.body.id;
+
+      // Check that default view was created
+      const viewRepo = getViewRepository(prisma);
+      const views = await viewRepo.findByWorkspaceId(workspaceId);
+      
+      expect(views).toHaveLength(1);
+      expect(views[0].name).toBe('All Problems');
+      expect(views[0].isDefault).toBe(true);
+      expect(views[0].filters.selectedStatuses).toEqual([
+        Status.NotStarted,
+        Status.InProgress,
+        Status.Blocked,
+        Status.Resolved,
+      ]);
+      expect(views[0].filters.selectedLabels).toEqual([]);
     });
   });
 
@@ -328,6 +352,178 @@ describe('Workspaces API', () => {
       
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid status value');
+    });
+  });
+
+  describe('PATCH /api/workspaces/:id', () => {
+    it('should update workspace name', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      const workspace = await repo.create({ id: 'workspace-1', name: 'Original Name' });
+
+      const response = await request(app)
+        .patch(`/api/workspaces/${workspace.id}`)
+        .send({ name: 'Updated Name' });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.id).toBe(workspace.id);
+      expect(response.body.name).toBe('Updated Name');
+    });
+
+    it('should trim workspace name when updating', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      const workspace = await repo.create({ id: 'workspace-1', name: 'Original Name' });
+
+      const response = await request(app)
+        .patch(`/api/workspaces/${workspace.id}`)
+        .send({ name: '  Trimmed Name  ' });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.name).toBe('Trimmed Name');
+    });
+
+    it('should return 404 for non-existent workspace', async () => {
+      const response = await request(app)
+        .patch('/api/workspaces/non-existent')
+        .send({ name: 'New Name' });
+      
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Workspace not found');
+    });
+
+    it('should return 400 when name is empty string', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      const workspace = await repo.create({ id: 'workspace-1', name: 'Original Name' });
+
+      const response = await request(app)
+        .patch(`/api/workspaces/${workspace.id}`)
+        .send({ name: '   ' });
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Workspace name must be a non-empty string');
+    });
+
+    it('should return 404 for soft-deleted workspace', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      const workspace = await repo.create({ id: 'workspace-1', name: 'Original Name' });
+      await repo.softDelete(workspace.id);
+
+      const response = await request(app)
+        .patch(`/api/workspaces/${workspace.id}`)
+        .send({ name: 'New Name' });
+      
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Workspace not found');
+    });
+  });
+
+  describe('PATCH /api/workspaces/:id/use', () => {
+    it('should update lastUsedAt timestamp', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      const workspace = await repo.create({ id: 'workspace-1', name: 'Test Workspace' });
+      
+      // Get initial lastUsedAt
+      const initial = await repo.findById(workspace.id);
+      const initialLastUsedAt = initial!.lastUsedAt;
+
+      // Wait a bit to ensure timestamp difference
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const response = await request(app)
+        .patch(`/api/workspaces/${workspace.id}/use`);
+      
+      expect(response.status).toBe(200);
+      expect(response.body.id).toBe(workspace.id);
+      
+      // Verify lastUsedAt was updated
+      const updated = await repo.findById(workspace.id);
+      expect(updated!.lastUsedAt).not.toBe(initialLastUsedAt);
+      expect(new Date(updated!.lastUsedAt).getTime()).toBeGreaterThan(new Date(initialLastUsedAt).getTime());
+    });
+
+    it('should return 404 for non-existent workspace', async () => {
+      const response = await request(app)
+        .patch('/api/workspaces/non-existent/use');
+      
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Workspace not found');
+    });
+
+    it('should return 404 for soft-deleted workspace', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      const workspace = await repo.create({ id: 'workspace-1', name: 'Test Workspace' });
+      await repo.softDelete(workspace.id);
+
+      const response = await request(app)
+        .patch(`/api/workspaces/${workspace.id}/use`);
+      
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Workspace not found');
+    });
+  });
+
+  describe('DELETE /api/workspaces/:id', () => {
+    it('should soft delete a workspace', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      const workspace1 = await repo.create({ id: 'workspace-1', name: 'Workspace 1' });
+      await repo.create({ id: 'workspace-2', name: 'Workspace 2' });
+
+      const response = await request(app)
+        .delete(`/api/workspaces/${workspace1.id}`);
+      
+      expect(response.status).toBe(204);
+
+      // Verify workspace is soft-deleted (not in findAll)
+      const allWorkspaces = await repo.findAll();
+      expect(allWorkspaces).toHaveLength(1);
+      expect(allWorkspaces[0].id).toBe('workspace-2');
+
+      // Verify workspace still exists in database but is marked as deleted
+      const deleted = await prisma.workspace.findUnique({ where: { id: workspace1.id } });
+      expect(deleted).toBeDefined();
+      expect(deleted!.deletedAt).not.toBeNull();
+    });
+
+    it('should return 404 for non-existent workspace', async () => {
+      const response = await request(app)
+        .delete('/api/workspaces/non-existent');
+      
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Workspace not found');
+    });
+
+    it('should prevent deleting the last workspace', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      const workspace = await repo.create({ id: 'workspace-1', name: 'Last Workspace' });
+
+      const response = await request(app)
+        .delete(`/api/workspaces/${workspace.id}`);
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Cannot delete the last workspace');
+
+      // Verify workspace still exists
+      const allWorkspaces = await repo.findAll();
+      expect(allWorkspaces).toHaveLength(1);
+      expect(allWorkspaces[0].id).toBe(workspace.id);
+    });
+
+    it('should allow deleting when multiple workspaces exist', async () => {
+      const repo = getWorkspaceRepository(prisma);
+      const workspace1 = await repo.create({ id: 'workspace-1', name: 'Workspace 1' });
+      const workspace2 = await repo.create({ id: 'workspace-2', name: 'Workspace 2' });
+      const workspace3 = await repo.create({ id: 'workspace-3', name: 'Workspace 3' });
+
+      const response = await request(app)
+        .delete(`/api/workspaces/${workspace2.id}`);
+      
+      expect(response.status).toBe(204);
+
+      // Verify workspace2 is deleted but others remain
+      const allWorkspaces = await repo.findAll();
+      expect(allWorkspaces).toHaveLength(2);
+      expect(allWorkspaces.map((w: any) => w.id)).toContain('workspace-1');
+      expect(allWorkspaces.map((w: any) => w.id)).toContain('workspace-3');
+      expect(allWorkspaces.map((w: any) => w.id)).not.toContain('workspace-2');
     });
   });
 });

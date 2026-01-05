@@ -30,6 +30,9 @@ model Workspace {
   /// Timestamp when workspace was created
   createdAt DateTime @default(now())
 
+  /// Timestamp when workspace was last used (for sorting by most recent)
+  lastUsedAt DateTime @default(now())
+
   /// Soft delete timestamp (null means not deleted)
   deletedAt DateTime?
 
@@ -40,6 +43,7 @@ model Workspace {
   views View[]
 
   @@index([deletedAt])
+  @@index([lastUsedAt])
   @@map("workspaces")
 }
 

@@ -11,6 +11,7 @@ export interface Workspace {
   id: string;
   name: string;
   createdAt: string;
+  lastUsedAt: string;
   deletedAt?: string | null;
 }
 

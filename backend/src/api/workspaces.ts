@@ -5,7 +5,7 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { getWorkspaceRepository, getProblemRepository } from '../models/repository-factory';
+import { getWorkspaceRepository, getProblemRepository, getViewRepository } from '../models/repository-factory';
 import { v4 as uuidv4 } from 'uuid';
 import { Status } from '../../../shared/types';
 import { PrismaClient } from '@prisma/client';
@@ -28,6 +28,10 @@ const getRepositoryWithPrisma = (req: Request) => {
 
 const getProblemRepositoryWithPrisma = (req: Request) => {
   return req.prisma ? getProblemRepository(req.prisma) : getProblemRepository();
+};
+
+const getViewRepositoryWithPrisma = (req: Request) => {
+  return req.prisma ? getViewRepository(req.prisma) : getViewRepository();
 };
 
 /**
@@ -61,6 +65,19 @@ router.post('/', async (req: Request, res: Response) => {
     const workspace = await repository.create({
       id: uuidv4(),
       name: name.trim(),
+    });
+    
+    // Create default "All Problems" view for the new workspace
+    const viewRepo = getViewRepositoryWithPrisma(req);
+    await viewRepo.create({
+      id: uuidv4(),
+      workspaceId: workspace.id,
+      name: 'All Problems',
+      filters: {
+        selectedStatuses: [Status.NotStarted, Status.InProgress, Status.Blocked, Status.Resolved],
+        selectedLabels: [],
+      },
+      isDefault: true,
     });
     
     res.status(201).json(workspace);
@@ -173,10 +190,103 @@ router.post('/:workspaceId/problems', async (req: Request, res: Response) => {
 });
 
 /**
+ * PATCH /api/workspaces/:id/use
+ * Update lastUsedAt timestamp for a workspace
+ * 
+ * NOTE: This route must come before /:id to avoid route conflicts
+ */
+router.patch('/:id/use', async (req: Request, res: Response) => {
+  try {
+    const repository = getRepositoryWithPrisma(req);
+    
+    // Check if workspace exists
+    const existingWorkspace = await repository.findById(req.params.id);
+    if (!existingWorkspace) {
+      return res.status(404).json({ error: 'Workspace not found' });
+    }
+    
+    await repository.updateLastUsedAt(req.params.id);
+    
+    // Return updated workspace
+    const updated = await repository.findById(req.params.id);
+    res.json(updated);
+  } catch (error: any) {
+    if (error.name === 'PrismaClientKnownRequestError' && error.code === 'P2025') {
+      return res.status(404).json({ error: 'Workspace not found' });
+    }
+    res.status(500).json({ error: 'Failed to update workspace' });
+  }
+});
+
+/**
+ * PATCH /api/workspaces/:id
+ * Update a workspace
+ */
+router.patch('/:id', async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    
+    const repository = getRepositoryWithPrisma(req);
+    
+    // Check if workspace exists
+    const existingWorkspace = await repository.findById(req.params.id);
+    if (!existingWorkspace) {
+      return res.status(404).json({ error: 'Workspace not found' });
+    }
+    
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ error: 'Workspace name must be a non-empty string' });
+      }
+    }
+    
+    const updated = await repository.update(req.params.id, { name: name?.trim() });
+    
+    res.json(updated);
+  } catch (error: any) {
+    if (error.name === 'PrismaClientKnownRequestError' && error.code === 'P2025') {
+      return res.status(404).json({ error: 'Workspace not found' });
+    }
+    res.status(500).json({ error: 'Failed to update workspace' });
+  }
+});
+
+/**
+ * DELETE /api/workspaces/:id
+ * Soft delete a workspace
+ */
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const repository = getRepositoryWithPrisma(req);
+    
+    // Check if workspace exists
+    const existingWorkspace = await repository.findById(req.params.id);
+    if (!existingWorkspace) {
+      return res.status(404).json({ error: 'Workspace not found' });
+    }
+    
+    // Check if this is the only workspace (prevent deleting the last workspace)
+    const allWorkspaces = await repository.findAll();
+    if (allWorkspaces.length === 1) {
+      return res.status(400).json({ error: 'Cannot delete the last workspace' });
+    }
+    
+    await repository.softDelete(req.params.id);
+    
+    res.status(204).send();
+  } catch (error: any) {
+    if (error.name === 'PrismaClientKnownRequestError' && error.code === 'P2025') {
+      return res.status(404).json({ error: 'Workspace not found' });
+    }
+    res.status(500).json({ error: 'Failed to delete workspace' });
+  }
+});
+
+/**
  * GET /api/workspaces/:id
  * Get a workspace by ID
  * 
- * NOTE: This route must come after /:workspaceId/problems to avoid route conflicts
+ * NOTE: This route must come after /:workspaceId/problems and /:id/use to avoid route conflicts
  */
 router.get('/:id', async (req: Request, res: Response) => {
   try {

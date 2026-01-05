@@ -295,10 +295,6 @@ export function ProblemsList({
     return <div className="error">Error: {error}</div>;
   }
 
-  if (problems.length === 0) {
-    return <div className="empty">No problems found.</div>;
-  }
-
   // Format value back to JSON for saving
   const formatFieldForSave = (fieldName: string, value: string): string => {
     // For problem, objective, and list fields (keyResults, actions, blockers),
