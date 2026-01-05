@@ -8,7 +8,7 @@
 import { PrismaClient, ProblemStatus } from '@prisma/client';
 import { IProblemRepository } from './problem-repository';
 import { Problem, Status } from '../../../shared/types';
-import { generateProblemId } from '../utils/id-generator';
+import { generateId } from '../utils/id-generator';
 import { computeIdPath } from '../utils/id-path';
 
 export class PrismaProblemRepository implements IProblemRepository {
@@ -27,7 +27,7 @@ export class PrismaProblemRepository implements IProblemRepository {
     labels?: string[];
   }): Promise<Problem> {
     // Generate unique ID
-    const id = await generateProblemId();
+    const id = await generateId();
 
     // Compute idPath
     const idPath = await computeIdPath(id, data.parentId ?? null, data.workspaceId);

@@ -6,7 +6,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { getWorkspaceRepository, getProblemRepository, getViewRepository } from '../models/repository-factory';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '../utils/id-generator';
 import { Status } from '../../../shared/types';
 import { PrismaClient } from '@prisma/client';
 
@@ -63,14 +63,14 @@ router.post('/', async (req: Request, res: Response) => {
     
     const repository = getRepositoryWithPrisma(req);
     const workspace = await repository.create({
-      id: uuidv4(),
+      id: await generateId(),
       name: name.trim(),
     });
     
     // Create default "All Problems" view for the new workspace
     const viewRepo = getViewRepositoryWithPrisma(req);
     await viewRepo.create({
-      id: uuidv4(),
+      id: await generateId(),
       workspaceId: workspace.id,
       name: 'All Problems',
       filters: {

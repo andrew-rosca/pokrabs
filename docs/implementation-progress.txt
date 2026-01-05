@@ -29,13 +29,14 @@ POKRABS is a web application for hierarchical problem decomposition using the PO
 
 ### ID Generation Strategy
 - **LCG-based**: Linear Congruential Generator traverses ID space non-sequentially
-- **Globally unique**: Single global counter ensures no duplicates across all projects
+- **Globally unique**: Single global counter ensures no duplicates across all entity types (problems, workspaces, views)
 - **Non-sequential**: IDs appear random (e.g., i0, i5, na, xf) but deterministic
 - **Full coverage**: Every ID in space generated exactly once before repeating
 - **Expandable**: Automatically grows to 3-4 characters when space exhausted
 - **O(1) generation**: No database lookups needed - just increment counter and apply LCG
 - **Start offset**: Begins at middle of space (648/1296) for less predictable first IDs
-- **Hierarchical**: Child IDs use same generation; hierarchy maintained via idPath field
+- **Unified system**: All entities (problems, workspaces, views) use the same ID generation mechanism
+- **Hierarchical**: Child problem IDs use same generation; hierarchy maintained via idPath field
 
 ### API Design
 - **RESTful endpoints**: Standard CRUD operations for problems and projects
@@ -2281,3 +2282,64 @@ Implemented hierarchical URL structure with short prefixes that includes workspa
 
 ---
 
+
+## 2026-01-06 - Unified ID Generation for All Entities
+
+**Feature:** Switched workspaces and views from UUID-based IDs to the same LCG-based ID generation system used for problems.
+
+**Overview:**
+Previously, problems used an LCG-based ID generator that produces short, unique base36 IDs (2-4 characters), while workspaces and views used UUIDs. This change unifies all entity types to use the same ID generation mechanism, sharing a global counter for unique IDs across all entity types.
+
+**Changes Made:**
+
+1. **ID Generator Refactoring:**
+   - Renamed `generateProblemId()` to `generateId()` to make it generic
+   - Updated function documentation to reflect usage for all entity types
+   - Updated file header comment to reflect broader usage
+
+2. **API Updates:**
+   - `backend/src/api/workspaces.ts`: Replaced `uuidv4()` with `await generateId()` for workspace and view creation
+   - `backend/src/api/views.ts`: Replaced `uuidv4()` with `await generateId()` for view creation
+   - Removed `uuid` package imports from both files
+
+3. **Repository Updates:**
+   - `backend/src/models/prisma-problem-repository.ts`: Updated to use `generateId()` instead of `generateProblemId()`
+
+4. **Seed Script Updates:**
+   - `backend/src/database/seed.ts`: Replaced `uuidv4()` with `await generateId()` for view creation
+   - Removed `uuid` package import
+
+5. **Test Updates:**
+   - `backend/src/utils/id-generator.test.ts`: Updated all references from `generateProblemId` to `generateId`
+   - Updated test descriptions to reflect generic usage
+
+6. **Schema Documentation:**
+   - Updated Prisma schema comments for Workspace and View models
+   - Changed from "Unique identifier for the workspace/view (UUID)" to "Unique identifier for the workspace/view (2+ chars, e.g., 'a2', 'df', '7f1')"
+
+**Benefits:**
+- Consistent ID format across all entity types
+- Shorter, more readable IDs (2-4 characters vs 36-character UUIDs)
+- Shared global counter ensures uniqueness across all entity types
+- No database migration needed (ID field type remains String)
+
+**Files Modified:**
+- `backend/src/utils/id-generator.ts` - Renamed function and updated documentation
+- `backend/src/models/prisma-problem-repository.ts` - Updated import and usage
+- `backend/src/api/workspaces.ts` - Replaced UUID generation with LCG generator
+- `backend/src/api/views.ts` - Replaced UUID generation with LCG generator
+- `backend/src/database/seed.ts` - Replaced UUID generation with LCG generator
+- `backend/src/utils/id-generator.test.ts` - Updated test references
+- `backend/prisma/schema.prisma` - Updated schema comments
+- `docs/implementation-progress.txt` - Updated ID Generation Strategy section
+
+**Testing:**
+- All existing tests continue to pass
+- ID generator tests updated and passing
+- No linting errors introduced
+
+**Note:**
+- Existing UUIDs in the database remain unchanged (as per user requirement)
+- New workspaces and views will use the LCG-based ID format
+
+---

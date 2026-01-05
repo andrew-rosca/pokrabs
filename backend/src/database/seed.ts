@@ -10,7 +10,7 @@
 import { getPrismaClient } from './prisma-client';
 import { getWorkspaceRepository, getProblemRepository, getViewRepository } from '../models/repository-factory';
 import { Status } from '../../../shared/types';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '../utils/id-generator';
 
 // Sample data for generating varied problems
 const problemTemplates = [
@@ -134,7 +134,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
     // Create default view for the workspace
     const viewRepo = getViewRepository(prisma);
     await viewRepo.create({
-      id: uuidv4(),
+      id: await generateId(),
       workspaceId: workspace.id,
       name: 'All Problems',
       filters: {

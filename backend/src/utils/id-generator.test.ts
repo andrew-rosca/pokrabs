@@ -7,7 +7,7 @@ import {
   calculateSpaceSize,
   numberToBase36,
   lcgNth,
-  generateProblemId,
+  generateId,
   getIdCounterState,
   resetIdCounter
 } from './id-generator';
@@ -174,18 +174,18 @@ describe('ID Generator - Database Integration', () => {
     await cleanupTestDatabase(prisma, databaseUrl);
   });
 
-  describe('generateProblemId', () => {
+  describe('generateId', () => {
     it('should generate a 2-character ID', async () => {
-      const id = await generateProblemId();
+      const id = await generateId();
       
       expect(id).toHaveLength(2);
       expect(id).toMatch(/^[0-9a-z]{2}$/);
     });
 
     it('should generate different IDs on consecutive calls', async () => {
-      const id1 = await generateProblemId();
-      const id2 = await generateProblemId();
-      const id3 = await generateProblemId();
+      const id1 = await generateId();
+      const id2 = await generateId();
+      const id3 = await generateId();
       
       expect(id1).not.toBe(id2);
       expect(id2).not.toBe(id3);
@@ -196,7 +196,7 @@ describe('ID Generator - Database Integration', () => {
       const stateBefore = await getIdCounterState();
       expect(stateBefore.counter).toBe(0);
       
-      await generateProblemId();
+      await generateId();
       
       const stateAfter = await getIdCounterState();
       expect(stateAfter.counter).toBe(1);
@@ -205,14 +205,14 @@ describe('ID Generator - Database Integration', () => {
     it('should be deterministic after reset', async () => {
       const firstRun: string[] = [];
       for (let i = 0; i < 5; i++) {
-        firstRun.push(await generateProblemId());
+        firstRun.push(await generateId());
       }
       
       await resetIdCounter();
       
       const secondRun: string[] = [];
       for (let i = 0; i < 5; i++) {
-        secondRun.push(await generateProblemId());
+        secondRun.push(await generateId());
       }
       
       expect(firstRun).toEqual(secondRun);
@@ -229,17 +229,17 @@ describe('ID Generator - Database Integration', () => {
       });
       
       // Generate ID #1295 - should still be 2 characters
-      const id1 = await generateProblemId();
+      const id1 = await generateId();
       expect(id1).toHaveLength(2);
       expect(id1).toMatch(/^[0-9a-z]{2}$/);
       
       // Generate ID #1296 - should still be 2 characters (last one)
-      const id2 = await generateProblemId();
+      const id2 = await generateId();
       expect(id2).toHaveLength(2);
       expect(id2).toMatch(/^[0-9a-z]{2}$/);
       
       // Generate ID #1297 - should be 3 characters (expansion!)
-      const id3 = await generateProblemId();
+      const id3 = await generateId();
       expect(id3).toHaveLength(3);
       expect(id3).toMatch(/^[0-9a-z]{3}$/);
       
@@ -261,9 +261,9 @@ describe('ID Generator - Database Integration', () => {
     });
 
     it('should track remaining IDs', async () => {
-      await generateProblemId();
-      await generateProblemId();
-      await generateProblemId();
+      await generateId();
+      await generateId();
+      await generateId();
       
       const state = await getIdCounterState();
       

@@ -21,7 +21,7 @@ datasource db {
  * Each problem belongs to exactly one workspace.
  */
 model Workspace {
-  /// Unique identifier for the workspace (UUID)
+  /// Unique identifier for the workspace (2+ chars, e.g., "a2", "df", "7f1")
   id String @id
 
   /// Workspace name
@@ -139,7 +139,7 @@ enum ProblemStatus {
  * Each view stores filter state (statuses, labels) and can be quickly switched.
  */
 model View {
-  /// Unique identifier for the view (UUID)
+  /// Unique identifier for the view (2+ chars, e.g., "a2", "df", "7f1")
   id String @id
 
   /// Workspace ID (required - every view belongs to a workspace)

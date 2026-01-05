@@ -1,15 +1,17 @@
 /**
- * ID Generator for POKRABS Problems
+ * ID Generator for POKRABS Entities
  * 
  * Uses a Linear Congruential Generator (LCG) to traverse the ID space
  * in a pseudo-random but deterministic order.
+ * 
+ * Used for generating unique IDs for problems, workspaces, and views.
  * 
  * Benefits:
  * - O(1) generation: No database lookup needed for uniqueness
  * - Full coverage: Every ID is generated exactly once
  * - Known exhaustion: We know exactly when to expand to longer IDs
  * - Appears random: IDs jump around the space unpredictably
- * - Globally unique: Counter-based, not project-specific
+ * - Globally unique: Counter-based, shared across all entity types
  */
 
 import { getPrismaClient, TransactionClient } from '../database/prisma-client';
@@ -155,14 +157,16 @@ function modInverse(a: number, m: number): number | null {
 }
 
 /**
- * Generate the next unique problem ID
+ * Generate the next unique ID
  * 
  * This atomically increments the global counter and returns the corresponding ID.
  * When the current ID length is exhausted, it automatically expands to the next length.
  * 
- * @returns A globally unique ID string
+ * Used for problems, workspaces, and views. All IDs are globally unique regardless of entity type.
+ * 
+ * @returns A globally unique ID string (2+ chars, e.g., "a2", "df", "7f1")
  */
-export async function generateProblemId(): Promise<string> {
+export async function generateId(): Promise<string> {
   const prisma = getPrismaClient();
   
   // Use a transaction to atomically read, compute, and update

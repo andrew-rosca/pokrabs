@@ -8,7 +8,7 @@ import { Router, Request, Response } from 'express';
 import { getViewRepository, getWorkspaceRepository } from '../models/repository-factory';
 import { ViewFilters } from '../../../shared/types';
 import { PrismaClient } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '../utils/id-generator';
 
 const router = Router();
 
@@ -78,7 +78,7 @@ router.post('/workspaces/:workspaceId/views', async (req: Request, res: Response
     
     const viewRepo = getViewRepoWithPrisma(req);
     const view = await viewRepo.create({
-      id: uuidv4(),
+      id: await generateId(),
       workspaceId,
       name: name.trim(),
       filters: viewFilters,
