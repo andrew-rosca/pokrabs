@@ -79,9 +79,9 @@ export function ViewSelector({
     );
   }, [remainingViews, searchQuery]);
 
-  // Calculate dropdown position when opening
+  // Calculate dropdown position when opening or when renaming starts
   useEffect(() => {
-    if (isOpen && buttonRef.current) {
+    if ((isOpen || renamingViewId) && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const dropdownWidth = 300;
       const dropdownHeight = 400;
@@ -107,7 +107,7 @@ export function ViewSelector({
       
       setDropdownPosition({ top, left });
     }
-  }, [isOpen]);
+  }, [isOpen, renamingViewId]);
 
 
   // Focus search input when dropdown opens
@@ -138,18 +138,29 @@ export function ViewSelector({
         return;
       }
       
-      // Check context menus
+      // Check context menus - also check if target is inside a context menu by class
+      const contextMenuElement = (target as Element).closest?.('.view-context-menu');
+      if (contextMenuElement) {
+        return;
+      }
+      
       for (const ref of contextMenuRefs.current.values()) {
         if (ref.contains(target)) {
           return;
         }
       }
       
+      // Don't close dropdown if we're renaming (rename input is in the dropdown)
+      if (renamingViewId) {
+        return;
+      }
+      
       setIsOpen(false);
+      setSearchQuery(''); // Clear search when closing dropdown
       setContextMenuViewId(null);
     }
     
-    if (isOpen) {
+    if (isOpen || renamingViewId) {
       const timeoutId = setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside, true);
       }, 0);
@@ -159,7 +170,7 @@ export function ViewSelector({
         document.removeEventListener('mousedown', handleClickOutside, true);
       };
     }
-  }, [isOpen]);
+  }, [isOpen, renamingViewId]);
 
   // Calculate context menu position when it opens
   useEffect(() => {
@@ -255,6 +266,8 @@ export function ViewSelector({
   };
 
   const handleStartRename = (view: View) => {
+    // Ensure dropdown stays open when renaming - set this first
+    setIsOpen(true);
     setRenamingViewId(view.id);
     setRenameValue(view.name);
     setContextMenuViewId(null);
@@ -432,9 +445,13 @@ export function ViewSelector({
                 minWidth: '120px',
               }}
               onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
             >
-            <button
-              onClick={() => handleStartRename(view)}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStartRename(view);
+                }}
               style={{
                 width: '100%',
                 padding: '0.5rem 0.75rem',
@@ -517,7 +534,7 @@ export function ViewSelector({
         {displayText}
       </span>
       
-      {isOpen && createPortal(
+      {(isOpen || renamingViewId) && createPortal(
         <div 
           ref={dropdownRef}
           className="view-selector-dropdown"
