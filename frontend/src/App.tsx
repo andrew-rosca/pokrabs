@@ -1,5 +1,5 @@
-import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState, useRef } from 'react';
+import { BrowserRouter, Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Workspace, View, ViewFilters } from '../../../shared/types';
 import { fetchWorkspaces, fetchViews, createView, updateView, useWorkspace } from './services/api';
@@ -22,12 +22,20 @@ function App() {
 }
 
 function AppContent() {
-  const { workspaceId: urlWorkspaceId, viewId: urlViewId, problemId: urlProblemId } = useParams<{
+  const params = useParams<{
     workspaceId?: string;
     viewId?: string;
     problemId?: string;
   }>();
+  const location = useLocation();
   const navigate = useNavigate();
+  
+  // Parse URL manually as fallback since useParams might not work at this level
+  // (AppContent is the parent of Routes, so useParams may not have access to route params)
+  const pathMatch = location.pathname.match(/^\/w\/([^/]+)(?:\/v\/([^/]+))?(?:\/p\/([^/]+))?/);
+  const urlWorkspaceId = params.workspaceId || pathMatch?.[1];
+  const urlViewId = params.viewId || pathMatch?.[2];
+  const urlProblemId = params.problemId || pathMatch?.[3];
   
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
@@ -46,6 +54,11 @@ function AppContent() {
   const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
   const [saveAsName, setSaveAsName] = useState('');
   const saveAsInputRef = useRef<HTMLInputElement>(null);
+  
+  // Track the last viewId we programmatically set to avoid conflicts
+  const lastProgrammaticViewId = useRef<string | null>(null);
+  // Track previous urlViewId to detect actual URL changes
+  const prevUrlViewId = useRef<string | undefined>(urlViewId);
 
   // Load workspaces on mount
   useEffect(() => {
@@ -111,6 +124,7 @@ function AppContent() {
           
           // If URL had viewId but it was invalid, update URL to default view
           if (urlViewId && urlViewId !== defaultView.id) {
+            lastProgrammaticViewId.current = defaultView.id;
             if (urlProblemId) {
               navigate(`/w/${selectedWorkspaceId}/v/${defaultView.id}/p/${urlProblemId}`, { replace: true });
             } else {
@@ -118,6 +132,7 @@ function AppContent() {
             }
           } else if (!urlViewId) {
             // If no viewId in URL, navigate to include default view
+            lastProgrammaticViewId.current = defaultView.id;
             navigate(`/w/${selectedWorkspaceId}/v/${defaultView.id}`, { replace: true });
           }
         } else if (viewsData.length > 0) {
@@ -128,6 +143,7 @@ function AppContent() {
           
           // Update URL to include first view
           if (!urlViewId) {
+            lastProgrammaticViewId.current = viewsData[0].id;
             navigate(`/w/${selectedWorkspaceId}/v/${viewsData[0].id}`, { replace: true });
           }
         }
@@ -139,11 +155,56 @@ function AppContent() {
     }
 
     loadViews();
-  }, [selectedWorkspaceId, urlViewId, urlProblemId, navigate]);
+  }, [selectedWorkspaceId, navigate]);
 
-  const handleViewSelect = (viewId: string) => {
+  // Sync view selection when URL viewId changes (only for browser navigation, not programmatic)
+  useEffect(() => {
+    // Only run if urlViewId actually changed (browser navigation)
+    if (prevUrlViewId.current === urlViewId) return;
+    prevUrlViewId.current = urlViewId;
+    
+    if (!selectedWorkspaceId || !urlViewId || !views.length) return;
+    
+    // Ignore URL changes that we initiated programmatically
+    if (lastProgrammaticViewId.current === urlViewId) {
+      lastProgrammaticViewId.current = null;
+      return;
+    }
+    
+    // Only sync if the URL viewId is different from the currently selected view
+    if (urlViewId === selectedViewId) return;
+    
+    const view = views.find(v => v.id === urlViewId && v.workspaceId === selectedWorkspaceId);
+    if (view) {
+      setSelectedViewId(view.id);
+      setCurrentFilters(view.filters);
+      setHasUnsavedChanges(false);
+    } else {
+      // Invalid viewId in URL - select default view and update URL
+      const defaultView = views.find(v => v.isDefault);
+      if (defaultView) {
+        setSelectedViewId(defaultView.id);
+        setCurrentFilters(defaultView.filters);
+        setHasUnsavedChanges(false);
+        lastProgrammaticViewId.current = defaultView.id;
+        if (urlProblemId) {
+          navigate(`/w/${selectedWorkspaceId}/v/${defaultView.id}/p/${urlProblemId}`, { replace: true });
+        } else {
+          navigate(`/w/${selectedWorkspaceId}/v/${defaultView.id}`, { replace: true });
+        }
+      }
+    }
+    // Note: views and selectedViewId are used inside but not in deps to avoid unnecessary runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlViewId, selectedWorkspaceId, urlProblemId, navigate]);
+
+  const handleViewSelect = useCallback((viewId: string) => {
     const view = views.find(v => v.id === viewId);
     if (view && selectedWorkspaceId) {
+      // Mark that we're navigating programmatically to avoid URL sync effect interference
+      lastProgrammaticViewId.current = viewId;
+      
+      // Update state first
       setSelectedViewId(viewId);
       setCurrentFilters(view.filters);
       setHasUnsavedChanges(false);
@@ -155,7 +216,7 @@ function AppContent() {
         navigate(`/w/${selectedWorkspaceId}/v/${viewId}`, { replace: true });
       }
     }
-  };
+  }, [views, selectedWorkspaceId, urlProblemId, navigate]);
 
   const handleFiltersChange = (filters: ViewFilters) => {
     setCurrentFilters(filters);
@@ -223,6 +284,7 @@ function AppContent() {
       setSaveAsName('');
       
       // Update URL to include new view
+      lastProgrammaticViewId.current = newView.id;
       if (urlProblemId) {
         navigate(`/w/${selectedWorkspaceId}/v/${newView.id}/p/${urlProblemId}`, { replace: true });
       } else {
@@ -260,6 +322,7 @@ function AppContent() {
         setSelectedViewId(defaultView.id);
         setCurrentFilters(defaultView.filters);
         // Update URL
+        lastProgrammaticViewId.current = defaultView.id;
         if (urlProblemId) {
           navigate(`/w/${selectedWorkspaceId}/v/${defaultView.id}/p/${urlProblemId}`, { replace: true });
         } else {
