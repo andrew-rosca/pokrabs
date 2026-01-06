@@ -2814,3 +2814,43 @@ Implemented manual publishing of Docker images to GitHub Container Registry (GHC
 **Implementation Status:** ✅ **DOCKER IMAGE PUBLISHING COMPLETE**
 
 ---
+
+## Docker Image Publishing Improvements
+
+**Date:** 2025-01-06
+
+**Summary:**
+Enhanced the Docker image publishing setup with improved nginx configuration and smarter demo script with comprehensive checks.
+
+**Improvements Made:**
+
+1. **Nginx Configuration Fix:**
+   - Fixed "host not found in upstream 'backend'" error in `docker/nginx.conf`
+   - Added Docker DNS resolver (`resolver 127.0.0.11`) for dynamic upstream resolution
+   - Changed `proxy_pass` to use variable-based approach for runtime DNS resolution
+   - Allows nginx to start even if backend container isn't ready yet
+
+2. **Enhanced run-demo.sh Script:**
+   - Added comprehensive prerequisite checks:
+     * docker-compose availability (supports both v1 and v2)
+     * curl availability
+     * Docker daemon running status
+     * Compose file download validation
+   - Improved error messages with platform-specific instructions
+   - Better project naming using explicit `-p` flag (`pokrabs-demo-<pid>`)
+   - Creates temporary directory in `/tmp/pokrabs-<pid>` for clearer container identification
+   - Success indicators (✓) for passed checks
+   - Validates downloaded compose file is not empty
+
+**Technical Details:**
+- Nginx now resolves backend hostname at request time instead of startup
+- Demo script provides clear guidance when prerequisites are missing
+- Containers are named with descriptive project names for easier identification in Docker Desktop
+
+**Files Modified:**
+- `docker/nginx.conf` - Added resolver and variable-based proxy_pass
+- `scripts/run-demo.sh` - Added prerequisite checks and improved error handling
+
+**Implementation Status:** ✅ **DOCKER PUBLISHING IMPROVEMENTS COMPLETE**
+
+---
