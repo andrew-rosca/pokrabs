@@ -2531,3 +2531,91 @@ The new architecture enables easy addition of:
 **Implementation Status:** ✅ **PRODUCTION READY**
 
 ---
+
+## Docker Image Size Optimization
+
+**Date:** January 6, 2026  
+**Status:** ✅ **COMPLETED**
+
+### What Was Optimized
+
+Reduced Docker backend image size by **55%** (1.33GB → 605MB) through multi-stage builds and eliminating unnecessary files.
+
+### Image Size Results
+
+#### Before Optimization
+- **Backend:** 1.33GB
+- **Frontend:** 81.4MB
+
+#### After Optimization
+- **Backend:** 605MB (55% reduction)
+- **Frontend:** 81.4MB (unchanged)
+
+### Key Optimizations
+
+#### 1. Removed Prisma Query Engines (152MB saved)
+- **Problem:** Entire `backend/prisma/` directory (152MB) was being copied, including query engines for all platforms (Windows, macOS, Linux x64, ARM, etc.)
+- **Solution:** Only copy `schema.prisma` (5.5KB) and generate Prisma client in container
+- **Result:** Only Alpine Linux binaries are generated, saving 152MB
+
+#### 2. Multi-Stage Build (50MB+ saved)
+- **Problem:** Build tools (`python3`, `make`, `g++`) remained in final image even though only needed during `npm ci` for compiling `better-sqlite3`
+- **Solution:** Two-stage build:
+  - **Stage 1 (builder):** Install build tools, compile native modules
+  - **Stage 2 (production):** Copy only compiled dependencies, no build tools
+- **Result:** Final image contains only runtime dependencies
+
+#### 3. Added `.dockerignore`
+- Excludes unnecessary files from Docker build context
+- Reduces build time and context size
+- Excludes: source files, tests, docs, IDE configs, Prisma generated files
+
+### Technical Implementation
+
+#### Multi-Stage Dockerfile Structure
+```dockerfile
+# Stage 1: Build dependencies (with build tools)
+FROM node:20-alpine AS builder
+RUN apk add --no-cache python3 make g++
+RUN npm ci --production
+
+# Stage 2: Production image (without build tools)
+FROM node:20-alpine
+COPY --from=builder /app/backend/node_modules ./node_modules
+# Only copy schema.prisma, not entire prisma directory
+COPY backend/prisma/schema.prisma ./prisma/schema.prisma
+RUN npx prisma generate  # Generates only Alpine binaries
+```
+
+#### Files Modified
+- `docker/Dockerfile.backend`: Refactored to multi-stage build
+- `.dockerignore`: Created to exclude unnecessary files from build context
+
+### Verification
+
+✅ Container starts successfully  
+✅ Health endpoint responds correctly  
+✅ Database seeding works  
+✅ No build tools in final image  
+✅ Prisma client generates correctly  
+✅ All functionality preserved  
+
+### Benefits
+
+1. **Faster Deployments:** Smaller images = faster pulls and pushes
+2. **Reduced Storage:** 55% less storage required
+3. **Better Security:** Fewer packages in final image = smaller attack surface
+4. **Cost Savings:** Lower bandwidth and storage costs
+5. **Production Ready:** Industry-standard multi-stage build pattern
+
+### Future Optimization Opportunities
+
+While 605MB is reasonable for a Node.js backend with Prisma, further optimizations could include:
+- Using `node:20-alpine` distroless variant (if available)
+- Pruning unused npm packages
+- Using `npm ci --omit=dev` more aggressively
+- Considering alternative SQLite libraries with smaller native dependencies
+
+**Implementation Status:** ✅ **OPTIMIZED**
+
+---

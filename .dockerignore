@@ -1,0 +1,65 @@
+# Docker ignore file to reduce build context size
+
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build outputs
+dist
+build
+*.tsbuildinfo
+
+# Development files
+.env
+.env.local
+.env.*.local
+*.log
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Tests
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+coverage
+.nyc_output
+
+# Prisma generated files (will be regenerated in container)
+backend/prisma/data
+backend/prisma/migrations
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# Frontend build artifacts (not needed for backend)
+frontend/dist
+frontend/node_modules
+
+# Backend source files (only dist is needed)
+backend/src
+backend/tsconfig.json
+backend/vitest.config.ts
+
+# Shared source files (only compiled version needed)
+shared/src
+shared/tsconfig.json
+
