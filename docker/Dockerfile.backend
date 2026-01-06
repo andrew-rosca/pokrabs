@@ -1,0 +1,36 @@
+# POKRABS Backend Dockerfile
+FROM node:20-alpine
+
+# Install build tools needed for better-sqlite3 native compilation
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app/backend
+COPY backend/package*.json ./
+RUN npm ci --production
+
+# Copy built backend
+COPY backend/dist ./dist
+COPY backend/migrations ./migrations
+COPY backend/prisma ./prisma
+
+# Copy compiled shared directory
+COPY shared ./node_modules/shared
+
+# Create data directory for SQLite
+RUN mkdir -p /app/data
+
+# Set default environment variables
+ENV DATABASE_TYPE=sqlite
+ENV DATABASE_URL=./data/pokrabs.db
+ENV PORT=3001
+ENV NODE_ENV=production
+
+EXPOSE 3001
+
+# Start the backend
+CMD ["node", "dist/backend/src/index.js"]
+# Set the database URL for Prisma client generation
+ENV DATABASE_URL=./data/pokrabs.db
+
+# Generate Prisma client
+RUN npx prisma generate

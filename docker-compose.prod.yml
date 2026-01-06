@@ -1,0 +1,57 @@
+# POKRABS Production Mode Configuration
+#
+# Production mode connects to an external database (PostgreSQL, MySQL, etc.).
+# No volume mounts are needed as the database is managed externally.
+#
+# IMPORTANT: You must set the DATABASE_URL environment variable to point
+# to your external database. The DATABASE_TYPE should match your database
+# (e.g., "postgresql" for PostgreSQL, "mysql" for MySQL).
+#
+# Example:
+#   DATABASE_URL=postgresql://user:password@host:5432/pokrabs
+#   DATABASE_TYPE=postgresql
+#
+# The database is NOT automatically seeded - you'll start with an empty database.
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    ports:
+      - "3001:3001"
+    # No volume mounts - uses external database
+    environment:
+      - DATABASE_TYPE=${DATABASE_TYPE:-postgresql}
+      - DATABASE_URL=${DATABASE_URL}
+      - NODE_ENV=production
+      - PORT=3001
+      # DEMO_MODE is not set, so no seeding occurs
+    restart: unless-stopped
+    # Uncomment and configure if you need to connect to a database service
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: pokrabs
+      POSTGRES_PASSWORD: pokrabs
+      POSTGRES_DB: pokrabs
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+

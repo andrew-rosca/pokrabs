@@ -21,21 +21,52 @@ let prismaClient: PrismaClient | null = null;
 
 /**
  * Get database URL based on environment
+ * Exported for use in migrations and other setup code
  */
-function getDatabaseUrl(): string {
-  // Use environment variable if set
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
+export function getDatabaseUrl(): string {
+  const dbType = process.env.DATABASE_TYPE || 'sqlite';
+  let databaseUrl = process.env.DATABASE_URL;
+  
+  // If no DATABASE_URL is set, use defaults
+  if (!databaseUrl) {
+    // In test mode, use in-memory database
+    const isTestMode = process.env.TEST_MODE === 'true' || process.env.NODE_ENV === 'test';
+    if (isTestMode) {
+      return 'file::memory:';
+    }
+    
+    // Default to file-based database
+    databaseUrl = './data/pokrabs.db';
   }
   
-  // In test mode, use in-memory database
-  const isTestMode = process.env.TEST_MODE === 'true' || process.env.NODE_ENV === 'test';
-  if (isTestMode) {
-    return 'file::memory:';
+  // For SQLite, ensure the URL has the file: protocol
+  if (dbType === 'sqlite') {
+    // If it's already a file: URL, return as-is
+    if (databaseUrl.startsWith('file:')) {
+      return databaseUrl;
+    }
+    
+    // Convert relative or absolute paths to file: URL
+    const path = require('path');
+    const fs = require('fs');
+    
+    // Resolve to absolute path
+    const absolutePath = path.isAbsolute(databaseUrl) 
+      ? databaseUrl 
+      : path.resolve(process.cwd(), databaseUrl);
+    
+    // Ensure directory exists
+    const dir = path.dirname(absolutePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    // Return as file: URL
+    return `file:${absolutePath}`;
   }
   
-  // Default to file-based database
-  return 'file:./data/pokrabs.db';
+  // For other database types, return as-is
+  return databaseUrl;
 }
 
 /**

@@ -1,0 +1,19 @@
+# POKRABS Frontend Dockerfile
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app
+# Copy shared directory first (needed for frontend imports)
+COPY shared ./shared
+
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ .
+RUN npm run build
+
+# Production image - nginx to serve static files
+FROM nginx:alpine
+COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80

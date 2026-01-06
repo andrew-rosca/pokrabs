@@ -6,6 +6,9 @@
 
 import { Problem, Workspace, View, CreateViewRequest, UpdateViewRequest, ViewFilters } from '../../../shared/types';
 
+// In production (when served from same origin), use relative URLs
+// In development, use explicit URL (defaults to localhost:3001 for dev server)
+// VITE_API_URL is set by Docker build to empty string for production
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 /**

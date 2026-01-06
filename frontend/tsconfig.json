@@ -16,9 +16,14 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "../../../shared/types": ["../../shared/types"]
+    }
   },
-  "include": ["src"],
+  "include": ["src", "src/vite-env.d.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test-setup.ts", "node_modules"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
 

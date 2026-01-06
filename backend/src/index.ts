@@ -2,6 +2,13 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import { runMigrations } from './database/migrate';
+import { execSync } from 'child_process';
+import { seedDatabase } from './database/seed';
+import { getWorkspaceRepository } from './models/repository-factory';
+import { getPrismaClient, getDatabaseUrl } from './database/prisma-client';
 import workspacesRouter from './api/workspaces';
 import problemsRouter from './api/problems';
 import viewsRouter from './api/views';
@@ -9,7 +16,7 @@ import viewsRouter from './api/views';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // Middleware
 app.use(cors());
@@ -25,7 +32,7 @@ app.use('/api/workspaces', workspacesRouter);
 app.use('/api/problems', problemsRouter);
 app.use('/api/views', viewsRouter);
 
-// Error handling middleware
+// Error handling middleware (must come before SPA routing)
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error('Error:', err);
   
@@ -47,15 +54,89 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// 404 handler
+// In API-only mode (separate containers), skip static file serving
+// The frontend is served by nginx in a separate container
+console.log('🔧 API-only mode - skipping static file serving');
+
+// 404 handler for API-only mode
 app.use((req: Request, res: Response) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 POKRABS backend server running on http://localhost:${PORT}`);
-});
+// Initialize database and start server
+async function startServer() {
+  try {
+    // Run database schema setup on startup
+    if (process.env.NODE_ENV === 'production') {
+      console.log('🔄 Setting up database schema...');
+      try {
+        // Get the correct database URL for Prisma (must have file: protocol)
+        const dbUrl = getDatabaseUrl();
+        const backendDir = process.cwd().endsWith('backend') ? process.cwd() : path.join(process.cwd(), 'backend');
+        
+        // Use Prisma db push to sync schema (simpler and more reliable than migrations)
+        execSync('npx prisma db push --accept-data-loss --skip-generate', {
+          cwd: backendDir,
+          stdio: 'pipe',
+          env: { ...process.env, DATABASE_URL: dbUrl }
+        });
+        console.log('✅ Database schema synced');
+      } catch (error: any) {
+        console.error('❌ Prisma db push failed:', error.message);
+        // Fallback to custom migrations
+        console.log('🔄 Falling back to custom migrations...');
+        runMigrations();
+        console.log('✅ Custom migrations completed');
+      }
+    } else {
+      // In development, use custom migrations
+      console.log('🔄 Running database migrations...');
+      runMigrations();
+      console.log('✅ Migrations completed');
+    }
+    
+    // Seed database if in demo mode or if database is empty
+    const demoMode = process.env.DEMO_MODE === 'true';
+    if (demoMode) {
+      console.log('🌱 Demo mode enabled, seeding database...');
+      try {
+        await seedDatabase({ large: false });
+        console.log('✅ Database seeded successfully');
+      } catch (error) {
+        console.error('❌ Failed to seed database:', error);
+        // Don't exit on seeding failure, allow server to start
+      }
+    } else {
+      // Check if database is empty and seed if needed
+      try {
+        const prisma = getPrismaClient();
+        const workspaceRepo = getWorkspaceRepository(prisma);
+        const workspaces = await workspaceRepo.findAll();
+        
+        if (workspaces.length === 0) {
+          console.log('🌱 Database is empty, seeding with default data...');
+          await seedDatabase({ large: false });
+          console.log('✅ Database seeded successfully');
+        }
+      } catch (error) {
+        console.warn('⚠️  Could not check database for seeding:', error);
+        // Continue startup even if seeding check fails
+      }
+    }
+    
+    // Start server - bind to 0.0.0.0 to accept connections from all interfaces
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 POKRABS backend server running on http://0.0.0.0:${PORT}`);
+      if (process.env.NODE_ENV === 'production') {
+        console.log(`📦 Serving frontend from static files`);
+      }
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 export default app;
-

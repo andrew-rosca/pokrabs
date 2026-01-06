@@ -1,0 +1,39 @@
+# POKRABS Docker Compose - Demo Mode (Default)
+#
+# This is the default configuration for running POKRABS in demo mode.
+# For other deployment modes, see:
+#   - docker-compose.light.yml (persistent SQLite)
+#   - docker-compose.prod.yml (external database)
+#
+# Quick Start:
+#   docker-compose up
+#
+# This will build and start the application with ephemeral data storage.
+# Data is lost when the container is removed (intended for demos).
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    ports:
+      - "3001:3001"
+    # No volume mounts - data lives in container (demo mode)
+    environment:
+      - DATABASE_TYPE=sqlite
+      - DATABASE_URL=./data/pokrabs.db
+      - DEMO_MODE=true
+      - NODE_ENV=production
+      - PORT=3001
+    restart: unless-stopped
+
