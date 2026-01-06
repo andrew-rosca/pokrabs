@@ -116,6 +116,7 @@ export function StatusFilter({ selectedStatuses, onFilterChange }: StatusFilterP
       <button
         ref={buttonRef}
         className={`status-filter-button ${hasActiveFilter ? 'active' : ''}`}
+        data-tutorial="status-filter"
         onClick={() => setIsOpen(!isOpen)}
         title={hasActiveFilter ? `Filtered: ${selectedCount} of ${allStatuses.length} statuses shown` : 'Filter by status'}
         aria-label="Filter by status"

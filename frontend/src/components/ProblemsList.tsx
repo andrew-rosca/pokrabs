@@ -1138,10 +1138,10 @@ export function ProblemsList({
   };
 
   return (
-    <div className="problems-list">
+    <div className="problems-list" data-tutorial="problems-list">
       <div className="table-container">
-        <table className="problems-table">
-          <thead>
+        <table className="problems-table" data-tutorial="problems-table">
+          <thead data-tutorial="problems-table-header">
             <tr>
               <th title={`${visibleProblems.length} visible rows / ${problems.length} total rows`}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1.2' }}>
@@ -1218,15 +1218,17 @@ export function ProblemsList({
                     <span>Problem</span>
                     <button
                       className="header-action-button"
+                      data-tutorial="add-problem-header"
                       onClick={() => handleCreateProblem(null, 'top')}
                       title="Add new problem at top"
                     >
                       +
                     </button>
                   </div>
-                  <div className="column-visibility-toggles">
+                  <div className="column-visibility-toggles" data-tutorial="column-visibility-toggles">
                     <button
                       className={`column-toggle-button ${visibleColumns.labels ? 'active' : 'inactive'}`}
+                      data-tutorial="toggle-column"
                       onClick={() => toggleColumn('labels')}
                       title={`${visibleColumns.labels ? 'Hide' : 'Show'} Labels column`}
                       aria-label={`${visibleColumns.labels ? 'Hide' : 'Show'} Labels column`}
@@ -1354,6 +1356,7 @@ export function ProblemsList({
                       <div 
                         className="row-handle" 
                         title="Drag to reorder"
+                        data-tutorial="row-actions-panel"
                         draggable
                         onDragStart={(e) => handleDragStart(e, problem.id)}
                         onDragEnd={handleDragEnd}
@@ -1364,6 +1367,7 @@ export function ProblemsList({
                       <div className="row-actions-panel">
                         <button
                           className="row-action-button"
+                          data-tutorial="add-child-problem"
                           onClick={() => handleCreateProblem(problem.id, 'bottom')}
                           title="Add child problem"
                         >
@@ -1439,6 +1443,7 @@ export function ProblemsList({
                     <div className="id-content" style={{ position: 'relative' }}>
                       <span 
                         className="id-path clickable"
+                        data-tutorial="copy-problem-url"
                         onClick={() => handleCopyProblemUrl(problem.id)}
                         title={copiedId === problem.id ? "Copied!" : "Click to copy link"}
                         style={{ 
@@ -1487,10 +1492,11 @@ export function ProblemsList({
                         </span>
                       )}
                       {problemHasChildren && (
-                        <span className="collapse-controls">
+                        <span className="collapse-controls" data-tutorial="id-collapse-controls">
                           {/* Single caret: toggle immediate children */}
                           <button
                             className="expand-toggle"
+                            data-tutorial="toggle-id-collapse"
                             onClick={(e) => { e.stopPropagation(); toggleCollapse(problem.id); }}
                             title={isCollapsed ? 'Show children' : 'Hide children'}
                             aria-label={isCollapsed ? 'Show children' : 'Hide children'}
@@ -1681,6 +1687,7 @@ export function ProblemsList({
               <td className="insert-button-cell">
                 <button
                   className="row-action-button"
+                  data-tutorial="add-problem-bottom"
                   onClick={() => handleCreateProblem(null, 'bottom')}
                   title="Add new problem at bottom"
                 >

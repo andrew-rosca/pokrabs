@@ -2689,3 +2689,78 @@ const workspace = await workspaceRepo.create({
 **Implementation Status:** ✅ **CONSISTENT ID GENERATION**
 
 ---
+
+### 2026-01-06 - Interactive Tutorial Implementation
+
+**Completed:**
+- Implemented interactive onboarding tutorial using react-joyride
+- Tutorial automatically triggers on first visit (checks localStorage)
+- Supports 16 tutorial steps covering all major UI features:
+  - Workspace and View selectors
+  - Search functionality
+  - Theme toggle
+  - Problems list overview
+  - Status and Label filters
+  - Adding new problems
+  - Row actions menu
+  - Editing cells (summary/detail and list cells)
+  - Expand/collapse controls for content
+  - Problem hierarchy collapse/expand
+  - Copy problem URL
+  - Column visibility toggles
+- Click simulation for dropdown menus during tutorial
+- Skip button and Next/Previous navigation
+- Progress indicator showing current step
+- Manual trigger support via `window.startTutorial()` for future menu item
+- Tutorial state persisted in localStorage
+- Styled to match app theme (light/dark mode support)
+
+**Implementation Details:**
+- Created `frontend/src/services/tutorial.ts` with step definitions and localStorage utilities
+- Created `frontend/src/components/Tutorial.tsx` using react-joyride
+- Added `data-tutorial` attributes to key UI components for targeting
+- Integrated tutorial into App.tsx with auto-start logic
+- Tutorial steps include metadata for click simulation (openDropdown/closeDropdown)
+- Supports starting tutorial at specific step for testing
+
+**Files Created:**
+- `frontend/src/services/tutorial.ts` - Tutorial step definitions and utilities
+- `frontend/src/components/Tutorial.tsx` - Main tutorial component
+
+**Files Modified:**
+- `frontend/package.json` - Added react-joyride dependency
+- `frontend/src/App.tsx` - Integrated Tutorial component with auto-start logic
+- `frontend/src/components/WorkspaceSelector.tsx` - Added data-tutorial attribute
+- `frontend/src/components/ViewSelector.tsx` - Added data-tutorial attribute
+- `frontend/src/components/ThemeToggle.tsx` - Added data-tutorial attribute
+- `frontend/src/components/ProblemsList.tsx` - Added multiple data-tutorial attributes (table, add buttons, row actions, collapse controls, copy URL, column toggles)
+- `frontend/src/components/StatusFilter.tsx` - Added data-tutorial attribute
+- `frontend/src/components/LabelFilter.tsx` - Added data-tutorial attribute
+- `frontend/src/components/SummaryDetailCell.tsx` - Added data-tutorial attributes for editing and expand controls
+- `frontend/src/components/ListCell.tsx` - Added data-tutorial attributes for editing and expand controls
+
+**Testing:**
+- Tutorial auto-starts on first visit
+- Tutorial doesn't show on subsequent visits (localStorage check)
+- Skip functionality works
+- Next/Previous navigation works
+- Click simulation for dropdowns works
+- Manual trigger via console works: `localStorage.removeItem('pokrabs-tutorial-completed'); window.startTutorial();`
+- Tutorial works in both light and dark themes
+
+**Technical Notes:**
+- Tutorial uses react-joyride library for step-by-step guidance
+- Step progression managed by react-joyride internally
+- Click simulation uses MouseEvent dispatch for dropdown opening
+- Tutorial tooltip styled with CSS variables to match app theme
+- Z-index set to 10000 to ensure tutorial appears above all UI elements
+
+**Future Enhancements:**
+- Add hover simulation for row actions panel (currently only visible on hover)
+- Add intro step for overall application overview
+- Add "Re-run Tutorial" menu item
+- Interactive tutorial recording feature (pie-in-the-sky)
+
+**Implementation Status:** ✅ **TUTORIAL SYSTEM COMPLETE**
+
+---

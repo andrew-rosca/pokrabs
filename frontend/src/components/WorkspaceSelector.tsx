@@ -572,6 +572,7 @@ export function WorkspaceSelector({
       <span
         ref={buttonRef}
         className="workspace-selector-button"
+        data-tutorial="workspace-selector"
         onClick={() => setIsOpen(!isOpen)}
         title={displayText}
         style={{

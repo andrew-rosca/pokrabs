@@ -135,6 +135,7 @@ export function LabelFilter({ selectedLabels, predefinedLabels, onFilterChange }
       <button
         ref={buttonRef}
         className={`label-filter-button ${hasActiveFilter ? 'active' : ''}`}
+        data-tutorial="label-filter"
         onClick={() => setIsOpen(!isOpen)}
         title={hasActiveFilter ? `Filtered: ${selectedCount} label${selectedCount !== 1 ? 's' : ''} selected` : 'Filter by labels'}
         aria-label="Filter by labels"

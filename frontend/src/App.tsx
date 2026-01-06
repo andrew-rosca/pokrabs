@@ -7,6 +7,8 @@ import { ProblemsList } from './components/ProblemsList';
 import { ThemeToggle } from './components/ThemeToggle';
 import { ViewSelector } from './components/ViewSelector';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
+import { Tutorial } from './components/Tutorial';
+import { hasTutorialBeenShown } from './services/tutorial';
 
 function App() {
   return (
@@ -42,6 +44,7 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showTutorial, setShowTutorial] = useState(false);
   
   // View management
   const [views, setViews] = useState<View[]>([]);
@@ -59,6 +62,17 @@ function AppContent() {
   const lastProgrammaticViewId = useRef<string | null>(null);
   // Track previous urlViewId to detect actual URL changes
   const prevUrlViewId = useRef<string | undefined>(urlViewId);
+
+  // Check if tutorial should auto-start on first visit
+  useEffect(() => {
+    if (!loading && workspaces.length > 0 && !hasTutorialBeenShown()) {
+      // Small delay to ensure UI is fully rendered
+      const timer = setTimeout(() => {
+        setShowTutorial(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, workspaces.length]);
 
   // Load workspaces on mount
   useEffect(() => {
@@ -469,6 +483,7 @@ function AppContent() {
               <input
                 type="text"
                 className="header-search-input"
+                data-tutorial="search"
                 placeholder="search ..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -672,6 +687,7 @@ function AppContent() {
           </>,
           document.body
         )}
+        <Tutorial autoStart={showTutorial} onComplete={() => setShowTutorial(false)} />
       </div>
   );
 }

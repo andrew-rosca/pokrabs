@@ -140,6 +140,7 @@ export function ListCell({ value, onSave, title = 'Edit list', className = '' }:
         ref={cellRef}
         className={`list-cell editable-cell ${className}`}
         onClick={handleClick}
+        data-tutorial="edit-list-cell"
         style={{
           cursor: 'text',
           width: '100%',
@@ -162,6 +163,7 @@ export function ListCell({ value, onSave, title = 'Edit list', className = '' }:
             </div>
             <button
               className="expand-toggle"
+              data-tutorial="expand-list-cell"
               onClick={handleExpandToggle}
               style={{
                 background: 'none',

@@ -513,6 +513,7 @@ export function ViewSelector({
       <span
         ref={buttonRef}
         className="view-selector-button"
+        data-tutorial="view-selector"
         onClick={() => views.length > 0 && setIsOpen(!isOpen)}
         title={displayText}
         style={{

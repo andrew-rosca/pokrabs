@@ -225,6 +225,7 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
         ref={cellRef}
         onClick={handleClick}
         className={`summary-detail-cell editable-cell ${className}`}
+        data-tutorial="edit-summary-detail-cell"
         style={{
           cursor: 'text',
           width: '100%',
@@ -244,6 +245,7 @@ export function SummaryDetailCell({ value, onSave, className = '', autoOpen = fa
           {showCaret && (
             <button
               className="expand-toggle"
+              data-tutorial="expand-summary-detail"
               onClick={handleExpandToggle}
               style={{
                 background: 'none',
