@@ -21,7 +21,7 @@ const INITIAL_LENGTH = 2;
 const MAX_LENGTH = 4;
 
 // Start counter in the middle of the space for less predictable first IDs
-const INITIAL_COUNTER_OFFSET = Math.floor(Math.pow(BASE, INITIAL_LENGTH) / 2); // 648 for 2-char
+const INITIAL_COUNTER_OFFSET = Math.floor(Math.pow(BASE, INITIAL_LENGTH) / 2) + 5; // 648 for 2-char
 
 /**
  * LCG Parameters

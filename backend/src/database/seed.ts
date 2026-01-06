@@ -125,7 +125,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
 
     // Create Default workspace
     const workspace = await workspaceRepo.create({
-      id: 'default-workspace-1',
+      id: await generateId(),
       name: 'Default Workspace',
     });
 

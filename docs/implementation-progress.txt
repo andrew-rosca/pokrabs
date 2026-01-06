@@ -2619,3 +2619,73 @@ While 605MB is reasonable for a Node.js backend with Prisma, further optimizatio
 **Implementation Status:** ✅ **OPTIMIZED**
 
 ---
+
+## ID Generation Consistency Fixes
+
+**Date:** January 6, 2026  
+**Status:** ✅ **COMPLETED**
+
+### What Was Fixed
+
+Fixed inconsistencies in ID generation to ensure all entities use the standard LCG-based ID system consistently.
+
+### Changes Made
+
+#### 1. Default Workspace ID Generation
+- **Problem:** Default workspace in seed script used hardcoded ID `'default-workspace-1'` instead of the standard ID generator
+- **Fix:** Changed to use `await generateId()` for consistency with all other entities
+- **File:** `backend/src/database/seed.ts` (line 128)
+- **Impact:** Default workspace now uses LCG-based IDs (e.g., "i5", "na") instead of hardcoded string
+
+#### 2. LCG Initial Offset Adjustment
+- **Change:** Adjusted `INITIAL_COUNTER_OFFSET` from 648 to 658 (+10 positions)
+- **File:** `backend/src/utils/id-generator.ts` (line 24)
+- **Purpose:** Fine-tuning the starting position in the ID space for less predictable initial IDs
+- **Impact:** First generated IDs now start 10 positions later in the LCG sequence
+
+### Technical Details
+
+#### Before (Seed Script)
+```typescript
+const workspace = await workspaceRepo.create({
+  id: 'default-workspace-1',  // Hardcoded
+  name: 'Default Workspace',
+});
+```
+
+#### After (Seed Script)
+```typescript
+const workspace = await workspaceRepo.create({
+  id: await generateId(),  // Uses standard LCG generator
+  name: 'Default Workspace',
+});
+```
+
+#### LCG Offset Change
+- **Old:** `INITIAL_COUNTER_OFFSET = Math.floor(36² / 2) = 648`
+- **New:** `INITIAL_COUNTER_OFFSET = Math.floor(36² / 2) + 10 = 658`
+- **Effect:** Shifts the starting position in the 2-character ID space by 10 positions
+
+### Benefits
+
+1. **Consistency:** All entities (workspaces, problems, views) now use the same ID generation system
+2. **Predictability:** No special cases or hardcoded IDs
+3. **Maintainability:** Single source of truth for ID generation
+4. **Uniqueness:** LCG guarantees global uniqueness across all entity types
+
+### Verification
+
+✅ Default workspace now uses generated ID instead of hardcoded value  
+✅ All entities use consistent ID generation  
+✅ Docker container rebuilt with new offset  
+✅ TypeScript compilation successful  
+✅ No breaking changes to existing functionality  
+
+### Files Modified
+
+- `backend/src/database/seed.ts` - Changed workspace ID from hardcoded to `generateId()`
+- `backend/src/utils/id-generator.ts` - Adjusted `INITIAL_COUNTER_OFFSET` from 648 to 658
+
+**Implementation Status:** ✅ **CONSISTENT ID GENERATION**
+
+---
