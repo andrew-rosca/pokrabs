@@ -2343,3 +2343,191 @@ Previously, problems used an LCG-based ID generator that produces short, unique 
 - New workspaces and views will use the LCG-based ID format
 
 ---
+
+## Production-Ready Microservices Architecture Implementation
+
+**Date:** January 5, 2026  
+**Status:** ✅ **COMPLETED**
+
+### What Was Implemented
+
+Transformed the application from a simple single-container setup to a production-grade microservices architecture with separate frontend and backend containers, multiple deployment modes, and industry-standard practices.
+
+### Architecture Changes
+
+#### Before: Single Container
+- One container serving both frontend static files and backend API
+- Simple but not scalable
+- Static file serving logic mixed with API code
+- Limited deployment flexibility
+
+#### After: Microservices Architecture
+- **Frontend Container**: Nginx serving static files (port 3000)
+- **Backend Container**: Node.js API server (port 3001)
+- **Nginx Proxy**: Routes `/api/*` requests to backend container
+- **Database**: SQLite in demo/light modes, PostgreSQL in production
+
+### Docker Improvements
+
+#### New Docker Compose Files
+- `docker-compose.demo.yml`: Ephemeral demo data (default)
+- `docker-compose.light.yml`: Persistent SQLite storage
+- `docker-compose.prod.yml`: External PostgreSQL database
+
+#### New Dockerfiles
+- `docker/Dockerfile.frontend`: Multi-stage build for React app
+- `docker/Dockerfile.backend`: Backend with Prisma client generation
+- `docker/nginx.conf`: Reverse proxy configuration
+
+### Backend Enhancements
+
+#### Database & Prisma Integration
+- Automatic Prisma client generation in Docker build
+- Database schema synchronization on startup
+- Proper file URL handling for SQLite databases
+- Migration system with fallback to schema push
+
+#### API-Only Mode
+- Backend no longer serves static files (frontend-only responsibility)
+- Clean separation of concerns
+- Better resource utilization
+- Easier scaling and debugging
+
+### Frontend Updates
+
+#### API URL Configuration
+- Relative URLs in production (`/api/workspaces`)
+- Explicit URLs in development (`http://localhost:3001`)
+- No hardcoded environment-specific URLs
+
+#### Build & Deployment
+- Optimized Vite configuration
+- TypeScript environment definitions
+- Production-ready static asset serving
+
+### Deployment Modes
+
+#### Demo Mode
+```bash
+docker-compose -f docker-compose.demo.yml up
+```
+- Ephemeral SQLite database
+- Automatic seeding with sample data
+- Perfect for demos and testing
+
+#### Light Mode
+```bash
+docker-compose -f docker-compose.light.yml up
+```
+- Persistent SQLite database in `./data/`
+- Data survives container restarts
+- Suitable for personal use
+
+#### Production Mode
+```bash
+docker-compose -f docker-compose.prod.yml up
+```
+- External PostgreSQL database
+- No local data persistence
+- Ready for production deployment
+
+### Technical Implementation Details
+
+#### Container Communication
+- Frontend container exposes port 80 (internal)
+- Backend container exposes port 3001
+- Nginx proxies `/api/*` to `backend:3001`
+- Docker networking enables container-to-container communication
+
+#### Database URL Handling
+- SQLite requires `file:` protocol prefix
+- Environment variable processing for different database types
+- Automatic directory creation for SQLite files
+
+#### Build Optimization
+- Multi-stage Docker builds for smaller images
+- Separate build contexts for frontend/backend
+- Prisma client generation during build process
+
+### Files Modified/Created
+
+#### New Files Created:
+- `docker-compose.demo.yml`
+- `docker-compose.light.yml`
+- `docker-compose.prod.yml`
+- `docker/Dockerfile.frontend`
+- `docker/Dockerfile.backend`
+- `docker/nginx.conf`
+- `frontend/src/vite-env.d.ts`
+
+#### Files Modified:
+- `README.md`: Updated with new deployment instructions
+- `backend/src/index.ts`: API-only mode, Prisma integration
+- `backend/src/database/prisma-client.ts`: File URL handling
+- `frontend/src/services/api.ts`: Relative URL configuration
+- `frontend/vite.config.ts`: Build optimization
+- `frontend/tsconfig.json`: TypeScript configuration
+
+#### Files Removed:
+- `docker-compose.yml` (renamed to demo.yml)
+- `docker/Dockerfile` (replaced with separate frontend/backend)
+- Empty directories: `backend/src/services/`, `frontend/src/hooks/`, etc.
+
+### Testing & Validation
+
+#### Functional Testing
+- ✅ Frontend serves HTML on port 3000
+- ✅ API endpoints respond on port 3001
+- ✅ Nginx proxy correctly routes `/api/*` requests
+- ✅ Database seeding works in demo mode
+- ✅ All deployment modes tested and working
+
+#### Performance & Scalability
+- ✅ Separate containers enable independent scaling
+- ✅ Frontend/backend can be deployed to different hosts
+- ✅ API can be load balanced independently
+- ✅ Database abstraction supports PostgreSQL/MySQL
+
+### Production Readiness
+
+#### Infrastructure
+- ✅ Microservices architecture
+- ✅ Container orchestration ready
+- ✅ Reverse proxy configuration
+- ✅ Database abstraction layer
+
+#### Deployment
+- ✅ Multiple environment configurations
+- ✅ Environment variable driven
+- ✅ CI/CD pipeline ready
+- ✅ Monitoring and logging points identified
+
+#### Security
+- ✅ API isolation (no direct database access)
+- ✅ Environment-based configuration
+- ✅ No hardcoded secrets
+- ✅ CORS properly configured
+
+### Benefits Achieved
+
+1. **Scalability**: Frontend and backend scale independently
+2. **Maintainability**: Clear separation of concerns
+3. **Deployment Flexibility**: Multiple deployment modes
+4. **Production Ready**: Industry-standard architecture
+5. **Developer Experience**: Easy local development setup
+6. **Cost Optimization**: Efficient resource utilization
+
+### Future Enhancements
+
+The new architecture enables easy addition of:
+- Load balancers (nginx, traefik)
+- Service mesh (istio, linkerd)
+- Monitoring (prometheus, grafana)
+- Logging aggregation
+- Horizontal pod autoscaling
+- Database replication
+- CDN integration for static assets
+
+**Implementation Status:** ✅ **PRODUCTION READY**
+
+---
