@@ -31,23 +31,28 @@ export GHCR_FRONTEND_IMAGE="ghcr.io/${GH_USERNAME}/pokrabs-frontend:latest"
 export GHCR_BACKEND_IMAGE="ghcr.io/${GH_USERNAME}/pokrabs-backend:latest"
 
 echo -e "${YELLOW}Downloading docker-compose configuration...${NC}"
-COMPOSE_FILE="/tmp/pokrabs-demo-$$.yml"
+TMP_DIR="/tmp/pokrabs-$$"
+mkdir -p "$TMP_DIR"
+COMPOSE_FILE="$TMP_DIR/docker-compose.demo.yml"
 curl -sSL "https://raw.githubusercontent.com/${GH_USERNAME}/${REPO}/${BRANCH}/docker-compose.demo.yml" -o "$COMPOSE_FILE"
 
 # Cleanup function
 cleanup() {
     echo ""
     echo -e "${YELLOW}Cleaning up...${NC}"
-    rm -f "$COMPOSE_FILE"
+    rm -rf "$TMP_DIR"
 }
 trap cleanup EXIT INT TERM
 
 echo -e "${GREEN}Starting POKRABS demo...${NC}"
 echo "Images: ${GHCR_FRONTEND_IMAGE} and ${GHCR_BACKEND_IMAGE}"
+echo "Compose file: $COMPOSE_FILE"
 echo ""
 echo "The application will be available at: http://localhost:3000"
 echo "Press Ctrl+C to stop"
 echo ""
 
-docker-compose -f "$COMPOSE_FILE" up
+# Change to temp directory so docker-compose project name is based on directory
+cd "$TMP_DIR"
+docker-compose -f docker-compose.demo.yml up
 
