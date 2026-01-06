@@ -52,7 +52,8 @@ echo "The application will be available at: http://localhost:3000"
 echo "Press Ctrl+C to stop"
 echo ""
 
-# Change to temp directory so docker-compose project name is based on directory
+# Change to temp directory and set explicit project name
 cd "$TMP_DIR"
-docker-compose -f docker-compose.demo.yml up
+PROJECT_NAME="pokrabs-demo-$$"
+docker-compose -p "$PROJECT_NAME" -f docker-compose.demo.yml up
 
