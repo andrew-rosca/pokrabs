@@ -2764,3 +2764,53 @@ const workspace = await workspaceRepo.create({
 **Implementation Status:** ✅ **TUTORIAL SYSTEM COMPLETE**
 
 ---
+
+## Docker Image Publishing to GHCR
+
+**Date:** 2025-01-06
+
+**Summary:**
+Implemented manual publishing of Docker images to GitHub Container Registry (GHCR) with scripts and documentation for easy distribution and deployment.
+
+**Features Implemented:**
+
+1. **Publishing Scripts:**
+   - `scripts/publish-images.sh` - Builds, tags, and pushes both backend and frontend images to GHCR
+   - `scripts/docker-login-ghcr.sh` - Helper script for authenticating with GHCR using GitHub Personal Access Token
+   - `scripts/use-published-images.sh` - Sets environment variables to use published images
+   - `scripts/run-demo.sh` - One-command demo launcher that downloads compose file and runs with published images
+
+2. **Docker Compose Updates:**
+   - Updated all three docker-compose files (demo, light, prod) to support both local builds and published images
+   - Uses `GHCR_FRONTEND_IMAGE` and `GHCR_BACKEND_IMAGE` environment variables
+   - Falls back to local builds if environment variables are not set
+
+3. **Documentation:**
+   - Added comprehensive "Publishing Docker Images" section to README.md
+   - Includes authentication instructions, publishing steps, usage instructions, and notes on making images public
+   - Documents future CI/CD integration approach
+
+**Image Locations:**
+- Backend: `ghcr.io/andrew-rosca/pokrabs-backend:latest`
+- Frontend: `ghcr.io/andrew-rosca/pokrabs-frontend:latest`
+
+**Usage:**
+- **Publish:** `export GHCR_USERNAME=andrew-rosca && ./scripts/publish-images.sh`
+- **Use published images:** `source ./scripts/use-published-images.sh && docker-compose -f docker-compose.demo.yml up`
+- **Quick demo (one-liner):** `curl -sSL https://raw.githubusercontent.com/andrew-rosca/pokrabs/main/scripts/run-demo.sh | bash`
+
+**Technical Notes:**
+- Images are published as `:latest` tags (versioning can be added later)
+- Scripts include proper error handling and validation
+- All scripts are executable with proper shebang lines
+- Docker Compose files use environment variable substitution for flexibility
+
+**Future Enhancements:**
+- Add version tags (semantic versioning) in addition to `:latest`
+- Integrate with GitHub Actions for automated publishing on tags/releases
+- Add script to make images public automatically
+- Add multi-arch builds (ARM64, AMD64)
+
+**Implementation Status:** ✅ **DOCKER IMAGE PUBLISHING COMPLETE**
+
+---

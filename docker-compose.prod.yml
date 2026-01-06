@@ -15,6 +15,9 @@
 
 services:
   frontend:
+    # Use published image if GHCR_FRONTEND_IMAGE is set, otherwise build locally
+    # To use published images: export GHCR_FRONTEND_IMAGE=ghcr.io/username/pokrabs-frontend:latest
+    image: ${GHCR_FRONTEND_IMAGE:-}
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
@@ -25,6 +28,9 @@ services:
     restart: unless-stopped
 
   backend:
+    # Use published image if GHCR_BACKEND_IMAGE is set, otherwise build locally
+    # To use published images: export GHCR_BACKEND_IMAGE=ghcr.io/username/pokrabs-backend:latest
+    image: ${GHCR_BACKEND_IMAGE:-}
     build:
       context: .
       dockerfile: docker/Dockerfile.backend

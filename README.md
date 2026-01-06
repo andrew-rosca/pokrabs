@@ -207,6 +207,102 @@ docker-compose -f docker-compose.prod.yml up
 - **Frontend (nginx):** Port 3000
 - **Backend (API):** Port 3001
 
+## Publishing Docker Images
+
+POKRABS Docker images can be published to GitHub Container Registry (GHCR) for easy distribution and deployment.
+
+### Prerequisites
+
+- Docker installed and running
+- GitHub account
+- GitHub Personal Access Token (PAT) with `write:packages` scope
+
+### First Time Setup
+
+1. **Create a GitHub Personal Access Token:**
+   - Go to https://github.com/settings/tokens
+   - Click "Generate new token" → "Generate new token (classic)"
+   - Give it a name (e.g., "Docker GHCR")
+   - Select scope: `write:packages` (required to push images)
+   - Optionally select `read:packages` (to pull private images)
+   - Click "Generate token" and copy the token
+
+2. **Authenticate with GHCR:**
+   ```bash
+   export GITHUB_TOKEN=your_token_here
+   export GHCR_USERNAME=your-username
+   ./scripts/docker-login-ghcr.sh
+   ```
+   
+   Or manually:
+   ```bash
+   echo $GITHUB_TOKEN | docker login ghcr.io -u $GHCR_USERNAME --password-stdin
+   ```
+
+### Publishing Images
+
+1. **Set your GitHub username:**
+   ```bash
+   export GHCR_USERNAME=your-username
+   ```
+
+2. **Publish the images:**
+   ```bash
+   ./scripts/publish-images.sh
+   ```
+
+This will build and push both images to:
+- `ghcr.io/<username>/pokrabs-backend:latest`
+- `ghcr.io/<username>/pokrabs-frontend:latest`
+
+### Using Published Images
+
+To use published images instead of building locally:
+
+1. **Set your GitHub username:**
+   ```bash
+   export GHCR_USERNAME=your-username
+   ```
+
+2. **Load the image environment variables:**
+   ```bash
+   source ./scripts/use-published-images.sh
+   ```
+   
+   Or in one line:
+   ```bash
+   eval $(./scripts/use-published-images.sh)
+   ```
+
+3. **Run docker-compose as usual:**
+   ```bash
+   docker-compose -f docker-compose.demo.yml up
+   ```
+
+Docker Compose will automatically use the published images if `GHCR_FRONTEND_IMAGE` and `GHCR_BACKEND_IMAGE` are set, otherwise it will build locally.
+
+### Making Images Public
+
+By default, images published to GHCR are private. To make them public:
+
+1. Go to your GitHub repository or organization
+2. Navigate to "Packages" in the right sidebar
+3. Click on the package (e.g., `pokrabs-backend`)
+4. Click "Package settings"
+5. Scroll down to "Danger Zone" and click "Change visibility"
+6. Select "Public"
+
+Alternatively, you can make packages public during creation by including `--public` flag (requires additional script modification).
+
+### Future CI/CD Integration
+
+This setup is designed to easily integrate with GitHub Actions:
+
+- Images can be published automatically on tags/releases
+- The same image naming convention is used
+- Environment variables can be set in GitHub Actions secrets
+- Example workflow would use `GITHUB_TOKEN` and set `GHCR_USERNAME` to the repository owner
+
 ## Project Structure
 
 - `backend/` - Node.js/Express API server
