@@ -2690,6 +2690,111 @@ const workspace = await workspaceRepo.create({
 
 ---
 
+## Multi-Architecture Docker Image Support
+
+**Date:** January 6, 2026  
+**Status:** ✅ **COMPLETED**
+
+### What Was Fixed
+
+Fixed Docker images to support both x86 (amd64) and ARM64 architectures, ensuring images work on Intel/AMD processors as well as Apple Silicon and ARM servers.
+
+### Problem
+
+- **Issue:** Container images were built only for ARM64 (Apple Silicon)
+- **Symptom:** Images failed on x86 machines with native module errors
+- **Root Cause:** `better-sqlite3` native module was compiled only for ARM64 architecture
+- **Impact:** Published images from ARM64 machines didn't work on x86 servers/workstations
+
+### Solution
+
+#### 1. Updated Dockerfiles for Multi-Architecture Support
+- **Backend Dockerfile:** Simplified to work with buildx multi-arch builds
+- **Frontend Dockerfile:** Updated for cross-platform compatibility
+- **Native Modules:** Automatically compiled for target platform during build
+- **Comments:** Added documentation about multi-arch build requirements
+
+#### 2. Enhanced Publish Script
+- **Buildx Integration:** Uses `docker buildx` for multi-architecture builds
+- **Platform Support:** Builds for both `linux/amd64` and `linux/arm64`
+- **Builder Management:** Automatically creates and manages buildx builder
+- **Single Manifest:** Publishes unified manifest supporting both architectures
+
+### Technical Implementation
+
+#### Multi-Architecture Build Process
+```bash
+# Publish script now uses buildx
+docker buildx build \
+    --platform linux/amd64,linux/arm64 \
+    -f docker/Dockerfile.backend \
+    -t ghcr.io/username/pokrabs-backend:latest \
+    --push \
+    .
+```
+
+#### How It Works
+1. **Local Development:** Docker builds for host architecture (works on both ARM and x86)
+2. **Publishing:** Buildx builds for both architectures simultaneously
+3. **Runtime:** Docker automatically pulls the correct architecture for the host machine
+4. **Native Modules:** Compiled during build for the target platform
+
+### Benefits
+
+1. **Universal Compatibility:** Images work on both x86 and ARM machines
+2. **Single Image Tag:** One manifest supports multiple architectures
+3. **Automatic Selection:** Docker pulls the correct architecture automatically
+4. **CI/CD Ready:** Can publish from any architecture to support all platforms
+5. **No Manual Selection:** Users don't need to specify architecture
+
+### Files Modified
+
+- `docker/Dockerfile.backend` - Updated for multi-arch support
+- `docker/Dockerfile.frontend` - Updated for multi-arch support
+- `scripts/publish-images.sh` - Enhanced with buildx multi-arch builds
+
+### Usage
+
+#### Local Development (Any Architecture)
+```bash
+docker-compose -f docker-compose.demo.yml build
+# Builds for your host architecture automatically
+```
+
+#### Publishing Multi-Arch Images
+```bash
+export GHCR_USERNAME=your-username
+./scripts/publish-images.sh
+# Builds and publishes for both amd64 and arm64
+```
+
+#### Using Published Images
+```bash
+# Docker automatically selects the correct architecture
+docker pull ghcr.io/username/pokrabs-backend:latest
+# Works on both x86 and ARM machines
+```
+
+### Verification
+
+✅ Dockerfiles support multi-architecture builds  
+✅ Publish script uses buildx for cross-platform builds  
+✅ Native modules compile for target platform  
+✅ Images work on both x86 and ARM machines  
+✅ Single manifest supports multiple architectures  
+
+### Future Enhancements
+
+The multi-architecture setup enables:
+- Support for additional architectures (ppc64le, s390x, etc.)
+- CI/CD pipelines that build from any platform
+- Cloud deployments on diverse hardware (AWS Graviton, Intel, AMD)
+- Edge computing deployments on ARM devices
+
+**Implementation Status:** ✅ **MULTI-ARCH SUPPORT**
+
+---
+
 ### 2026-01-06 - Interactive Tutorial Implementation
 
 **Completed:**

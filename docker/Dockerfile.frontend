@@ -1,4 +1,6 @@
 # POKRABS Frontend Dockerfile
+# Supports both amd64 (x86) and arm64 architectures
+# For multi-arch builds, use: docker buildx build --platform linux/amd64,linux/arm64
 FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app
