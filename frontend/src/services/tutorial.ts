@@ -53,7 +53,7 @@ export function getTutorialSteps(): TutorialStep[] {
         target: '[data-tutorial="problems-table-header"]',
         content: {
           title: 'Problems List',
-          body: 'This is your main workspace where all problems are displayed. You can edit, filter, and organize problems here.',
+          body: 'This is your main workspace where all problems are displayed. You can edit, filter, and organize problems here.\n\n<a href="https://www.linkedin.com/pulse/poker-abs-framework-when-we-need-fix-becomes-actual-work-rosca-nqzpc/" target="_blank">Learn more about POKRABS</a>',
         },
         placement: 'top',
     },
