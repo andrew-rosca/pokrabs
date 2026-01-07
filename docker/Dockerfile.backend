@@ -7,11 +7,22 @@ FROM node:20-alpine AS builder
 # Install build tools needed for better-sqlite3 native compilation
 RUN apk add --no-cache python3 make g++
 
-WORKDIR /app/backend
+WORKDIR /app
 
-# Copy package files and install dependencies
-COPY backend/package*.json ./
-RUN npm ci --production
+# Copy package files and install ALL dependencies (including dev dependencies for building)
+COPY package*.json ./
+COPY backend/package*.json ./backend/
+RUN cd backend && npm ci
+
+# Copy source code and shared directory
+COPY backend/ ./backend/
+COPY shared/ ./shared/
+
+# Create a simple tsconfig for Docker build
+RUN echo '{"compilerOptions": {"target": "ES2022", "module": "commonjs", "lib": ["ES2022"], "outDir": "./backend/dist", "strict": true, "esModuleInterop": true, "skipLibCheck": true, "forceConsistentCasingInFileNames": true, "resolveJsonModule": true, "moduleResolution": "node", "declaration": true, "declarationMap": true, "sourceMap": true}, "include": ["backend/src/**/*", "shared/**/*"], "exclude": ["**/node_modules", "**/dist", "**/*.test.ts"]}' > tsconfig.docker.json
+
+# Build the TypeScript code from project root
+RUN ./backend/node_modules/.bin/tsc --project tsconfig.docker.json
 
 # Stage 2: Production image (without build tools)
 FROM node:20-alpine
