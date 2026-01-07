@@ -940,6 +940,75 @@ code {
   background-color: var(--bg-primary);
 }
 
+/* Parent change confirmation dialog */
+.parent-change-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.parent-change-confirm-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  min-width: 300px;
+  max-width: 90vw;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px var(--shadow-lg);
+}
+
+.parent-change-confirm-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.parent-change-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.parent-change-message {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.parent-change-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.parent-change-actions .confirm {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: var(--bg-primary);
+}
+
+.parent-change-actions .confirm:hover {
+  transform: scale(1.05);
+}
+
+.parent-change-actions .cancel {
+  background-color: var(--bg-primary);
+}
+
+.parent-change-actions .cancel:hover {
+  transform: scale(1.05);
+}
+
 .row-position-input .cancel:hover {
   transform: scale(1.05);
 }

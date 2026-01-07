@@ -2994,3 +2994,49 @@ Simplified the demo script by creating a dedicated compose file for pulling publ
 **Implementation Status:** ✅ **DEMO SCRIPT SIMPLIFICATION COMPLETE**
 
 ---
+
+## Drag-and-Drop Parent Change Confirmation
+
+**Date:** 2025-01-06
+
+**Summary:**
+Added a safety feature to prevent accidental parent changes when dragging and dropping problems. The system now distinguishes between reordering (same parent) and parent changes, requiring confirmation only for the latter.
+
+**Features Implemented:**
+
+1. **Parent Change Detection:**
+   - Automatically detects when a drag-drop operation would change a problem's parent
+   - Compares current `parentId` with the new `parentId` that would result from the drop
+   - Only triggers confirmation when parent actually changes
+
+2. **Confirmation Dialog:**
+   - Modal dialog with backdrop overlay
+   - Clear warning message: "This will move the problem and all its children to a different parent. Are you sure?"
+   - Confirm (✔) and Cancel (✕) buttons
+   - Escape key to cancel
+   - Click outside dialog to cancel
+
+3. **Seamless Reordering:**
+   - When dragging within the same parent (reordering siblings), no confirmation is shown
+   - Immediate execution for reordering operations
+   - Maintains existing drag-and-drop functionality for same-parent moves
+
+4. **User Experience:**
+   - Drag state is maintained until user confirms or cancels
+   - Visual feedback continues during confirmation
+   - All children move with the parent when confirmed
+
+**Technical Details:**
+- Added `pendingMove` state to track moves requiring confirmation
+- Modified `handleDrop` and `handleDropOnNewRow` to check for parent changes
+- Created `executeMove` helper function to separate move logic from confirmation logic
+- Used React Portal for modal dialog rendering (proper z-index handling)
+- Added CSS styles for modal overlay and dialog
+
+**Files Modified:**
+- `frontend/src/components/ProblemsList.tsx` - Added parent change detection and confirmation dialog
+- `frontend/src/index.css` - Added styles for parent change confirmation dialog
+
+**Implementation Status:** ✅ **PARENT CHANGE CONFIRMATION COMPLETE**
+
+---

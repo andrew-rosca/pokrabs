@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Problem, Status, CreateProblemRequest, ViewFilters } from '../../../shared/types';
 import { fetchProblems, updateProblem, createProblem, deleteProblem, moveProblem } from '../services/api';
@@ -65,6 +66,13 @@ export function ProblemsList({
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | 'child' | null>(null);
   const dragOverCountRef = useRef(0);
+  
+  // Pending move operation (when parent change requires confirmation)
+  const [pendingMove, setPendingMove] = useState<{
+    problemId: string;
+    newParentId: string | null;
+    afterProblemId: string | null;
+  } | null>(null);
 
   // Reorder position input state
   const [showPositionInput, setShowPositionInput] = useState<string | null>(null); // problem ID
@@ -155,6 +163,27 @@ export function ProblemsList({
       localStorage.setItem('pokrabs-label-filter', JSON.stringify(Array.from(selectedLabels)));
     }
   }, [selectedLabels, viewFilters]);
+
+  // Handle Escape key to cancel pending move
+  useEffect(() => {
+    if (!pendingMove) return;
+    
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        setPendingMove(null);
+        // Reset drag state
+        setDraggedProblemId(null);
+        setDropTargetIndex(null);
+        setDropPosition(null);
+        dragOverCountRef.current = 0;
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [pendingMove]);
 
   // Toggle column visibility
   const toggleColumn = (column: keyof typeof visibleColumns) => {
@@ -857,6 +886,24 @@ export function ProblemsList({
     }
   };
 
+  // Execute the actual move operation
+  const executeMove = async (problemId: string, newParentId: string | null, afterProblemId: string | null) => {
+    try {
+      setError(null);
+      
+      // Call the API to move the problem
+      await moveProblem(problemId, newParentId, afterProblemId);
+      
+      // Reload problems to get updated idPaths
+      const data = await fetchProblems(workspaceId);
+      setProblems(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to move problem';
+      setError(errorMessage);
+      console.error('Error moving problem:', err);
+    }
+  };
+
   // Handle drop
   const handleDrop = async (e: React.DragEvent, _targetIndex: number, targetProblem: Problem) => {
     e.preventDefault();
@@ -877,43 +924,48 @@ export function ProblemsList({
       return;
     }
     
-    try {
-      setError(null);
-      
-      let newParentId: string | null;
-      let afterProblemId: string | null;
-      
-      if (dropPosition === 'child') {
-        // Drop as child of target - find last child of target to insert after
-        newParentId = targetProblem.id;
-        const children = sortedProblems.filter(p => p.parentId === targetProblem.id);
-        afterProblemId = children.length > 0 ? children[children.length - 1].id : null;
-      } else if (dropPosition === 'before') {
-        // Drop before target - same parent as target
-        newParentId = targetProblem.parentId;
-        // Find the sibling before the target
-        const siblings = sortedProblems.filter(p => p.parentId === targetProblem.parentId && !draggedProblems.has(p.id));
-        const targetSiblingIndex = siblings.findIndex(p => p.id === targetProblem.id);
-        afterProblemId = targetSiblingIndex > 0 ? siblings[targetSiblingIndex - 1].id : null;
-      } else {
-        // Drop after target - same parent as target
-        newParentId = targetProblem.parentId;
-        afterProblemId = targetProblem.id;
-      }
-      
-      // Call the API to move the problem
-      await moveProblem(draggedProblemId, newParentId, afterProblemId);
-      
-      // Reload problems to get updated idPaths
-      const data = await fetchProblems(workspaceId);
-      setProblems(data);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to move problem';
-      setError(errorMessage);
-      console.error('Error moving problem:', err);
-    } finally {
+    // Find the dragged problem to check its current parent
+    const draggedProblem = problems.find(p => p.id === draggedProblemId);
+    if (!draggedProblem) {
       handleDragEnd();
+      return;
     }
+    
+    let newParentId: string | null;
+    let afterProblemId: string | null;
+    
+    if (dropPosition === 'child') {
+      // Drop as child of target - find last child of target to insert after
+      newParentId = targetProblem.id;
+      const children = sortedProblems.filter(p => p.parentId === targetProblem.id);
+      afterProblemId = children.length > 0 ? children[children.length - 1].id : null;
+    } else if (dropPosition === 'before') {
+      // Drop before target - same parent as target
+      newParentId = targetProblem.parentId;
+      // Find the sibling before the target
+      const siblings = sortedProblems.filter(p => p.parentId === targetProblem.parentId && !draggedProblems.has(p.id));
+      const targetSiblingIndex = siblings.findIndex(p => p.id === targetProblem.id);
+      afterProblemId = targetSiblingIndex > 0 ? siblings[targetSiblingIndex - 1].id : null;
+    } else {
+      // Drop after target - same parent as target
+      newParentId = targetProblem.parentId;
+      afterProblemId = targetProblem.id;
+    }
+    
+    // Check if parent is changing
+    const currentParentId = draggedProblem.parentId;
+    const parentIsChanging = currentParentId !== newParentId;
+    
+    if (parentIsChanging) {
+      // Parent is changing - show confirmation dialog
+      setPendingMove({ problemId: draggedProblemId, newParentId, afterProblemId });
+      // Don't call handleDragEnd yet - keep drag state until confirmation
+      return;
+    }
+    
+    // Parent is not changing - just reordering, proceed immediately
+    await executeMove(draggedProblemId, newParentId, afterProblemId);
+    handleDragEnd();
   };
 
   // Handle drop on the "add new" row (drop as root-level at end)
@@ -926,24 +978,47 @@ export function ProblemsList({
       return;
     }
     
-    try {
-      setError(null);
-      
-      // Drop as root level at the end
-      const rootProblems = sortedProblems.filter(p => !p.parentId);
-      const lastRootProblem = rootProblems.length > 0 ? rootProblems[rootProblems.length - 1] : null;
-      
-      await moveProblem(draggedProblemId, null, lastRootProblem?.id ?? null);
-      
-      const data = await fetchProblems(workspaceId);
-      setProblems(data);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to move problem';
-      setError(errorMessage);
-      console.error('Error moving problem:', err);
-    } finally {
+    // Find the dragged problem to check its current parent
+    const draggedProblem = problems.find(p => p.id === draggedProblemId);
+    if (!draggedProblem) {
       handleDragEnd();
+      return;
     }
+    
+    // Drop as root level at the end
+    const rootProblems = sortedProblems.filter(p => !p.parentId);
+    const lastRootProblem = rootProblems.length > 0 ? rootProblems[rootProblems.length - 1] : null;
+    const newParentId: string | null = null;
+    
+    // Check if parent is changing
+    const currentParentId = draggedProblem.parentId;
+    const parentIsChanging = currentParentId !== newParentId;
+    
+    if (parentIsChanging) {
+      // Parent is changing - show confirmation dialog
+      setPendingMove({ problemId: draggedProblemId, newParentId, afterProblemId: lastRootProblem?.id ?? null });
+      // Don't call handleDragEnd yet - keep drag state until confirmation
+      return;
+    }
+    
+    // Parent is not changing - just reordering, proceed immediately
+    await executeMove(draggedProblemId, newParentId, lastRootProblem?.id ?? null);
+    handleDragEnd();
+  };
+  
+  // Handle confirming a pending move (parent change)
+  const handleConfirmMove = async () => {
+    if (!pendingMove) return;
+    
+    await executeMove(pendingMove.problemId, pendingMove.newParentId, pendingMove.afterProblemId);
+    setPendingMove(null);
+    handleDragEnd();
+  };
+  
+  // Handle canceling a pending move
+  const handleCancelMove = () => {
+    setPendingMove(null);
+    handleDragEnd();
   };
 
   // Get siblings of a problem (problems with the same parent)
@@ -1139,6 +1214,55 @@ export function ProblemsList({
 
   return (
     <div className="problems-list" data-tutorial="problems-list">
+      {/* Parent change confirmation dialog */}
+      {pendingMove && createPortal(
+        <>
+          <div
+            className="parent-change-confirm-overlay"
+            onClick={handleCancelMove}
+          />
+          <div
+            className="parent-change-confirm-dialog"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="parent-change-title"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                handleCancelMove();
+              }
+            }}
+          >
+            <div className="parent-change-confirm-content">
+              <div id="parent-change-title" className="parent-change-title">Change parent?</div>
+              <div className="parent-change-message">
+                This will move the problem and all its children to a different parent. Are you sure?
+              </div>
+              <div className="parent-change-actions">
+                <button
+                  type="button"
+                  className="row-action-button confirm"
+                  aria-label="Confirm move"
+                  onClick={handleConfirmMove}
+                  title="Confirm move"
+                >
+                  ✔
+                </button>
+                <button
+                  type="button"
+                  className="row-action-button cancel"
+                  aria-label="Cancel move"
+                  onClick={handleCancelMove}
+                  title="Cancel move"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
       <div className="table-container">
         <table className="problems-table" data-tutorial="problems-table">
           <thead data-tutorial="problems-table-header">
