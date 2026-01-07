@@ -1,0 +1,29 @@
+# POKRABS Docker Compose - Demo Mode (Published Images Only)
+#
+# This compose file is specifically for running the demo using published images from GHCR.
+# It does NOT include build directives - images must be pulled from the registry.
+#
+# This file is used by the run-demo.sh script and should not be used for local development.
+
+services:
+  frontend:
+    image: ${GHCR_FRONTEND_IMAGE}
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    image: ${GHCR_BACKEND_IMAGE}
+    ports:
+      - "3001:3001"
+    # No volume mounts - data lives in container (demo mode)
+    environment:
+      - DATABASE_TYPE=sqlite
+      - DATABASE_URL=./data/pokrabs.db
+      - DEMO_MODE=true
+      - NODE_ENV=production
+      - PORT=3001
+    restart: unless-stopped
+

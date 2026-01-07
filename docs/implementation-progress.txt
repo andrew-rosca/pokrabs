@@ -2854,3 +2854,38 @@ Enhanced the Docker image publishing setup with improved nginx configuration and
 **Implementation Status:** ✅ **DOCKER PUBLISHING IMPROVEMENTS COMPLETE**
 
 ---
+
+## Docker Demo Script Simplification
+
+**Date:** 2025-01-06
+
+**Summary:**
+Simplified the demo script by creating a dedicated compose file for pulling published images, eliminating the need for runtime file modifications.
+
+**Improvements Made:**
+
+1. **Created Dedicated Compose File:**
+   - Added `docker-compose.demo-pull.yml` specifically for running demo with published images
+   - Contains only `image:` directives, no `build:` sections
+   - Ensures docker-compose always pulls images from GHCR, never attempts to build
+   - Cleaner and more maintainable than runtime file modification
+
+2. **Simplified run-demo.sh Script:**
+   - Removed all sed/awk logic for modifying compose files
+   - Now simply downloads the dedicated compose file
+   - Much cleaner and more reliable
+   - No platform-specific sed syntax needed
+
+**Technical Details:**
+- The new compose file is purpose-built for the demo script use case
+- Eliminates the risk of build attempts when images should be pulled
+- Makes the script more maintainable and easier to understand
+- Users can still use `docker-compose.demo.yml` for local development with builds
+
+**Files Created/Modified:**
+- `docker-compose.demo-pull.yml` - New dedicated compose file for pulling images
+- `scripts/run-demo.sh` - Simplified to use dedicated compose file
+
+**Implementation Status:** ✅ **DEMO SCRIPT SIMPLIFICATION COMPLETE**
+
+---

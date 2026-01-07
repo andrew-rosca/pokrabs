@@ -83,9 +83,9 @@ export GHCR_BACKEND_IMAGE="ghcr.io/${GH_USERNAME}/pokrabs-backend:latest"
 echo -e "${YELLOW}Downloading docker-compose configuration...${NC}"
 TMP_DIR="/tmp/pokrabs-$$"
 mkdir -p "$TMP_DIR"
-COMPOSE_FILE="$TMP_DIR/docker-compose.demo.yml"
+COMPOSE_FILE="$TMP_DIR/docker-compose.demo-pull.yml"
 
-if ! curl -sSL "https://raw.githubusercontent.com/${GH_USERNAME}/${REPO}/${BRANCH}/docker-compose.demo.yml" -o "$COMPOSE_FILE"; then
+if ! curl -sSL "https://raw.githubusercontent.com/${GH_USERNAME}/${REPO}/${BRANCH}/docker-compose.demo-pull.yml" -o "$COMPOSE_FILE"; then
     echo -e "${RED}Error: Failed to download docker-compose configuration${NC}" >&2
     echo ""
     echo "Please check:"
@@ -103,6 +103,15 @@ fi
 
 echo -e "${GREEN}✓ Configuration downloaded${NC}"
 
+# Pull images explicitly before starting to ensure we're using published images
+echo -e "${YELLOW}Pulling published images...${NC}"
+cd "$TMP_DIR"
+PROJECT_NAME="pokrabs-demo-$$"
+$COMPOSE_CMD -p "$PROJECT_NAME" -f docker-compose.demo-pull.yml pull || {
+    echo -e "${RED}Warning: Failed to pull some images. They will be pulled on startup.${NC}" >&2
+}
+echo -e "${GREEN}✓ Images ready${NC}"
+
 # Cleanup function
 cleanup() {
     echo ""
@@ -111,10 +120,6 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-
-# Change to temp directory and set explicit project name
-cd "$TMP_DIR"
-PROJECT_NAME="pokrabs-demo-$$"
 
 echo ""
 echo -e "${GREEN}Starting POKRABS demo...${NC}"
@@ -125,6 +130,8 @@ echo "The application will be available at: http://localhost:3000"
 echo "Press Ctrl+C to stop"
 echo ""
 
-# Use the detected compose command (docker-compose or docker compose)
-$COMPOSE_CMD -p "$PROJECT_NAME" -f docker-compose.demo.yml up
+# Use the detected compose command
+# Images should already be pulled, but we'll start the services
+# This compose file only has image: directives, no build: directives
+$COMPOSE_CMD -p "$PROJECT_NAME" -f docker-compose.demo-pull.yml up
 
