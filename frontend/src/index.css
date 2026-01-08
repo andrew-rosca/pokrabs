@@ -613,7 +613,44 @@ code {
 }
 
 .problems-table tbody tr:hover {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-secondary) !important;
+}
+
+/* Depth-based background shading for hierarchy - applies to entire row */
+.problems-table tbody tr.problem-row.depth-0 {
+  background-color: transparent;
+}
+
+.problems-table tbody tr.problem-row.depth-1 {
+  background-color: var(--bg-list-alt);
+}
+
+.problems-table tbody tr.problem-row.depth-2 {
+  background-color: var(--bg-list-alt);
+  filter: brightness(0.92);
+}
+
+.problems-table tbody tr.problem-row.depth-3 {
+  background-color: var(--bg-list-alt);
+  filter: brightness(0.84);
+}
+
+.problems-table tbody tr.problem-row.depth-4 {
+  background-color: var(--bg-list-alt);
+  filter: brightness(0.76);
+}
+
+.problems-table tbody tr.problem-row.depth-5 {
+  background-color: var(--bg-list-alt);
+  filter: brightness(0.68);
+}
+
+.problems-table tbody tr.problem-row.depth-6,
+.problems-table tbody tr.problem-row.depth-7,
+.problems-table tbody tr.problem-row.depth-8,
+.problems-table tbody tr.problem-row.depth-9 {
+  background-color: var(--bg-list-alt);
+  filter: brightness(0.6);
 }
 
 /* Drag and drop styles */
@@ -669,7 +706,12 @@ code {
   overflow: visible;
   text-overflow: initial;
   padding-left: 1.3rem; /* Room for handle/indicator */
-  padding-right: 0; /* No right padding to avoid gap with Problem column */
+  padding-right: 0 !important; /* No right padding to avoid gap with Problem column */
+}
+
+/* Base padding for problem-text column - inline styles will override for depth-based indentation */
+.problems-table td.problem-text {
+  padding-left: 0;
 }
 
 /* Row number column - first column */
@@ -1048,6 +1090,9 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  position: relative;
+  width: 100%;
+  min-height: 100%;
 }
 
 .id-path {
@@ -1066,6 +1111,8 @@ code {
   opacity: 0.7;
   text-decoration: underline;
 }
+
+/* Tree lines for problem hierarchy - removed, using inline styles in component */
 
 .copy-confirmation {
   background-color: var(--bg-primary) !important;

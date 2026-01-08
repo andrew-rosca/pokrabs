@@ -1336,7 +1336,7 @@ export function ProblemsList({
                   )}
                 </div>
               </th>
-              <th>
+              <th style={{ paddingLeft: 0 }}>
                 <div className="header-with-action" style={{ justifyContent: 'space-between' }}>
                   <div className="header-with-action">
                     <span>Problem</span>
@@ -1465,6 +1465,7 @@ export function ProblemsList({
                     }
                   }}
                   className={`problem-row depth-${depth}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}${highlightedProblemId === problem.id ? ' highlighted' : ''}`}
+                  data-depth={depth}
                   style={{
                     opacity: isDragging ? 0.5 : 1,
                     ...dropIndicatorStyle,
@@ -1577,19 +1578,6 @@ export function ProblemsList({
                           gap: '2px'
                         }}
                       >
-                        {depth > 0 && (
-                          <span style={{ 
-                            color: '#888',
-                            fontSize: '0.75em',
-                            lineHeight: 1,
-                            display: 'inline-flex',
-                            gap: '2px'
-                          }}>
-                            {Array(depth).fill(null).map((_, i) => (
-                              <span key={i}>&mdash;</span>
-                            ))}
-                          </span>
-                        )}
                         {problem.idPath}
                       </span>
                       {copiedId === problem.id && (
@@ -1683,7 +1671,7 @@ export function ProblemsList({
                       )}
                     </div>
                   </td>
-                  <td className="problem-text">
+                  <td className="problem-text" style={{ paddingLeft: depth > 0 ? `calc(${depth} * 0.5rem + 0.5rem)` : '0' }}>
                     <SummaryDetailCell
                       value={problem.problem}
                       onSave={(value) => handleSaveField(problem.id, 'problem', value)}
