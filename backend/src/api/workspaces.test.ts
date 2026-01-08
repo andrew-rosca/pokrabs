@@ -7,17 +7,23 @@ import request from 'supertest';
 import express from 'express';
 import workspacesRouter from './workspaces';
 import { setupTestDatabase, cleanupTestDatabase } from '../test-helpers/database';
-import { getWorkspaceRepository, getProblemRepository, getViewRepository } from '../models/repository-factory';
+import { getWorkspaceRepository, getProblemRepository, getViewRepository, getOrganizationRepository, getUserRepository } from '../models/repository-factory';
 import { PrismaClient } from '@prisma/client';
 import { Status } from '../../../shared/types';
 import { resetIdCounter } from '../utils/id-generator';
+import { randomUUID } from 'crypto';
 
 describe('Workspaces API', () => {
   let app: express.Application;
   let prisma: PrismaClient;
   let databaseUrl: string;
+  let organizationId: string;
+  let userId: string;
 
   beforeEach(async () => {
+    // Set AUTH_MODE to demo for tests
+    process.env.AUTH_MODE = 'demo';
+
     // Create isolated database
     const { prisma: client, databaseUrl: url } = await setupTestDatabase();
     prisma = client;
@@ -26,12 +32,38 @@ describe('Workspaces API', () => {
     // Reset ID counter
     await resetIdCounter();
 
+    // Create default organization
+    const orgRepo = getOrganizationRepository(prisma);
+    const organization = await orgRepo.create({
+      id: randomUUID(),
+      name: 'Default Organization',
+    });
+    organizationId = organization.id;
+
+    // Create default user
+    const userRepo = getUserRepository(prisma);
+    const user = await userRepo.create({
+      id: randomUUID(),
+      organizationId: organization.id,
+      email: 'default@pokrabs.local',
+      name: 'Default User',
+      authId: 'default@pokrabs.local',
+      authProvider: 'internal',
+    });
+    userId = user.id;
+
     // Create Express app with routes
     app = express();
     app.use(express.json());
     // Middleware to attach Prisma client to request (for testing)
     app.use((req, res, next) => {
       (req as any).prisma = prisma;
+      next();
+    });
+    // Mock authentication middleware for tests
+    app.use((req, res, next) => {
+      req.organizationId = organizationId;
+      req.userId = userId;
       next();
     });
     app.use('/api/workspaces', workspacesRouter);
@@ -51,8 +83,8 @@ describe('Workspaces API', () => {
 
     it('should return all workspaces', async () => {
       const repo = getWorkspaceRepository(prisma);
-      await repo.create({ id: 'workspace-1', name: 'Workspace 1' });
-      await repo.create({ id: 'workspace-2', name: 'Workspace 2' });
+      await repo.create({ id: 'workspace-1', organizationId, name: 'Workspace 1' });
+      await repo.create({ id: 'workspace-2', organizationId, name: 'Workspace 2' });
 
       const response = await request(app).get('/api/workspaces');
       
@@ -64,9 +96,9 @@ describe('Workspaces API', () => {
 
     it('should exclude soft-deleted workspaces', async () => {
       const repo = getWorkspaceRepository(prisma);
-      await repo.create({ id: 'workspace-1', name: 'Workspace 1' });
-      await repo.create({ id: 'workspace-2', name: 'Workspace 2' });
-      await repo.softDelete('workspace-2');
+      await repo.create({ id: 'workspace-1', organizationId, name: 'Workspace 1' });
+      await repo.create({ id: 'workspace-2', organizationId, name: 'Workspace 2' });
+      await repo.softDelete('workspace-2', organizationId);
 
       const response = await request(app).get('/api/workspaces');
       
@@ -79,7 +111,7 @@ describe('Workspaces API', () => {
   describe('GET /api/workspaces/:id', () => {
     it('should return workspace by ID', async () => {
       const repo = getWorkspaceRepository(prisma);
-      await repo.create({ id: 'workspace-1', name: 'Test Workspace' });
+      await repo.create({ id: 'workspace-1', organizationId, name: 'Test Workspace' });
 
       const response = await request(app).get('/api/workspaces/workspace-1');
       
@@ -97,8 +129,8 @@ describe('Workspaces API', () => {
 
     it('should return 404 for soft-deleted workspace', async () => {
       const repo = getWorkspaceRepository(prisma);
-      await repo.create({ id: 'workspace-1', name: 'Test Workspace' });
-      await repo.softDelete('workspace-1');
+      await repo.create({ id: 'workspace-1', organizationId, name: 'Test Workspace' });
+      await repo.softDelete('workspace-1', organizationId);
 
       const response = await request(app).get('/api/workspaces/workspace-1');
       
@@ -156,7 +188,7 @@ describe('Workspaces API', () => {
 
       // Check that default view was created
       const viewRepo = getViewRepository(prisma);
-      const views = await viewRepo.findByWorkspaceId(workspaceId);
+      const views = await viewRepo.findByWorkspaceId(workspaceId, organizationId);
       
       expect(views).toHaveLength(1);
       expect(views[0].name).toBe('All Problems');
@@ -174,16 +206,18 @@ describe('Workspaces API', () => {
   describe('GET /api/workspaces/:workspaceId/problems', () => {
     it('should return problems for a workspace', async () => {
       const workspaceRepo = getWorkspaceRepository(prisma);
-      const workspace = await workspaceRepo.create({ id: 'workspace-1', name: 'Workspace 1' });
+      const workspace = await workspaceRepo.create({ id: 'workspace-1', organizationId, name: 'Workspace 1' });
       
       const problemRepo = getProblemRepository(prisma);
       await problemRepo.create({
         workspaceId: workspace.id,
+        organizationId,
         problem: 'Problem 1',
         objective: 'Objective 1',
       });
       await problemRepo.create({
         workspaceId: workspace.id,
+        organizationId,
         problem: 'Problem 2',
         objective: 'Objective 2',
       });
@@ -198,7 +232,7 @@ describe('Workspaces API', () => {
 
     it('should return empty array when workspace has no problems', async () => {
       const workspaceRepo = getWorkspaceRepository(prisma);
-      const workspace = await workspaceRepo.create({ id: 'workspace-1', name: 'Workspace 1' });
+      const workspace = await workspaceRepo.create({ id: 'workspace-1', organizationId, name: 'Workspace 1' });
 
       const response = await request(app).get(`/api/workspaces/${workspace.id}/problems`);
       
@@ -215,20 +249,22 @@ describe('Workspaces API', () => {
 
     it('should exclude soft-deleted problems', async () => {
       const workspaceRepo = getWorkspaceRepository(prisma);
-      const workspace = await workspaceRepo.create({ id: 'workspace-1', name: 'Workspace 1' });
+      const workspace = await workspaceRepo.create({ id: 'workspace-1', organizationId, name: 'Workspace 1' });
       
       const problemRepo = getProblemRepository(prisma);
       const problem1 = await problemRepo.create({
         workspaceId: workspace.id,
+        organizationId,
         problem: 'Problem 1',
         objective: 'Objective 1',
       });
       await problemRepo.create({
         workspaceId: workspace.id,
+        organizationId,
         problem: 'Problem 2',
         objective: 'Objective 2',
       });
-      await problemRepo.softDelete(problem1.id);
+      await problemRepo.softDelete(problem1.id, organizationId);
 
       const response = await request(app).get(`/api/workspaces/${workspace.id}/problems`);
       
@@ -243,7 +279,7 @@ describe('Workspaces API', () => {
 
     beforeEach(async () => {
       const workspaceRepo = getWorkspaceRepository(prisma);
-      const workspace = await workspaceRepo.create({ id: 'workspace-1', name: 'Test Workspace' });
+      const workspace = await workspaceRepo.create({ id: 'workspace-1', organizationId, name: 'Test Workspace' });
       workspaceId = workspace.id;
     });
 
@@ -301,6 +337,7 @@ describe('Workspaces API', () => {
       const problemRepo = getProblemRepository(prisma);
       const parent = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Parent',
         objective: 'Parent objective',
       });
@@ -320,11 +357,12 @@ describe('Workspaces API', () => {
 
     it('should return 400 when parentId belongs to different workspace', async () => {
       const workspaceRepo = getWorkspaceRepository(prisma);
-      const otherWorkspace = await workspaceRepo.create({ id: 'workspace-2', name: 'Other Workspace' });
+      const otherWorkspace = await workspaceRepo.create({ id: 'workspace-2', organizationId, name: 'Other Workspace' });
       
       const problemRepo = getProblemRepository(prisma);
       const otherProblem = await problemRepo.create({
         workspaceId: otherWorkspace.id,
+        organizationId,
         problem: 'Other problem',
         objective: 'Other objective',
       });
@@ -358,7 +396,7 @@ describe('Workspaces API', () => {
   describe('PATCH /api/workspaces/:id', () => {
     it('should update workspace name', async () => {
       const repo = getWorkspaceRepository(prisma);
-      const workspace = await repo.create({ id: 'workspace-1', name: 'Original Name' });
+      const workspace = await repo.create({ id: 'workspace-1', organizationId, name: 'Original Name' });
 
       const response = await request(app)
         .patch(`/api/workspaces/${workspace.id}`)
@@ -371,7 +409,7 @@ describe('Workspaces API', () => {
 
     it('should trim workspace name when updating', async () => {
       const repo = getWorkspaceRepository(prisma);
-      const workspace = await repo.create({ id: 'workspace-1', name: 'Original Name' });
+      const workspace = await repo.create({ id: 'workspace-1', organizationId, name: 'Original Name' });
 
       const response = await request(app)
         .patch(`/api/workspaces/${workspace.id}`)
@@ -392,7 +430,7 @@ describe('Workspaces API', () => {
 
     it('should return 400 when name is empty string', async () => {
       const repo = getWorkspaceRepository(prisma);
-      const workspace = await repo.create({ id: 'workspace-1', name: 'Original Name' });
+      const workspace = await repo.create({ id: 'workspace-1', organizationId, name: 'Original Name' });
 
       const response = await request(app)
         .patch(`/api/workspaces/${workspace.id}`)
@@ -404,8 +442,8 @@ describe('Workspaces API', () => {
 
     it('should return 404 for soft-deleted workspace', async () => {
       const repo = getWorkspaceRepository(prisma);
-      const workspace = await repo.create({ id: 'workspace-1', name: 'Original Name' });
-      await repo.softDelete(workspace.id);
+      const workspace = await repo.create({ id: 'workspace-1', organizationId, name: 'Original Name' });
+      await repo.softDelete(workspace.id, organizationId);
 
       const response = await request(app)
         .patch(`/api/workspaces/${workspace.id}`)
@@ -419,10 +457,10 @@ describe('Workspaces API', () => {
   describe('PATCH /api/workspaces/:id/use', () => {
     it('should update lastUsedAt timestamp', async () => {
       const repo = getWorkspaceRepository(prisma);
-      const workspace = await repo.create({ id: 'workspace-1', name: 'Test Workspace' });
+      const workspace = await repo.create({ id: 'workspace-1', organizationId, name: 'Test Workspace' });
       
       // Get initial lastUsedAt
-      const initial = await repo.findById(workspace.id);
+      const initial = await repo.findById(workspace.id, organizationId);
       const initialLastUsedAt = initial!.lastUsedAt;
 
       // Wait a bit to ensure timestamp difference
@@ -435,7 +473,7 @@ describe('Workspaces API', () => {
       expect(response.body.id).toBe(workspace.id);
       
       // Verify lastUsedAt was updated
-      const updated = await repo.findById(workspace.id);
+      const updated = await repo.findById(workspace.id, organizationId);
       expect(updated!.lastUsedAt).not.toBe(initialLastUsedAt);
       expect(new Date(updated!.lastUsedAt).getTime()).toBeGreaterThan(new Date(initialLastUsedAt).getTime());
     });
@@ -450,8 +488,8 @@ describe('Workspaces API', () => {
 
     it('should return 404 for soft-deleted workspace', async () => {
       const repo = getWorkspaceRepository(prisma);
-      const workspace = await repo.create({ id: 'workspace-1', name: 'Test Workspace' });
-      await repo.softDelete(workspace.id);
+      const workspace = await repo.create({ id: 'workspace-1', organizationId, name: 'Test Workspace' });
+      await repo.softDelete(workspace.id, organizationId);
 
       const response = await request(app)
         .patch(`/api/workspaces/${workspace.id}/use`);
@@ -464,8 +502,8 @@ describe('Workspaces API', () => {
   describe('DELETE /api/workspaces/:id', () => {
     it('should soft delete a workspace', async () => {
       const repo = getWorkspaceRepository(prisma);
-      const workspace1 = await repo.create({ id: 'workspace-1', name: 'Workspace 1' });
-      await repo.create({ id: 'workspace-2', name: 'Workspace 2' });
+      const workspace1 = await repo.create({ id: 'workspace-1', organizationId, name: 'Workspace 1' });
+      await repo.create({ id: 'workspace-2', organizationId, name: 'Workspace 2' });
 
       const response = await request(app)
         .delete(`/api/workspaces/${workspace1.id}`);
@@ -473,7 +511,7 @@ describe('Workspaces API', () => {
       expect(response.status).toBe(204);
 
       // Verify workspace is soft-deleted (not in findAll)
-      const allWorkspaces = await repo.findAll();
+      const allWorkspaces = await repo.findAll(organizationId);
       expect(allWorkspaces).toHaveLength(1);
       expect(allWorkspaces[0].id).toBe('workspace-2');
 
@@ -493,7 +531,7 @@ describe('Workspaces API', () => {
 
     it('should prevent deleting the last workspace', async () => {
       const repo = getWorkspaceRepository(prisma);
-      const workspace = await repo.create({ id: 'workspace-1', name: 'Last Workspace' });
+      const workspace = await repo.create({ id: 'workspace-1', organizationId, name: 'Last Workspace' });
 
       const response = await request(app)
         .delete(`/api/workspaces/${workspace.id}`);
@@ -502,16 +540,16 @@ describe('Workspaces API', () => {
       expect(response.body.error).toBe('Cannot delete the last workspace');
 
       // Verify workspace still exists
-      const allWorkspaces = await repo.findAll();
+      const allWorkspaces = await repo.findAll(organizationId);
       expect(allWorkspaces).toHaveLength(1);
       expect(allWorkspaces[0].id).toBe(workspace.id);
     });
 
     it('should allow deleting when multiple workspaces exist', async () => {
       const repo = getWorkspaceRepository(prisma);
-      const workspace1 = await repo.create({ id: 'workspace-1', name: 'Workspace 1' });
-      const workspace2 = await repo.create({ id: 'workspace-2', name: 'Workspace 2' });
-      const workspace3 = await repo.create({ id: 'workspace-3', name: 'Workspace 3' });
+      const workspace1 = await repo.create({ id: 'workspace-1', organizationId, name: 'Workspace 1' });
+      const workspace2 = await repo.create({ id: 'workspace-2', organizationId, name: 'Workspace 2' });
+      const workspace3 = await repo.create({ id: 'workspace-3', organizationId, name: 'Workspace 3' });
 
       const response = await request(app)
         .delete(`/api/workspaces/${workspace2.id}`);
@@ -519,7 +557,7 @@ describe('Workspaces API', () => {
       expect(response.status).toBe(204);
 
       // Verify workspace2 is deleted but others remain
-      const allWorkspaces = await repo.findAll();
+      const allWorkspaces = await repo.findAll(organizationId);
       expect(allWorkspaces).toHaveLength(2);
       expect(allWorkspaces.map((w: any) => w.id)).toContain('workspace-1');
       expect(allWorkspaces.map((w: any) => w.id)).toContain('workspace-3');
