@@ -1433,6 +1433,23 @@ export function ProblemsList({
             </tr>
           </thead>
           <tbody>
+            {visibleProblems.length === 0 && !loading && !error && (
+              <tr>
+                <td colSpan={
+                  2 + // Row number + ID
+                  (visibleColumns.labels ? 1 : 0) +
+                  (visibleColumns.objective ? 1 : 0) +
+                  (visibleColumns.keyResults ? 1 : 0) +
+                  (visibleColumns.actions ? 1 : 0) +
+                  (visibleColumns.blockers ? 1 : 0) +
+                  (visibleColumns.status ? 1 : 0) +
+                  (visibleColumns.votes ? 1 : 0) +
+                  1 // Problem column (always visible)
+                } style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                  No problems found.
+                </td>
+              </tr>
+            )}
             {visibleProblems.map((problem, index) => {
               const depth = getDepth(problem.idPath);
               const isDragging = draggedProblemId !== null && getDraggedProblems(draggedProblemId).has(problem.id);

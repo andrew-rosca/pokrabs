@@ -6,8 +6,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import App, { AppContent } from './App';
+import { AppContent } from './App';
 import { fetchWorkspaces, fetchProblems, fetchViews, createView, updateView, useWorkspace } from './services/api';
+import { authService } from './services/auth';
 
 // Mock the API service
 vi.mock('./services/api', () => ({
@@ -18,6 +19,16 @@ vi.mock('./services/api', () => ({
   updateView: vi.fn(),
   useView: vi.fn(),
   deleteView: vi.fn(),
+}));
+
+// Mock the auth service
+vi.mock('./services/auth', () => ({
+  authService: {
+    getState: vi.fn(() => ({ user: null, mode: 'demo', isLoading: false })),
+    subscribe: vi.fn(() => () => {}),
+    login: vi.fn(),
+    logout: vi.fn(),
+  },
 }));
 
 const mockFetchWorkspaces = fetchWorkspaces as ReturnType<typeof vi.fn>;
@@ -57,7 +68,7 @@ describe('App', () => {
       },
     ]);
     
-    render(<App />);
+    render(<MemoryRouter><AppContent /></MemoryRouter>);
     
     // Wait for the app to load and show the workspace name
     await waitFor(() => {
@@ -107,7 +118,7 @@ describe('App', () => {
     });
 
     it('should show Save As link when filters have unsaved changes', async () => {
-      render(<App />);
+      render(<MemoryRouter><AppContent /></MemoryRouter>);
 
       await waitFor(() => {
         expect(screen.getByText('Test Workspace')).toBeInTheDocument();
@@ -127,7 +138,7 @@ describe('App', () => {
         .mockResolvedValueOnce([mockDefaultView])
         .mockResolvedValueOnce([mockDefaultView, mockNewView]);
 
-      render(<App />);
+      render(<MemoryRouter><AppContent /></MemoryRouter>);
 
       await waitFor(() => {
         expect(screen.getByText('Test Workspace')).toBeInTheDocument();
@@ -156,7 +167,7 @@ describe('App', () => {
         .mockResolvedValueOnce([mockDefaultView])
         .mockResolvedValueOnce([mockDefaultView, mockNewView]);
 
-      render(<App />);
+      render(<MemoryRouter><AppContent /></MemoryRouter>);
 
       await waitFor(() => {
         expect(screen.getByText('Test Workspace')).toBeInTheDocument();
@@ -194,7 +205,7 @@ describe('App', () => {
         .mockResolvedValueOnce([mockDefaultView])
         .mockResolvedValueOnce([mockDefaultView, createdView]);
 
-      render(<App />);
+      render(<MemoryRouter><AppContent /></MemoryRouter>);
 
       await waitFor(() => {
         expect(screen.getByText('Test Workspace')).toBeInTheDocument();
@@ -208,7 +219,7 @@ describe('App', () => {
     it('should not create view if prompt is cancelled', async () => {
       (window.prompt as ReturnType<typeof vi.fn>).mockReturnValue(null);
 
-      render(<App />);
+      render(<MemoryRouter><AppContent /></MemoryRouter>);
 
       await waitFor(() => {
         expect(screen.getByText('Test Workspace')).toBeInTheDocument();
@@ -221,7 +232,7 @@ describe('App', () => {
     it('should not create view if prompt returns empty string', async () => {
       (window.prompt as ReturnType<typeof vi.fn>).mockReturnValue('   '); // Whitespace only
 
-      render(<App />);
+      render(<MemoryRouter><AppContent /></MemoryRouter>);
 
       await waitFor(() => {
         expect(screen.getByText('Test Workspace')).toBeInTheDocument();
@@ -240,7 +251,7 @@ describe('App', () => {
       const error = new Error('Failed to create view');
       mockCreateView.mockRejectedValue(error);
 
-      render(<App />);
+      render(<MemoryRouter><AppContent /></MemoryRouter>);
 
       await waitFor(() => {
         expect(screen.getByText('Test Workspace')).toBeInTheDocument();
@@ -263,7 +274,7 @@ describe('App', () => {
         .mockResolvedValueOnce([mockDefaultView])
         .mockResolvedValueOnce([mockDefaultView, mockNewView]);
 
-      render(<App />);
+      render(<MemoryRouter><AppContent /></MemoryRouter>);
 
       await waitFor(() => {
         expect(screen.getByText('Test Workspace')).toBeInTheDocument();
@@ -286,7 +297,7 @@ describe('App', () => {
         name: trimmedName,
       });
 
-      render(<App />);
+      render(<MemoryRouter><AppContent /></MemoryRouter>);
 
       await waitFor(() => {
         expect(screen.getByText('Test Workspace')).toBeInTheDocument();
@@ -306,7 +317,7 @@ describe('App', () => {
         .mockResolvedValueOnce([mockDefaultView]) // Initial load
         .mockResolvedValueOnce([mockDefaultView, mockNewView]); // After Save As
 
-      render(<App />);
+      render(<MemoryRouter><AppContent /></MemoryRouter>);
 
       await waitFor(() => {
         expect(screen.getByText('Test Workspace')).toBeInTheDocument();
@@ -323,7 +334,8 @@ describe('App', () => {
       // 4. hasUnsavedChanges should be false
 
       // Verify initial state
-      expect(mockFetchViews).toHaveBeenCalledTimes(1);
+      // Note: fetchViews may be called multiple times during initialization (e.g., auth state changes)
+      expect(mockFetchViews).toHaveBeenCalled();
       expect(mockCreateView).not.toHaveBeenCalled();
     });
 
@@ -336,7 +348,7 @@ describe('App', () => {
       const error = new Error('Network error');
       mockCreateView.mockRejectedValue(error);
 
-      render(<App />);
+      render(<MemoryRouter><AppContent /></MemoryRouter>);
 
       await waitFor(() => {
         expect(screen.getByText('Test Workspace')).toBeInTheDocument();

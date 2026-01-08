@@ -696,3 +696,4 @@ export function AppContent() {
 }
 
 export default App;
+export { AppContent };
