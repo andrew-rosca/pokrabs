@@ -13,6 +13,76 @@ import { randomUUID } from 'crypto';
 const router = Router();
 
 /**
+ * GET /api/auth/mode
+ * Get current authentication mode
+ * Must come before /:provider route
+ */
+router.get('/mode', (req: Request, res: Response) => {
+  const authMode = process.env.AUTH_MODE || 'demo';
+  res.json({ mode: authMode });
+});
+
+/**
+ * GET /api/auth/me
+ * Get current authenticated user
+ * Must come before /:provider route
+ */
+router.get('/me', async (req: Request, res: Response) => {
+  try {
+    const session = (req as any).session;
+    const userId = session?.userId;
+
+    if (!userId) {
+      return res.json({ user: null });
+    }
+
+    const prisma = getPrismaClient();
+    const userRepo = getUserRepository(prisma);
+    const user = await userRepo.findById(userId);
+
+    if (!user) {
+      // Clear invalid session
+      session.userId = undefined;
+      session.organizationId = undefined;
+      return res.json({ user: null });
+    }
+
+    // Don't expose organizationId or internal fields
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
+    });
+  } catch (error) {
+    console.error('Get current user error:', error);
+    res.status(500).json({ error: 'Failed to get current user' });
+  }
+});
+
+/**
+ * POST /api/auth/logout
+ * Destroy session
+ * Must come before /:provider route
+ */
+router.post('/logout', (req: Request, res: Response) => {
+  const session = (req as any).session;
+  
+  if (session) {
+    session.destroy((err: any) => {
+      if (err) {
+        console.error('Session destroy error:', err);
+        return res.status(500).json({ error: 'Failed to logout' });
+      }
+      res.json({ success: true });
+    });
+  } else {
+    res.json({ success: true });
+  }
+});
+
+/**
  * GET /api/auth/:provider
  * Initiate OAuth flow for the specified provider
  */
@@ -111,72 +181,6 @@ router.get('/:provider/callback', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /api/auth/me
- * Get current authenticated user
- */
-router.get('/me', async (req: Request, res: Response) => {
-  try {
-    const session = (req as any).session;
-    const userId = session?.userId;
-
-    if (!userId) {
-      return res.json({ user: null });
-    }
-
-    const prisma = getPrismaClient();
-    const userRepo = getUserRepository(prisma);
-    const user = await userRepo.findById(userId);
-
-    if (!user) {
-      // Clear invalid session
-      session.userId = undefined;
-      session.organizationId = undefined;
-      return res.json({ user: null });
-    }
-
-    // Don't expose organizationId or internal fields
-    res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
-    });
-  } catch (error) {
-    console.error('Get current user error:', error);
-    res.status(500).json({ error: 'Failed to get current user' });
-  }
-});
-
-/**
- * GET /api/auth/mode
- * Get current authentication mode
- */
-router.get('/mode', (req: Request, res: Response) => {
-  const authMode = process.env.AUTH_MODE || 'demo';
-  res.json({ mode: authMode });
-});
-
-/**
- * POST /api/auth/logout
- * Destroy session
- */
-router.post('/logout', (req: Request, res: Response) => {
-  const session = (req as any).session;
-  
-  if (session) {
-    session.destroy((err: any) => {
-      if (err) {
-        console.error('Session destroy error:', err);
-        return res.status(500).json({ error: 'Failed to logout' });
-      }
-      res.json({ success: true });
-    });
-  } else {
-    res.json({ success: true });
-  }
-});
 
 export default router;
 
