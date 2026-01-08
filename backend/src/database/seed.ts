@@ -146,6 +146,20 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
 
     console.log('Created default view');
 
+    // Create Active problems view (non-default)
+    await viewRepo.create({
+      id: await generateId(),
+      workspaceId: workspace.id,
+      name: 'Active problems',
+      filters: {
+        selectedStatuses: [Status.NotStarted, Status.InProgress, Status.Blocked],
+        selectedLabels: [],
+      },
+      isDefault: false,
+    });
+
+    console.log('Created Active problems view');
+
     if (options.large) {
       // Generate large dataset for testing
       console.log('Generating large dataset...');
@@ -335,7 +349,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
         keyResults: JSON.stringify(['API credentials with read/write access to tickets']),
         actions: JSON.stringify(['Request API access from support platform', 'Set up authentication']),
         blockers: JSON.stringify([]),
-        status: Status.NotStarted,
+        status: Status.Resolved,
         labels: ['support', 'technical'],
       });
       console.log(`Created problem: ${child3b.idPath}`);
