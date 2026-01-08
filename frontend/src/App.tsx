@@ -8,6 +8,7 @@ import { ThemeToggle } from './components/ThemeToggle';
 import { ViewSelector } from './components/ViewSelector';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { Tutorial } from './components/Tutorial';
+import { LoginButton } from './components/LoginButton';
 import { hasTutorialBeenShown } from './services/tutorial';
 
 function App() {
@@ -498,6 +499,7 @@ export function AppContent() {
                 </button>
               )}
             </div>
+            <LoginButton />
             <ThemeToggle />
           </div>
         </header>
