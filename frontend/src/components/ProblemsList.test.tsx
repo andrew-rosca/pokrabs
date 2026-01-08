@@ -6,7 +6,7 @@ import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ProblemsList } from './ProblemsList';
 import { fetchProblems, updateProblem, createProblem, deleteProblem } from '../services/api';
 import { Problem, Status } from '../../../shared/types';
@@ -25,8 +25,17 @@ const mockCreateProblem = createProblem as ReturnType<typeof vi.fn>;
 const mockDeleteProblem = deleteProblem as ReturnType<typeof vi.fn>;
 
 // Helper function to render component with Router context
-function renderWithRouter(ui: React.ReactElement) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+function renderWithRouter(ui: React.ReactElement, initialEntries?: string[]) {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <Routes>
+        <Route path="/w/:workspaceId/v/:viewId/p/:problemId" element={ui} />
+        <Route path="/w/:workspaceId/v/:viewId" element={ui} />
+        <Route path="/w/:workspaceId" element={ui} />
+        <Route path="/" element={ui} />
+      </Routes>
+    </MemoryRouter>
+  );
 }
 
 describe('ProblemsList', () => {
@@ -598,7 +607,14 @@ describe('ProblemsList', () => {
     renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
     
     await waitFor(() => {
-      expect(screen.getByText('No problems found.')).toBeInTheDocument();
+      // When there are no problems, the table should still render with headers
+      expect(screen.getByText('Problem')).toBeInTheDocument();
+      expect(screen.getByText('ID')).toBeInTheDocument();
+    });
+    
+    // Should show 0 visible rows
+    await waitFor(() => {
+      expect(screen.getByTitle('0 visible rows / 0 total rows')).toBeInTheDocument();
     });
   });
 
@@ -2638,9 +2654,8 @@ describe('ProblemsList', () => {
 
     it('should read problemId from URL /w/{workspaceId}/v/{viewId}/p/{problemId}', async () => {
       const { container } = renderWithRouter(
-        <MemoryRouter initialEntries={['/w/workspace-1/v/view-1/p/i0']}>
-          <ProblemsList workspaceId={workspaceId} />
-        </MemoryRouter>
+        <ProblemsList workspaceId={workspaceId} />,
+        ['/w/workspace-1/v/view-1/p/i0']
       );
 
       await waitFor(() => {
@@ -2658,9 +2673,8 @@ describe('ProblemsList', () => {
       const writeTextSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
 
       renderWithRouter(
-        <MemoryRouter initialEntries={['/w/workspace-1/v/view-1']}>
-          <ProblemsList workspaceId={workspaceId} />
-        </MemoryRouter>
+        <ProblemsList workspaceId={workspaceId} />,
+        ['/w/workspace-1/v/view-1']
       );
 
       await waitFor(() => {
@@ -2686,9 +2700,8 @@ describe('ProblemsList', () => {
 
     it('should handle invalid problemId in URL', async () => {
       renderWithRouter(
-        <MemoryRouter initialEntries={['/w/workspace-1/v/view-1/p/invalid-problem']}>
-          <ProblemsList workspaceId={workspaceId} />
-        </MemoryRouter>
+        <ProblemsList workspaceId={workspaceId} />,
+        ['/w/workspace-1/v/view-1/p/invalid-problem']
       );
 
       await waitFor(() => {

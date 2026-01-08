@@ -23,7 +23,7 @@ function App() {
   );
 }
 
-function AppContent() {
+export function AppContent() {
   const params = useParams<{
     workspaceId?: string;
     viewId?: string;

@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import App from './App';
+import App, { AppContent } from './App';
 import { fetchWorkspaces, fetchProblems, fetchViews, createView, updateView, useWorkspace } from './services/api';
 
 // Mock the API service
@@ -408,7 +408,7 @@ describe('App', () => {
 
       render(
         <MemoryRouter initialEntries={['/w/workspace-1']}>
-          <App />
+          <AppContent />
         </MemoryRouter>
       );
 
@@ -426,7 +426,7 @@ describe('App', () => {
 
       render(
         <MemoryRouter initialEntries={['/w/workspace-1/v/view-2']}>
-          <App />
+          <AppContent />
         </MemoryRouter>
       );
 
@@ -443,7 +443,7 @@ describe('App', () => {
 
       render(
         <MemoryRouter initialEntries={['/w/invalid-workspace']}>
-          <App />
+          <AppContent />
         </MemoryRouter>
       );
 
@@ -463,7 +463,7 @@ describe('App', () => {
 
       render(
         <MemoryRouter initialEntries={['/w/workspace-1/v/invalid-view']}>
-          <App />
+          <AppContent />
         </MemoryRouter>
       );
 
@@ -483,7 +483,7 @@ describe('App', () => {
 
       render(
         <MemoryRouter initialEntries={['/w/workspace-1']}>
-          <App />
+          <AppContent />
         </MemoryRouter>
       );
 
