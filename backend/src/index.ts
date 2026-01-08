@@ -13,6 +13,7 @@ import { getPrismaClient, getDatabaseUrl } from './database/prisma-client';
 import workspacesRouter from './api/workspaces';
 import problemsRouter from './api/problems';
 import viewsRouter from './api/views';
+import authRouter from './api/auth';
 
 dotenv.config();
 
@@ -56,6 +57,7 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
+app.use('/api/auth', authRouter);
 app.use('/api/workspaces', workspacesRouter);
 app.use('/api/problems', problemsRouter);
 app.use('/api/views', viewsRouter);
