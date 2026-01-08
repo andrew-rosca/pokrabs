@@ -16,6 +16,77 @@ datasource db {
 }
 
 /**
+ * Organizations Table
+ * Organizations are top-level containers for users and workspaces.
+ * All data (workspaces, problems, views) belongs to an organization.
+ */
+model Organization {
+  /// Unique identifier for the organization (UUID)
+  id String @id
+
+  /// Organization name
+  name String
+
+  /// Timestamp when organization was created
+  createdAt DateTime @default(now())
+
+  /// Timestamp when organization was last updated
+  updatedAt DateTime @updatedAt
+
+  /// Related users
+  users User[]
+
+  /// Related workspaces
+  workspaces Workspace[]
+
+  /// Related problems
+  problems Problem[]
+
+  /// Related views
+  views View[]
+
+  @@map("organizations")
+}
+
+/**
+ * Users Table
+ * Users belong to an organization and can authenticate via OAuth providers.
+ */
+model User {
+  /// Unique identifier for the user (UUID)
+  id String @id
+
+  /// Organization ID (required - every user belongs to an organization)
+  organizationId String
+
+  /// OAuth provider user ID (e.g., Google user ID)
+  authId String?
+
+  /// OAuth provider name (e.g., "google", "github", "microsoft")
+  authProvider String?
+
+  /// User email address
+  email String
+
+  /// User display name
+  name String
+
+  /// Timestamp when user was created
+  createdAt DateTime @default(now())
+
+  /// Timestamp when user was last updated
+  updatedAt DateTime @updatedAt
+
+  /// Relationship to organization
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([authId, authProvider])
+  @@index([organizationId])
+  @@index([authId, authProvider])
+  @@map("users")
+}
+
+/**
  * Workspaces Table
  * Workspaces are top-level containers for problems.
  * Each problem belongs to exactly one workspace.
@@ -23,6 +94,9 @@ datasource db {
 model Workspace {
   /// Unique identifier for the workspace (2+ chars, e.g., "a2", "df", "7f1")
   id String @id
+
+  /// Organization ID (required - every workspace belongs to an organization)
+  organizationId String
 
   /// Workspace name
   name String
@@ -36,14 +110,19 @@ model Workspace {
   /// Soft delete timestamp (null means not deleted)
   deletedAt DateTime?
 
+  /// Relationship to organization
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   /// Related problems
   problems Problem[]
 
   /// Related views
   views View[]
 
+  @@index([organizationId])
   @@index([deletedAt])
   @@index([lastUsedAt])
+  @@index([organizationId, deletedAt])
   @@map("workspaces")
 }
 
@@ -98,6 +177,9 @@ model Problem {
   /// Workspace ID (required - every problem belongs to a workspace)
   workspaceId String
 
+  /// Organization ID (required - every problem belongs to an organization)
+  organizationId String
+
   /// Timestamp when problem was created
   createdAt DateTime @default(now())
 
@@ -114,10 +196,15 @@ model Problem {
   /// Relationship to workspace
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
+  /// Relationship to organization
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   @@index([workspaceId])
+  @@index([organizationId])
   @@index([parentId])
   @@index([deletedAt])
   @@index([workspaceId, deletedAt])
+  @@index([organizationId, deletedAt])
   @@index([status])
   @@index([priority])
   @@index([votes])
@@ -145,6 +232,9 @@ model View {
   /// Workspace ID (required - every view belongs to a workspace)
   workspaceId String
 
+  /// Organization ID (required - every view belongs to an organization)
+  organizationId String
+
   /// View name
   name String
 
@@ -169,9 +259,14 @@ model View {
   /// Relationship to workspace
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
+  /// Relationship to organization
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   @@index([workspaceId])
+  @@index([organizationId])
   @@index([deletedAt])
   @@index([workspaceId, deletedAt])
+  @@index([organizationId, deletedAt])
   @@index([workspaceId, lastUsedAt])
   @@map("views")
 }
