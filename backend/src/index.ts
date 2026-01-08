@@ -14,6 +14,7 @@ import workspacesRouter from './api/workspaces';
 import problemsRouter from './api/problems';
 import viewsRouter from './api/views';
 import authRouter from './api/auth';
+import { authenticate } from './middleware/auth';
 
 dotenv.config();
 
@@ -58,9 +59,9 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRouter);
-app.use('/api/workspaces', workspacesRouter);
-app.use('/api/problems', problemsRouter);
-app.use('/api/views', viewsRouter);
+app.use('/api/workspaces', authenticate, workspacesRouter);
+app.use('/api/problems', authenticate, problemsRouter);
+app.use('/api/views', authenticate, viewsRouter);
 
 // Error handling middleware (must come before SPA routing)
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

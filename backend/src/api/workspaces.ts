@@ -41,7 +41,7 @@ const getViewRepositoryWithPrisma = (req: Request) => {
 router.get('/', async (req: Request, res: Response) => {
   try {
     const repository = getRepositoryWithPrisma(req);
-    const workspaces = await repository.findAll();
+    const workspaces = await repository.findAll(req.organizationId);
     res.json(workspaces);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch workspaces' });
@@ -64,6 +64,7 @@ router.post('/', async (req: Request, res: Response) => {
     const repository = getRepositoryWithPrisma(req);
     const workspace = await repository.create({
       id: await generateId(),
+      organizationId: req.organizationId,
       name: name.trim(),
     });
     
@@ -72,6 +73,7 @@ router.post('/', async (req: Request, res: Response) => {
     await viewRepo.create({
       id: await generateId(),
       workspaceId: workspace.id,
+      organizationId: req.organizationId,
       name: 'All Problems',
       filters: {
         selectedStatuses: [Status.NotStarted, Status.InProgress, Status.Blocked, Status.Resolved],
@@ -98,13 +100,13 @@ router.get('/:workspaceId/problems', async (req: Request, res: Response) => {
     
     // Verify workspace exists
     const workspaceRepo = getRepositoryWithPrisma(req);
-    const workspace = await workspaceRepo.findById(workspaceId);
+    const workspace = await workspaceRepo.findById(workspaceId, req.organizationId);
     if (!workspace) {
       return res.status(404).json({ error: 'Workspace not found' });
     }
     
     const problemRepo = getProblemRepositoryWithPrisma(req);
-    const problems = await problemRepo.findByWorkspaceId(workspaceId);
+    const problems = await problemRepo.findByWorkspaceId(workspaceId, req.organizationId);
     
     res.json(problems);
   } catch (error) {
@@ -133,7 +135,7 @@ router.post('/:workspaceId/problems', async (req: Request, res: Response) => {
     
     // Verify workspace exists
     const workspaceRepo = getRepositoryWithPrisma(req);
-    const workspace = await workspaceRepo.findById(workspaceId);
+    const workspace = await workspaceRepo.findById(workspaceId, req.organizationId);
     if (!workspace) {
       return res.status(404).json({ error: 'Workspace not found' });
     }
@@ -163,7 +165,7 @@ router.post('/:workspaceId/problems', async (req: Request, res: Response) => {
     // Validate parentId if provided
     if (parentId) {
       const problemRepo = getProblemRepositoryWithPrisma(req);
-      const parent = await problemRepo.findById(parentId);
+      const parent = await problemRepo.findById(parentId, req.organizationId);
       if (!parent || parent.workspaceId !== workspaceId) {
         return res.status(400).json({ error: 'Parent problem not found or belongs to different workspace' });
       }
@@ -172,6 +174,7 @@ router.post('/:workspaceId/problems', async (req: Request, res: Response) => {
     const problemRepo = getProblemRepositoryWithPrisma(req);
     const created = await problemRepo.create({
       workspaceId,
+      organizationId: req.organizationId,
       parentId: parentId || null,
       problem,
       objective,
@@ -200,15 +203,15 @@ router.patch('/:id/use', async (req: Request, res: Response) => {
     const repository = getRepositoryWithPrisma(req);
     
     // Check if workspace exists
-    const existingWorkspace = await repository.findById(req.params.id);
+    const existingWorkspace = await repository.findById(req.params.id, req.organizationId);
     if (!existingWorkspace) {
       return res.status(404).json({ error: 'Workspace not found' });
     }
     
-    await repository.updateLastUsedAt(req.params.id);
+    await repository.updateLastUsedAt(req.params.id, req.organizationId);
     
     // Return updated workspace
-    const updated = await repository.findById(req.params.id);
+    const updated = await repository.findById(req.params.id, req.organizationId);
     res.json(updated);
   } catch (error: any) {
     if (error.name === 'PrismaClientKnownRequestError' && error.code === 'P2025') {
@@ -229,7 +232,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
     const repository = getRepositoryWithPrisma(req);
     
     // Check if workspace exists
-    const existingWorkspace = await repository.findById(req.params.id);
+    const existingWorkspace = await repository.findById(req.params.id, req.organizationId);
     if (!existingWorkspace) {
       return res.status(404).json({ error: 'Workspace not found' });
     }
@@ -240,7 +243,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
       }
     }
     
-    const updated = await repository.update(req.params.id, { name: name?.trim() });
+    const updated = await repository.update(req.params.id, req.organizationId, { name: name?.trim() });
     
     res.json(updated);
   } catch (error: any) {
@@ -260,18 +263,18 @@ router.delete('/:id', async (req: Request, res: Response) => {
     const repository = getRepositoryWithPrisma(req);
     
     // Check if workspace exists
-    const existingWorkspace = await repository.findById(req.params.id);
+    const existingWorkspace = await repository.findById(req.params.id, req.organizationId);
     if (!existingWorkspace) {
       return res.status(404).json({ error: 'Workspace not found' });
     }
     
     // Check if this is the only workspace (prevent deleting the last workspace)
-    const allWorkspaces = await repository.findAll();
+    const allWorkspaces = await repository.findAll(req.organizationId);
     if (allWorkspaces.length === 1) {
       return res.status(400).json({ error: 'Cannot delete the last workspace' });
     }
     
-    await repository.softDelete(req.params.id);
+    await repository.softDelete(req.params.id, req.organizationId);
     
     res.status(204).send();
   } catch (error: any) {
@@ -291,7 +294,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const repository = getRepositoryWithPrisma(req);
-    const workspace = await repository.findById(req.params.id);
+    const workspace = await repository.findById(req.params.id, req.organizationId);
     
     if (!workspace) {
       return res.status(404).json({ error: 'Workspace not found' });

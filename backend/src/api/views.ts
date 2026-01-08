@@ -31,13 +31,13 @@ router.get('/workspaces/:workspaceId/views', async (req: Request, res: Response)
     
     // Verify workspace exists
     const workspaceRepo = getWorkspaceRepoWithPrisma(req);
-    const workspace = await workspaceRepo.findById(workspaceId);
+    const workspace = await workspaceRepo.findById(workspaceId, req.organizationId);
     if (!workspace) {
       return res.status(404).json({ error: 'Workspace not found' });
     }
     
     const viewRepo = getViewRepoWithPrisma(req);
-    const views = await viewRepo.findByWorkspaceId(workspaceId);
+    const views = await viewRepo.findByWorkspaceId(workspaceId, req.organizationId);
     
     res.json(views);
   } catch (error) {
@@ -56,7 +56,7 @@ router.post('/workspaces/:workspaceId/views', async (req: Request, res: Response
     
     // Verify workspace exists
     const workspaceRepo = getWorkspaceRepoWithPrisma(req);
-    const workspace = await workspaceRepo.findById(workspaceId);
+    const workspace = await workspaceRepo.findById(workspaceId, req.organizationId);
     if (!workspace) {
       return res.status(404).json({ error: 'Workspace not found' });
     }
@@ -80,6 +80,7 @@ router.post('/workspaces/:workspaceId/views', async (req: Request, res: Response
     const view = await viewRepo.create({
       id: await generateId(),
       workspaceId,
+      organizationId: req.organizationId,
       name: name.trim(),
       filters: viewFilters,
       isDefault: isDefault ?? false,
@@ -98,7 +99,7 @@ router.post('/workspaces/:workspaceId/views', async (req: Request, res: Response
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const viewRepo = getViewRepoWithPrisma(req);
-    const view = await viewRepo.findById(req.params.id);
+    const view = await viewRepo.findById(req.params.id, req.organizationId);
     
     if (!view) {
       return res.status(404).json({ error: 'View not found' });
@@ -121,7 +122,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
     const viewRepo = getViewRepoWithPrisma(req);
     
     // Check if view exists
-    const existingView = await viewRepo.findById(req.params.id);
+    const existingView = await viewRepo.findById(req.params.id, req.organizationId);
     if (!existingView) {
       return res.status(404).json({ error: 'View not found' });
     }
@@ -145,7 +146,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
       };
     }
     
-    const updated = await viewRepo.update(req.params.id, updateData);
+    const updated = await viewRepo.update(req.params.id, req.organizationId, updateData);
     
     res.json(updated);
   } catch (error: any) {
@@ -165,15 +166,15 @@ router.patch('/:id/use', async (req: Request, res: Response) => {
     const viewRepo = getViewRepoWithPrisma(req);
     
     // Check if view exists
-    const existingView = await viewRepo.findById(req.params.id);
+    const existingView = await viewRepo.findById(req.params.id, req.organizationId);
     if (!existingView) {
       return res.status(404).json({ error: 'View not found' });
     }
     
-    await viewRepo.updateLastUsedAt(req.params.id);
+    await viewRepo.updateLastUsedAt(req.params.id, req.organizationId);
     
     // Return updated view
-    const updated = await viewRepo.findById(req.params.id);
+    const updated = await viewRepo.findById(req.params.id, req.organizationId);
     res.json(updated);
   } catch (error: any) {
     if (error.name === 'PrismaClientKnownRequestError' && error.code === 'P2025') {
@@ -192,7 +193,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     const viewRepo = getViewRepoWithPrisma(req);
     
     // Check if view exists
-    const existingView = await viewRepo.findById(req.params.id);
+    const existingView = await viewRepo.findById(req.params.id, req.organizationId);
     if (!existingView) {
       return res.status(404).json({ error: 'View not found' });
     }
@@ -202,7 +203,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Cannot delete the default view' });
     }
     
-    await viewRepo.softDelete(req.params.id);
+    await viewRepo.softDelete(req.params.id, req.organizationId);
     
     res.status(204).send();
   } catch (error: any) {

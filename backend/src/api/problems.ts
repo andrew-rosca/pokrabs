@@ -23,7 +23,7 @@ const getProblemRepoWithPrisma = (req: Request) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const problemRepo = getProblemRepoWithPrisma(req);
-    const problem = await problemRepo.findById(req.params.id);
+    const problem = await problemRepo.findById(req.params.id, req.organizationId);
     
     if (!problem) {
       return res.status(404).json({ error: 'Problem not found' });
@@ -68,7 +68,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
     }
     
     const problemRepo = getProblemRepoWithPrisma(req);
-    const updated = await problemRepo.update(req.params.id, {
+    const updated = await problemRepo.update(req.params.id, req.organizationId, {
       problem,
       objective,
       keyResults,
@@ -98,12 +98,12 @@ router.delete('/:id', async (req: Request, res: Response) => {
     const problemRepo = getProblemRepoWithPrisma(req);
     
     // Check if problem exists
-    const problem = await problemRepo.findById(req.params.id);
+    const problem = await problemRepo.findById(req.params.id, req.organizationId);
     if (!problem) {
       return res.status(404).json({ error: 'Problem not found' });
     }
     
-    await problemRepo.softDelete(req.params.id);
+    await problemRepo.softDelete(req.params.id, req.organizationId);
     
     res.status(204).send();
   } catch (error) {
@@ -136,6 +136,7 @@ router.patch('/:id/move', async (req: Request, res: Response) => {
     
     const updated = await problemRepo.move(
       req.params.id,
+      req.organizationId,
       newParentId ?? null,
       afterProblemId ?? null
     );
@@ -181,6 +182,7 @@ router.patch('/:id/reorder', async (req: Request, res: Response) => {
     
     const updated = await problemRepo.reorder(
       req.params.id,
+      req.organizationId,
       position
     );
     
