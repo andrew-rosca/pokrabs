@@ -10,6 +10,7 @@ import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { Tutorial } from './components/Tutorial';
 import { LoginButton } from './components/LoginButton';
 import { hasTutorialBeenShown } from './services/tutorial';
+import { authService } from './services/auth';
 
 function App() {
   return (
