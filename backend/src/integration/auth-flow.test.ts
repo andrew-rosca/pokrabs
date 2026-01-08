@@ -1,0 +1,198 @@
+/**
+ * Integration Tests for Authentication Flow
+ * 
+ * Tests the complete authentication flow from OAuth initiation to API access.
+ */
+
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
+import request from 'supertest';
+import express from 'express';
+import session from 'express-session';
+import { setupTestDatabase, cleanupTestDatabase } from '../test-helpers/database';
+import { getOrganizationRepository, getUserRepository } from '../models/repository-factory';
+import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
+import { authenticate } from '../middleware/auth';
+import authRouter from '../api/auth';
+import workspacesRouter from '../api/workspaces';
+
+// Mock OAuth provider
+vi.mock('../auth/oauth-provider-factory', () => {
+  const mockProvider = {
+    getAuthUrl: vi.fn().mockReturnValue('https://oauth.example.com/auth?state=test-state-123'),
+    getToken: vi.fn().mockResolvedValue({
+      accessToken: 'test-access-token',
+      idToken: 'test-id-token',
+    }),
+    verifyIdToken: vi.fn().mockResolvedValue({
+      id: 'google-user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+    }),
+  };
+
+  return {
+    getOAuthProvider: vi.fn().mockReturnValue(mockProvider),
+  };
+});
+
+describe('Authentication Flow Integration', () => {
+  let app: express.Application;
+  let prisma: PrismaClient;
+  let databaseUrl: string;
+  let organizationId: string;
+
+  beforeEach(async () => {
+    // Set AUTH_MODE to optional for integration tests
+    process.env.AUTH_MODE = 'optional';
+    process.env.GOOGLE_CLIENT_ID = 'test-client-id';
+    process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
+    process.env.OAUTH_CALLBACK_URL = 'http://localhost:3001/api/auth/google/callback';
+    process.env.FRONTEND_URL = 'http://localhost:3000';
+
+    // Create isolated database
+    const { prisma: client, databaseUrl: url } = await setupTestDatabase();
+    prisma = client;
+    databaseUrl = url;
+
+    // Create default organization
+    const orgRepo = getOrganizationRepository(prisma);
+    const organization = await orgRepo.create({
+      id: randomUUID(),
+      name: 'Default Organization',
+    });
+    organizationId = organization.id;
+
+    // Create default user
+    const userRepo = getUserRepository(prisma);
+    await userRepo.create({
+      id: randomUUID(),
+      organizationId: organization.id,
+      email: 'default@pokrabs.local',
+      name: 'Default User',
+      authId: 'default@pokrabs.local',
+      authProvider: 'internal',
+    });
+
+    // Create Express app with full middleware stack
+    app = express();
+    app.use(express.json());
+    app.use(session({
+      secret: 'test-secret',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'lax' as const,
+      },
+    }));
+
+    // Add routes
+    app.use('/api/auth', authRouter);
+    app.use('/api/workspaces', authenticate, workspacesRouter);
+  });
+
+  afterAll(async () => {
+    await cleanupTestDatabase(prisma, databaseUrl);
+  });
+
+  describe('Demo mode', () => {
+    beforeEach(() => {
+      process.env.AUTH_MODE = 'demo';
+    });
+
+    it('should allow read operations without authentication', async () => {
+      const response = await request(app)
+        .get('/api/workspaces')
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBe(true);
+    });
+
+    it('should allow write operations without authentication', async () => {
+      const response = await request(app)
+        .post('/api/workspaces')
+        .send({ name: 'Test Workspace' })
+        .expect(201);
+
+      expect(response.body.name).toBe('Test Workspace');
+    });
+  });
+
+  describe('Optional mode', () => {
+    beforeEach(() => {
+      process.env.AUTH_MODE = 'optional';
+    });
+
+    it('should allow read operations without authentication', async () => {
+      const response = await request(app)
+        .get('/api/workspaces')
+        .expect(200);
+
+      expect(Array.isArray(response.body)).toBe(true);
+    });
+
+    it('should require authentication for write operations', async () => {
+      const response = await request(app)
+        .post('/api/workspaces')
+        .send({ name: 'Test Workspace' })
+        .expect(401);
+
+      expect(response.body.error).toContain('Authentication required');
+    });
+
+    it('should allow write operations after OAuth authentication', async () => {
+      const agent = request.agent(app);
+
+      // Simulate OAuth callback by setting session manually
+      // In real flow, this would happen via OAuth callback
+      const userRepo = getUserRepository(prisma);
+      const testUser = await userRepo.create({
+        id: randomUUID(),
+        organizationId,
+        email: 'authenticated@example.com',
+        name: 'Authenticated User',
+        authId: 'google-user-123',
+        authProvider: 'google',
+      });
+
+      // Manually set session (simulating OAuth callback)
+      const response1 = await agent
+        .get('/api/auth/google/callback?code=test-code&state=test-state-123')
+        .expect(302);
+
+      // Now try write operation
+      const response2 = await agent
+        .post('/api/workspaces')
+        .send({ name: 'Authenticated Workspace' })
+        .expect(201);
+
+      expect(response2.body.name).toBe('Authenticated Workspace');
+    });
+  });
+
+  describe('Required mode', () => {
+    beforeEach(() => {
+      process.env.AUTH_MODE = 'required';
+    });
+
+    it('should require authentication for read operations', async () => {
+      const response = await request(app)
+        .get('/api/workspaces')
+        .expect(401);
+
+      expect(response.body.error).toBe('Authentication required');
+    });
+
+    it('should require authentication for write operations', async () => {
+      const response = await request(app)
+        .post('/api/workspaces')
+        .send({ name: 'Test Workspace' })
+        .expect(401);
+
+      expect(response.body.error).toBe('Authentication required');
+    });
+  });
+});
+
