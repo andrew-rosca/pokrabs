@@ -85,6 +85,9 @@ router.patch('/:id', async (req: Request, res: Response) => {
     if (error.name === 'PrismaClientKnownRequestError' && error.code === 'P2025') {
       return res.status(404).json({ error: 'Problem not found' });
     }
+    if (error.message && error.message.includes('Problem not found')) {
+      return res.status(404).json({ error: 'Problem not found' });
+    }
     res.status(500).json({ error: 'Failed to update problem' });
   }
 });

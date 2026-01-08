@@ -43,7 +43,8 @@ export async function authenticate(
   next: NextFunction
 ): Promise<void> {
   const authMode = process.env.AUTH_MODE || 'demo';
-  const prisma = getPrismaClient();
+  // Use test Prisma client if available (for testing), otherwise use singleton
+  const prisma = (req as any).prisma || getPrismaClient();
   const organizationRepo = getOrganizationRepository(prisma);
   const userRepo = getUserRepository(prisma);
 

@@ -147,15 +147,20 @@ describe('Organization Isolation Security', () => {
     it('should not allow creating workspace in different organization', async () => {
       const workspaceRepo = getWorkspaceRepository(prisma);
       
-      // This should fail at the repository level
-      // In practice, the middleware ensures organizationId matches user's org
+      // Create workspace in org1
       const workspace = await workspaceRepo.create({
         id: 'workspace-3',
         organizationId: org1Id, // Correct org
         name: 'Workspace 3',
       });
 
-      expect(workspace.organizationId).toBe(org1Id);
+      expect(workspace.id).toBe('workspace-3');
+      expect(workspace.name).toBe('Workspace 3');
+      
+      // Verify it's accessible from org1
+      const fromOrg1 = await workspaceRepo.findById(workspace.id, org1Id);
+      expect(fromOrg1).not.toBeNull();
+      expect(fromOrg1?.id).toBe('workspace-3');
       
       // Verify it's not accessible from org2
       const fromOrg2 = await workspaceRepo.findById(workspace.id, org2Id);
@@ -251,11 +256,13 @@ describe('Organization Isolation Security', () => {
       
       // User1 (org1) can only see org1 workspaces
       const user1Workspaces = await workspaceRepo.findAll(org1Id);
-      expect(user1Workspaces.every(w => w.organizationId === org1Id)).toBe(true);
+      expect(user1Workspaces.length).toBe(1);
+      expect(user1Workspaces[0].id).toBe(workspace1Id);
 
       // User2 (org2) can only see org2 workspaces
       const user2Workspaces = await workspaceRepo.findAll(org2Id);
-      expect(user2Workspaces.every(w => w.organizationId === org2Id)).toBe(true);
+      expect(user2Workspaces.length).toBe(1);
+      expect(user2Workspaces[0].id).toBe(workspace2Id);
     });
   });
 });

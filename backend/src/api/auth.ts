@@ -36,7 +36,7 @@ router.get('/me', async (req: Request, res: Response) => {
       return res.json({ user: null });
     }
 
-    const prisma = getPrismaClient();
+    const prisma = (req as any).prisma || getPrismaClient();
     const userRepo = getUserRepository(prisma);
     const user = await userRepo.findById(userId);
 
@@ -150,7 +150,7 @@ router.get('/:provider/callback', async (req: Request, res: Response) => {
     }
 
     // Get default organization
-    const prisma = getPrismaClient();
+    const prisma = (req as any).prisma || getPrismaClient();
     const organizationRepo = getOrganizationRepository(prisma);
     const defaultOrg = await organizationRepo.findDefault();
     
