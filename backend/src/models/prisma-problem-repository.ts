@@ -16,6 +16,7 @@ export class PrismaProblemRepository implements IProblemRepository {
 
   async create(data: {
     workspaceId: string;
+    organizationId: string;
     parentId?: string | null;
     problem?: string;
     objective?: string;
@@ -41,6 +42,7 @@ export class PrismaProblemRepository implements IProblemRepository {
         id,
         idPath,
         workspaceId: data.workspaceId,
+        organizationId: data.organizationId,
         parentId: data.parentId ?? null,
         problem: data.problem ?? '{"summary": "", "detail": ""}',
         objective: data.objective ?? '{"summary": "", "detail": ""}',
@@ -56,10 +58,11 @@ export class PrismaProblemRepository implements IProblemRepository {
     return this.mapToProblem(problem);
   }
 
-  async findById(id: string): Promise<Problem | null> {
+  async findById(id: string, organizationId: string): Promise<Problem | null> {
     const problem = await this.prisma.problem.findFirst({
       where: {
         id,
+        organizationId,
         deletedAt: null, // Exclude soft-deleted
       },
     });
@@ -67,10 +70,11 @@ export class PrismaProblemRepository implements IProblemRepository {
     return problem ? this.mapToProblem(problem) : null;
   }
 
-  async findByWorkspaceId(workspaceId: string): Promise<Problem[]> {
+  async findByWorkspaceId(workspaceId: string, organizationId: string): Promise<Problem[]> {
     const problems = await this.prisma.problem.findMany({
       where: {
         workspaceId,
+        organizationId,
         deletedAt: null, // Exclude soft-deleted
       },
       orderBy: [
@@ -82,10 +86,11 @@ export class PrismaProblemRepository implements IProblemRepository {
     return problems.map(p => this.mapToProblem(p));
   }
 
-  async findByParentId(parentId: string): Promise<Problem[]> {
+  async findByParentId(parentId: string, organizationId: string): Promise<Problem[]> {
     const problems = await this.prisma.problem.findMany({
       where: {
         parentId,
+        organizationId,
         deletedAt: null, // Exclude soft-deleted
       },
       orderBy: [
@@ -99,6 +104,7 @@ export class PrismaProblemRepository implements IProblemRepository {
 
   async update(
     id: string,
+    organizationId: string,
     data: {
       problem?: string;
       objective?: string;
@@ -124,16 +130,22 @@ export class PrismaProblemRepository implements IProblemRepository {
     if (data.labels !== undefined) updateData.labels = JSON.stringify(data.labels);
 
     const problem = await this.prisma.problem.update({
-      where: { id },
+      where: { 
+        id,
+        organizationId, // Ensure problem belongs to organization
+      },
       data: updateData,
     });
 
     return this.mapToProblem(problem);
   }
 
-  async softDelete(id: string): Promise<void> {
-    const problem = await this.prisma.problem.findUnique({
-      where: { id },
+  async softDelete(id: string, organizationId: string): Promise<void> {
+    const problem = await this.prisma.problem.findFirst({
+      where: { 
+        id,
+        organizationId, // Ensure problem belongs to organization
+      },
       select: { idPath: true },
     });
 
@@ -147,7 +159,10 @@ export class PrismaProblemRepository implements IProblemRepository {
     await this.prisma.$transaction([
       // Soft delete the target problem
       this.prisma.problem.update({
-        where: { id },
+        where: { 
+          id,
+          organizationId, // Ensure problem belongs to organization
+        },
         data: { deletedAt },
       }),
       // Cascade soft delete to all descendants using idPath prefix
@@ -156,17 +171,19 @@ export class PrismaProblemRepository implements IProblemRepository {
           idPath: {
             startsWith: descendantPrefix,
           },
+          organizationId, // Only delete descendants in same organization
         },
         data: { deletedAt },
       }),
     ]);
   }
 
-  async checkIdExists(id: string, workspaceId: string): Promise<boolean> {
+  async checkIdExists(id: string, workspaceId: string, organizationId: string): Promise<boolean> {
     const problem = await this.prisma.problem.findFirst({
       where: {
         id,
         workspaceId,
+        organizationId,
         deletedAt: null, // Exclude soft-deleted
       },
       select: {
@@ -179,22 +196,31 @@ export class PrismaProblemRepository implements IProblemRepository {
 
   async move(
     id: string,
+    organizationId: string,
     newParentId: string | null,
     afterProblemId: string | null
   ): Promise<Problem> {
     // Find the problem being moved
-    const problem = await this.prisma.problem.findUnique({
-      where: { id },
+    const problem = await this.prisma.problem.findFirst({
+      where: { 
+        id,
+        organizationId, // Ensure problem belongs to organization
+      },
       select: {
         id: true,
         idPath: true,
         workspaceId: true,
         parentId: true,
+        organizationId: true,
       },
     });
 
     if (!problem) {
       throw new Error('Problem not found');
+    }
+
+    if (problem.organizationId !== organizationId) {
+      throw new Error('Problem does not belong to the specified organization');
     }
 
     const oldIdPath = problem.idPath;
@@ -203,12 +229,18 @@ export class PrismaProblemRepository implements IProblemRepository {
     let newIdPath: string;
     if (newParentId) {
       // Moving under a new parent - get parent's idPath
-      const newParent = await this.prisma.problem.findUnique({
-        where: { id: newParentId },
-        select: { idPath: true, workspaceId: true },
+      const newParent = await this.prisma.problem.findFirst({
+        where: { 
+          id: newParentId,
+          organizationId, // Ensure parent belongs to organization
+        },
+        select: { idPath: true, workspaceId: true, organizationId: true },
       });
       if (!newParent) {
         throw new Error('New parent not found');
+      }
+      if (newParent.organizationId !== organizationId) {
+        throw new Error('New parent does not belong to the specified organization');
       }
       if (newParent.workspaceId !== problem.workspaceId) {
         throw new Error('Cannot move problem to a different workspace');
@@ -242,6 +274,7 @@ export class PrismaProblemRepository implements IProblemRepository {
         idPath: {
           startsWith: descendantPrefix,
         },
+        organizationId, // Only update descendants in same organization
         deletedAt: null,
       },
       select: {
@@ -297,6 +330,7 @@ export class PrismaProblemRepository implements IProblemRepository {
           where: {
             parentId: null,
             workspaceId: problem.workspaceId,
+            organizationId, // Only update siblings in same organization
             id: { not: id },
             priority: { gte: newPriority },
             deletedAt: null,
@@ -309,20 +343,31 @@ export class PrismaProblemRepository implements IProblemRepository {
     });
 
     // Fetch and return the updated problem
-    const updated = await this.prisma.problem.findUnique({
-      where: { id },
+    const updated = await this.prisma.problem.findFirst({
+      where: { 
+        id,
+        organizationId, // Ensure problem belongs to organization
+      },
     });
 
-    return this.mapToProblem(updated!);
+    if (!updated) {
+      throw new Error('Problem not found after update');
+    }
+
+    return this.mapToProblem(updated);
   }
 
   async reorder(
     id: string,
+    organizationId: string,
     position: 'top' | 'bottom' | number
   ): Promise<Problem> {
     // Find the problem being reordered
-    const problem = await this.prisma.problem.findUnique({
-      where: { id },
+    const problem = await this.prisma.problem.findFirst({
+      where: { 
+        id,
+        organizationId, // Ensure problem belongs to organization
+      },
       select: {
         id: true,
         parentId: true,
@@ -340,6 +385,7 @@ export class PrismaProblemRepository implements IProblemRepository {
       where: {
         parentId: problem.parentId,
         workspaceId: problem.workspaceId,
+        organizationId, // Only get siblings in same organization
         deletedAt: null,
       },
       orderBy: [
@@ -394,11 +440,18 @@ export class PrismaProblemRepository implements IProblemRepository {
     });
 
     // Fetch and return the updated problem
-    const updated = await this.prisma.problem.findUnique({
-      where: { id },
+    const updated = await this.prisma.problem.findFirst({
+      where: { 
+        id,
+        organizationId, // Ensure problem belongs to organization
+      },
     });
 
-    return this.mapToProblem(updated!);
+    if (!updated) {
+      throw new Error('Problem not found after reorder');
+    }
+
+    return this.mapToProblem(updated);
   }
 
   /**
