@@ -129,11 +129,20 @@ export class PrismaProblemRepository implements IProblemRepository {
     if (data.priority !== undefined) updateData.priority = data.priority;
     if (data.labels !== undefined) updateData.labels = JSON.stringify(data.labels);
 
-    const problem = await this.prisma.problem.update({
-      where: { 
+    // Verify problem belongs to organization
+    const existing = await this.prisma.problem.findFirst({
+      where: {
         id,
-        organizationId, // Ensure problem belongs to organization
+        organizationId,
       },
+    });
+
+    if (!existing) {
+      throw new Error('Problem not found or does not belong to organization');
+    }
+
+    const problem = await this.prisma.problem.update({
+      where: { id },
       data: updateData,
     });
 

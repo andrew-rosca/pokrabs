@@ -51,11 +51,20 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
   }
 
   async update(id: string, organizationId: string, data: { name?: string }): Promise<Workspace> {
-    const workspace = await this.prisma.workspace.update({
-      where: { 
+    // Verify workspace belongs to organization
+    const existing = await this.prisma.workspace.findFirst({
+      where: {
         id,
-        organizationId, // Ensure workspace belongs to organization
+        organizationId,
       },
+    });
+
+    if (!existing) {
+      throw new Error('Workspace not found or does not belong to organization');
+    }
+
+    const workspace = await this.prisma.workspace.update({
+      where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
       },
@@ -65,11 +74,20 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
   }
 
   async updateLastUsedAt(id: string, organizationId: string): Promise<void> {
-    await this.prisma.workspace.update({
-      where: { 
+    // Verify workspace belongs to organization
+    const existing = await this.prisma.workspace.findFirst({
+      where: {
         id,
-        organizationId, // Ensure workspace belongs to organization
+        organizationId,
       },
+    });
+
+    if (!existing) {
+      throw new Error('Workspace not found or does not belong to organization');
+    }
+
+    await this.prisma.workspace.update({
+      where: { id },
       data: {
         lastUsedAt: new Date(),
       } as any,
@@ -77,11 +95,20 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
   }
 
   async softDelete(id: string, organizationId: string): Promise<void> {
-    await this.prisma.workspace.update({
-      where: { 
+    // Verify workspace belongs to organization
+    const existing = await this.prisma.workspace.findFirst({
+      where: {
         id,
-        organizationId, // Ensure workspace belongs to organization
+        organizationId,
       },
+    });
+
+    if (!existing) {
+      throw new Error('Workspace not found or does not belong to organization');
+    }
+
+    await this.prisma.workspace.update({
+      where: { id },
       data: {
         deletedAt: new Date(),
       },

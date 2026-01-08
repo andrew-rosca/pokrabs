@@ -78,6 +78,18 @@ export class PrismaViewRepository implements IViewRepository {
     name?: string; 
     filters?: ViewFilters;
   }): Promise<View> {
+    // Verify view belongs to organization
+    const existing = await this.prisma.view.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+    });
+
+    if (!existing) {
+      throw new Error('View not found or does not belong to organization');
+    }
+
     const updateData: any = {};
     
     if (data.name !== undefined) {
@@ -89,10 +101,7 @@ export class PrismaViewRepository implements IViewRepository {
     }
 
     const view = await this.prisma.view.update({
-      where: { 
-        id,
-        organizationId, // Ensure view belongs to organization
-      },
+      where: { id },
       data: updateData,
     });
 
@@ -100,11 +109,20 @@ export class PrismaViewRepository implements IViewRepository {
   }
 
   async updateLastUsedAt(id: string, organizationId: string): Promise<void> {
-    await this.prisma.view.update({
-      where: { 
+    // Verify view belongs to organization
+    const existing = await this.prisma.view.findFirst({
+      where: {
         id,
-        organizationId, // Ensure view belongs to organization
+        organizationId,
       },
+    });
+
+    if (!existing) {
+      throw new Error('View not found or does not belong to organization');
+    }
+
+    await this.prisma.view.update({
+      where: { id },
       data: {
         lastUsedAt: new Date(),
       },
@@ -112,11 +130,20 @@ export class PrismaViewRepository implements IViewRepository {
   }
 
   async softDelete(id: string, organizationId: string): Promise<void> {
-    await this.prisma.view.update({
-      where: { 
+    // Verify view belongs to organization
+    const existing = await this.prisma.view.findFirst({
+      where: {
         id,
-        organizationId, // Ensure view belongs to organization
+        organizationId,
       },
+    });
+
+    if (!existing) {
+      throw new Error('View not found or does not belong to organization');
+    }
+
+    await this.prisma.view.update({
+      where: { id },
       data: {
         deletedAt: new Date(),
       },
