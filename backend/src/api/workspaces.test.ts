@@ -62,8 +62,8 @@ describe('Workspaces API', () => {
     });
     // Mock authentication middleware for tests
     app.use((req, res, next) => {
-      req.organizationId = organizationId;
-      req.userId = userId;
+      (req as any).organizationId = organizationId;
+      (req as any).userId = userId;
       next();
     });
     app.use('/api/workspaces', workspacesRouter);
