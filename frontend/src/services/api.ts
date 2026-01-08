@@ -15,8 +15,15 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
  * Fetch all workspaces
  */
 export async function fetchWorkspaces(): Promise<Workspace[]> {
-  const response = await fetch(`${API_URL}/api/workspaces`);
+  const response = await fetch(`${API_URL}/api/workspaces`, {
+    credentials: 'include',
+  });
   if (!response.ok) {
+    if (response.status === 401) {
+      // Handle authentication error
+      const authService = await import('./auth').then(m => m.authService);
+      authService.loadCurrentUser();
+    }
     throw new Error(`Failed to fetch workspaces: ${response.statusText}`);
   }
   return response.json();
@@ -31,6 +38,7 @@ export async function createWorkspace(name: string): Promise<Workspace> {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify({ name }),
   });
   if (!response.ok) {
