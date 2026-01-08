@@ -20,6 +20,8 @@ export function EditableCell({ value, onSave, multiline = false, className = '' 
   const [cellRect, setCellRect] = useState<DOMRect | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const cellRef = useRef<HTMLDivElement>(null);
+  const isCancelingRef = useRef(false);
+  const isHandlingKeyRef = useRef(false);
 
   useEffect(() => {
     if (isEditing && cellRef.current) {
@@ -47,7 +49,7 @@ export function EditableCell({ value, onSave, multiline = false, className = '' 
     }
   };
 
-  const handleBlur = async () => {
+  const saveAndClose = async () => {
     if (isSaving) return;
     
     if (editValue !== value) {
@@ -65,15 +67,31 @@ export function EditableCell({ value, onSave, multiline = false, className = '' 
     setIsEditing(false);
   };
 
+  const handleBlur = async () => {
+    if (isSaving || isCancelingRef.current || isHandlingKeyRef.current) {
+      isCancelingRef.current = false; // Reset flag
+      return;
+    }
+    await saveAndClose();
+  };
+
   const handleKeyDown = async (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !multiline) {
       e.preventDefault();
-      await handleBlur();
+      isHandlingKeyRef.current = true; // Prevent blur event from calling handleBlur
+      inputRef.current?.blur(); // Trigger blur to close input
+      await saveAndClose();
+      isHandlingKeyRef.current = false;
     } else if (e.key === 'Enter' && multiline && (e.metaKey || e.ctrlKey)) {
       // Cmd/Ctrl+Enter to save in multiline mode
       e.preventDefault();
-      await handleBlur();
+      isHandlingKeyRef.current = true; // Prevent blur event from calling handleBlur
+      inputRef.current?.blur(); // Trigger blur to close input
+      await saveAndClose();
+      isHandlingKeyRef.current = false;
     } else if (e.key === 'Escape') {
+      e.preventDefault();
+      isCancelingRef.current = true; // Prevent blur from saving
       setEditValue(value);
       setIsEditing(false);
     }
