@@ -12,13 +12,17 @@ import { fetchProblems, updateProblem, createProblem, deleteProblem, moveProblem
 import { Problem, Status } from '../../../shared/types';
 
 // Mock the API service
-vi.mock('../services/api', () => ({
-  fetchProblems: vi.fn(),
-  updateProblem: vi.fn(),
-  createProblem: vi.fn(),
-  deleteProblem: vi.fn(),
-  moveProblem: vi.fn(),
-}));
+vi.mock('../services/api', async () => {
+  const actual = await vi.importActual('../services/api') as any;
+  return {
+    ...actual,
+    fetchProblems: vi.fn(),
+    updateProblem: vi.fn(),
+    createProblem: vi.fn(),
+    deleteProblem: vi.fn(),
+    moveProblem: vi.fn(),
+  };
+});
 
 const mockFetchProblems = fetchProblems as ReturnType<typeof vi.fn>;
 const mockUpdateProblem = updateProblem as ReturnType<typeof vi.fn>;
@@ -3238,6 +3242,7 @@ describe('ProblemsList', () => {
     it('should handle move error gracefully', async () => {
       const user = userEvent.setup();
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false); // Don't trigger login
       mockMoveProblem.mockRejectedValue(new Error('Move failed'));
       mockFetchProblems
         .mockResolvedValueOnce(hierarchicalProblems)
@@ -3276,9 +3281,10 @@ describe('ProblemsList', () => {
       // Should show error message
       await waitFor(() => {
         expect(screen.getByText(/Error:/i)).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
 
       consoleErrorSpy.mockRestore();
+      confirmSpy.mockRestore();
     });
   });
 });

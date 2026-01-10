@@ -5,7 +5,9 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import session from 'express-session';
 import problemsRouter from './problems';
+import { authenticate } from '../middleware/auth';
 import { setupTestDatabase, cleanupTestDatabase } from '../test-helpers/database';
 import { getProblemRepository, getWorkspaceRepository, getOrganizationRepository, getUserRepository } from '../models/repository-factory';
 import { PrismaClient } from '@prisma/client';
@@ -875,6 +877,140 @@ describe('Problems API', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('positive integer');
+    });
+  });
+
+  describe('Authentication Enforcement', () => {
+    let authApp: express.Application;
+    let testProblemId: string;
+    let authenticatedUserId: string;
+    let authenticatedSession: any;
+
+    beforeEach(async () => {
+      // Create a problem for testing
+      const problemRepo = getProblemRepository(prisma);
+      const problem = await problemRepo.create({
+        workspaceId,
+        organizationId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+      });
+      testProblemId = problem.id;
+
+      // Create an authenticated user
+      const userRepo = getUserRepository(prisma);
+      const authUser = await userRepo.create({
+        id: randomUUID(),
+        organizationId,
+        email: 'auth@pokrabs.local',
+        name: 'Authenticated User',
+        authId: 'auth@pokrabs.local',
+        authProvider: 'internal',
+      });
+      authenticatedUserId = authUser.id;
+
+      // Create Express app with real authentication middleware
+      authApp = express();
+      authApp.use(express.json());
+      authApp.use(session({
+        secret: 'test-secret',
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+          httpOnly: true,
+          secure: false,
+          sameSite: 'lax' as const,
+        },
+      }));
+
+      // Inject test Prisma client into requests
+      authApp.use((req, res, next) => {
+        (req as any).prisma = prisma;
+        next();
+      });
+
+      // Use real authentication middleware
+      authApp.use('/api/problems', authenticate, problemsRouter);
+    });
+
+    describe('Optional mode', () => {
+      beforeEach(() => {
+        process.env.AUTH_MODE = 'optional';
+      });
+
+      it('should allow GET requests without authentication', async () => {
+        const response = await request(authApp)
+          .get(`/api/problems/${testProblemId}`)
+          .expect(200);
+
+        expect(response.body.id).toBe(testProblemId);
+      });
+
+      it('should require authentication for PATCH requests', async () => {
+        const response = await request(authApp)
+          .patch(`/api/problems/${testProblemId}`)
+          .send({ problem: 'Updated problem' })
+          .expect(401);
+
+        expect(response.body.error).toContain('Authentication required');
+      });
+
+      it('should require authentication for DELETE requests', async () => {
+        const response = await request(authApp)
+          .delete(`/api/problems/${testProblemId}`)
+          .expect(401);
+
+        expect(response.body.error).toContain('Authentication required');
+      });
+
+      it('should require authentication for MOVE requests', async () => {
+        const response = await request(authApp)
+          .patch(`/api/problems/${testProblemId}/move`)
+          .send({ newParentId: null, afterProblemId: null })
+          .expect(401);
+
+        expect(response.body.error).toContain('Authentication required');
+      });
+
+      it('should require authentication for REORDER requests', async () => {
+        const response = await request(authApp)
+          .patch(`/api/problems/${testProblemId}/reorder`)
+          .send({ position: 'top' })
+          .expect(401);
+
+        expect(response.body.error).toContain('Authentication required');
+      });
+    });
+
+    describe('Required mode', () => {
+      beforeEach(() => {
+        process.env.AUTH_MODE = 'required';
+      });
+
+      it('should require authentication for GET requests', async () => {
+        const response = await request(authApp)
+          .get(`/api/problems/${testProblemId}`)
+          .expect(401);
+
+        expect(response.body.error).toBe('Authentication required');
+      });
+
+      it('should require authentication for PATCH requests', async () => {
+        const response = await request(authApp)
+          .patch(`/api/problems/${testProblemId}`)
+          .send({ problem: 'Updated problem' })
+          .expect(401);
+
+        expect(response.body.error).toBe('Authentication required');
+      });
+
+      it('should require authentication for DELETE requests', async () => {
+        const response = await request(authApp)
+          .delete(`/api/problems/${testProblemId}`)
+          .expect(401);
+
+        expect(response.body.error).toBe('Authentication required');
+      });
     });
   });
 });

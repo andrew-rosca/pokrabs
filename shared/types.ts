@@ -85,4 +85,3 @@ export interface UpdateViewRequest {
   name?: string;
   filters?: ViewFilters;
 }
-

@@ -5,6 +5,8 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { AuthenticationError } from '../services/api';
+import { authService } from '../services/auth';
 
 interface EditableCellProps {
   value: string;
@@ -59,7 +61,21 @@ export function EditableCell({ value, onSave, multiline = false, className = '' 
       } catch (error) {
         // Revert on error
         setEditValue(value);
-        console.error('Failed to save:', error);
+        
+        // Handle authentication errors
+        if (error instanceof AuthenticationError) {
+          const shouldLogin = window.confirm(
+            'Authentication is required to save changes. Would you like to log in now?'
+          );
+          if (shouldLogin) {
+            authService.login('google');
+            return; // Don't close editor, user will be redirected
+          }
+        } else {
+          console.error('Failed to save:', error);
+          // Show error message for other errors
+          alert(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       } finally {
         setIsSaving(false);
       }

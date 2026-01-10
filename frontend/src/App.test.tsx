@@ -11,15 +11,19 @@ import { fetchWorkspaces, fetchProblems, fetchViews, createView, updateView, use
 import { authService } from './services/auth';
 
 // Mock the API service
-vi.mock('./services/api', () => ({
-  fetchWorkspaces: vi.fn(),
-  fetchProblems: vi.fn(),
-  fetchViews: vi.fn(),
-  createView: vi.fn(),
-  updateView: vi.fn(),
-  useView: vi.fn(),
-  deleteView: vi.fn(),
-}));
+vi.mock('./services/api', async () => {
+  const actual = await vi.importActual('./services/api') as any;
+  return {
+    AuthenticationError: actual.AuthenticationError, // Export the class for instanceof checks
+    fetchWorkspaces: vi.fn(),
+    fetchProblems: vi.fn(),
+    fetchViews: vi.fn(),
+    createView: vi.fn(),
+    updateView: vi.fn(),
+    useView: vi.fn(),
+    deleteView: vi.fn(),
+  };
+});
 
 // Mock the auth service
 vi.mock('./services/auth', () => ({
