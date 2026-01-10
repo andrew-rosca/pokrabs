@@ -1,13 +1,13 @@
 name: Tests
 
 on:
-  push:
-    branches:
-      - '**'  # Run on push to any branch
   pull_request:
     branches:
-      - '**'  # Run on PRs targeting any branch
-
+      - main  # Run on PRs targeting main
+  push:
+    branches:
+      - main
+      
 jobs:
   test:
     name: Run Tests

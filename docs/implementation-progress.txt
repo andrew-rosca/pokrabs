@@ -3106,3 +3106,21 @@ Added a safety feature to prevent accidental parent changes when dragging and dr
   - Optionally enable "Require branches to be up to date before merging"
 
 ---
+
+## 2025-01-10: Fixed Duplicate Test Runs in GitHub Workflow
+
+**Issue:**
+- GitHub workflow was running tests twice when pushing to PR branches
+- Workflow triggered on both `push` and `pull_request` events with `'**'` branch pattern
+- Pushing to a branch with an open PR caused both events to fire
+
+**Solution:**
+- Updated workflow to only trigger on:
+  - `pull_request` events targeting `main` branch
+  - `push` events to `main` branch only
+- This prevents duplicate runs while still protecting the main branch
+
+**Files Modified:**
+- `.github/workflows/test.yml` - Updated trigger conditions to prevent duplicate test runs
+
+---
