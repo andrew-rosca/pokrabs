@@ -5,20 +5,28 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import session from 'express-session';
 import problemsRouter from './problems';
+import { authenticate } from '../middleware/auth';
 import { setupTestDatabase, cleanupTestDatabase } from '../test-helpers/database';
-import { getProblemRepository, getWorkspaceRepository } from '../models/repository-factory';
+import { getProblemRepository, getWorkspaceRepository, getOrganizationRepository, getUserRepository } from '../models/repository-factory';
 import { PrismaClient } from '@prisma/client';
 import { Status } from '../../../shared/types';
 import { resetIdCounter } from '../utils/id-generator';
+import { randomUUID } from 'crypto';
 
 describe('Problems API', () => {
   let app: express.Application;
   let prisma: PrismaClient;
   let databaseUrl: string;
   let workspaceId: string;
+  let organizationId: string;
+  let userId: string;
 
   beforeEach(async () => {
+    // Set AUTH_MODE to demo for tests
+    process.env.AUTH_MODE = 'demo';
+
     // Create isolated database
     const { prisma: client, databaseUrl: url } = await setupTestDatabase();
     prisma = client;
@@ -27,10 +35,31 @@ describe('Problems API', () => {
     // Reset ID counter
     await resetIdCounter();
 
+    // Create default organization
+    const orgRepo = getOrganizationRepository(prisma);
+    const organization = await orgRepo.create({
+      id: randomUUID(),
+      name: 'Default Organization',
+    });
+    organizationId = organization.id;
+
+    // Create default user
+    const userRepo = getUserRepository(prisma);
+    const user = await userRepo.create({
+      id: randomUUID(),
+      organizationId: organization.id,
+      email: 'default@pokrabs.local',
+      name: 'Default User',
+      authId: 'default@pokrabs.local',
+      authProvider: 'internal',
+    });
+    userId = user.id;
+
     // Create a test workspace
     const workspaceRepo = getWorkspaceRepository(prisma);
     const workspace = await workspaceRepo.create({
       id: 'test-workspace-1',
+      organizationId,
       name: 'Test Workspace',
     });
     workspaceId = workspace.id;
@@ -41,6 +70,12 @@ describe('Problems API', () => {
     // Middleware to attach Prisma client to request (for testing)
     app.use((req, res, next) => {
       (req as any).prisma = prisma;
+      next();
+    });
+    // Mock authentication middleware for tests
+    app.use((req, res, next) => {
+      (req as any).organizationId = organizationId;
+      (req as any).userId = userId;
       next();
     });
     app.use('/api/problems', problemsRouter);
@@ -55,6 +90,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -77,10 +113,11 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
-      await problemRepo.softDelete(created.id);
+      await problemRepo.softDelete(created.id, organizationId);
 
       const response = await request(app).get(`/api/problems/${created.id}`);
       
@@ -94,6 +131,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Original problem',
         objective: 'Original objective',
       });
@@ -118,6 +156,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: JSON.stringify({ summary: 'Original problem', detail: 'Original detail' }),
         objective: 'Original objective',
       });
@@ -135,6 +174,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: JSON.stringify({ summary: 'Original objective', detail: 'Original detail' }),
       });
@@ -152,6 +192,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
         keyResults: JSON.stringify(['Result 1', 'Result 2']),
@@ -170,6 +211,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
         actions: JSON.stringify(['Action 1']),
@@ -188,6 +230,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
         blockers: JSON.stringify([]),
@@ -206,6 +249,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Original problem',
         objective: 'Original objective',
         status: Status.NotStarted,
@@ -246,6 +290,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -262,6 +307,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -278,6 +324,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -296,6 +343,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -305,7 +353,7 @@ describe('Problems API', () => {
       expect(response.status).toBe(204);
       
       // Verify problem is soft-deleted
-      const deleted = await problemRepo.findById(created.id);
+      const deleted = await problemRepo.findById(created.id, organizationId);
       expect(deleted).toBeNull();
     });
 
@@ -313,11 +361,13 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const parent = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Parent problem',
         objective: 'Parent objective',
       });
       const child = await problemRepo.create({
         workspaceId,
+        organizationId,
         parentId: parent.id,
         problem: 'Child problem',
         objective: 'Child objective',
@@ -327,8 +377,8 @@ describe('Problems API', () => {
       
       expect(response.status).toBe(204);
 
-      const deletedParent = await problemRepo.findById(parent.id);
-      const deletedChild = await problemRepo.findById(child.id);
+      const deletedParent = await problemRepo.findById(parent.id, organizationId);
+      const deletedChild = await problemRepo.findById(child.id, organizationId);
 
       expect(deletedParent).toBeNull();
       expect(deletedChild).toBeNull();
@@ -338,17 +388,20 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const root = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Root problem',
         objective: 'Root objective',
       });
       const child = await problemRepo.create({
         workspaceId,
+        organizationId,
         parentId: root.id,
         problem: 'Child problem',
         objective: 'Child objective',
       });
       const grandchild = await problemRepo.create({
         workspaceId,
+        organizationId,
         parentId: child.id,
         problem: 'Grandchild problem',
         objective: 'Grandchild objective',
@@ -358,9 +411,9 @@ describe('Problems API', () => {
       
       expect(response.status).toBe(204);
 
-      const fetchedRoot = await problemRepo.findById(root.id);
-      const fetchedChild = await problemRepo.findById(child.id);
-      const fetchedGrandchild = await problemRepo.findById(grandchild.id);
+      const fetchedRoot = await problemRepo.findById(root.id, organizationId);
+      const fetchedChild = await problemRepo.findById(child.id, organizationId);
+      const fetchedGrandchild = await problemRepo.findById(grandchild.id, organizationId);
 
       expect(fetchedRoot).not.toBeNull(); // root should remain
       expect(fetchedChild).toBeNull();
@@ -371,6 +424,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const created = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Problem to delete',
         objective: 'Objective',
       });
@@ -395,11 +449,13 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const parent = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Parent problem',
         objective: 'Parent objective',
       });
       const sibling = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Sibling problem',
         objective: 'Sibling objective',
       });
@@ -417,11 +473,13 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const parent = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Parent problem',
         objective: 'Parent objective',
       });
       const child = await problemRepo.create({
         workspaceId,
+        organizationId,
         parentId: parent.id,
         problem: 'Child problem',
         objective: 'Child objective',
@@ -442,17 +500,20 @@ describe('Problems API', () => {
       // Create a hierarchy: root -> child -> grandchild
       const root = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Root',
         objective: 'Root objective',
       });
       const child = await problemRepo.create({
         workspaceId,
+        organizationId,
         parentId: root.id,
         problem: 'Child',
         objective: 'Child objective',
       });
       const grandchild = await problemRepo.create({
         workspaceId,
+        organizationId,
         parentId: child.id,
         problem: 'Grandchild',
         objective: 'Grandchild objective',
@@ -461,6 +522,7 @@ describe('Problems API', () => {
       // Create another root to move under
       const newParent = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'New Parent',
         objective: 'New Parent objective',
       });
@@ -494,6 +556,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const problem = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -510,6 +573,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const problem = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -526,11 +590,13 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const parent = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Parent',
         objective: 'Parent objective',
       });
       const child = await problemRepo.create({
         workspaceId,
+        organizationId,
         parentId: parent.id,
         problem: 'Child',
         objective: 'Child objective',
@@ -552,16 +618,19 @@ describe('Problems API', () => {
       // Create three problems at root level
       const problem1 = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Problem 1',
         objective: 'Objective 1',
       });
       const problem2 = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Problem 2',
         objective: 'Objective 2',
       });
       const problem3 = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Problem 3',
         objective: 'Objective 3',
       });
@@ -591,16 +660,19 @@ describe('Problems API', () => {
       // Create three problems at root level
       const problem1 = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Problem 1',
         objective: 'Objective 1',
       });
       const problem2 = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Problem 2',
         objective: 'Objective 2',
       });
       const problem3 = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Problem 3',
         objective: 'Objective 3',
       });
@@ -630,26 +702,31 @@ describe('Problems API', () => {
       // Create five problems at root level
       const problem1 = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Problem 1',
         objective: 'Objective 1',
       });
       const problem2 = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Problem 2',
         objective: 'Objective 2',
       });
       const problem3 = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Problem 3',
         objective: 'Objective 3',
       });
       const problem4 = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Problem 4',
         objective: 'Objective 4',
       });
       const problem5 = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Problem 5',
         objective: 'Objective 5',
       });
@@ -681,23 +758,27 @@ describe('Problems API', () => {
       // Create a parent with three children
       const parent = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Parent',
         objective: 'Parent objective',
       });
       const child1 = await problemRepo.create({
         workspaceId,
+        organizationId,
         parentId: parent.id,
         problem: 'Child 1',
         objective: 'Objective 1',
       });
       const child2 = await problemRepo.create({
         workspaceId,
+        organizationId,
         parentId: parent.id,
         problem: 'Child 2',
         objective: 'Objective 2',
       });
       const child3 = await problemRepo.create({
         workspaceId,
+        organizationId,
         parentId: parent.id,
         problem: 'Child 3',
         objective: 'Objective 3',
@@ -734,6 +815,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const problem = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -750,6 +832,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const problem = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -766,6 +849,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const problem = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -782,6 +866,7 @@ describe('Problems API', () => {
       const problemRepo = getProblemRepository(prisma);
       const problem = await problemRepo.create({
         workspaceId,
+        organizationId,
         problem: 'Test problem',
         objective: 'Test objective',
       });
@@ -792,6 +877,140 @@ describe('Problems API', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('positive integer');
+    });
+  });
+
+  describe('Authentication Enforcement', () => {
+    let authApp: express.Application;
+    let testProblemId: string;
+    let authenticatedUserId: string;
+    let authenticatedSession: any;
+
+    beforeEach(async () => {
+      // Create a problem for testing
+      const problemRepo = getProblemRepository(prisma);
+      const problem = await problemRepo.create({
+        workspaceId,
+        organizationId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+      });
+      testProblemId = problem.id;
+
+      // Create an authenticated user
+      const userRepo = getUserRepository(prisma);
+      const authUser = await userRepo.create({
+        id: randomUUID(),
+        organizationId,
+        email: 'auth@pokrabs.local',
+        name: 'Authenticated User',
+        authId: 'auth@pokrabs.local',
+        authProvider: 'internal',
+      });
+      authenticatedUserId = authUser.id;
+
+      // Create Express app with real authentication middleware
+      authApp = express();
+      authApp.use(express.json());
+      authApp.use(session({
+        secret: 'test-secret',
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+          httpOnly: true,
+          secure: false,
+          sameSite: 'lax' as const,
+        },
+      }));
+
+      // Inject test Prisma client into requests
+      authApp.use((req, res, next) => {
+        (req as any).prisma = prisma;
+        next();
+      });
+
+      // Use real authentication middleware
+      authApp.use('/api/problems', authenticate, problemsRouter);
+    });
+
+    describe('Optional mode', () => {
+      beforeEach(() => {
+        process.env.AUTH_MODE = 'optional';
+      });
+
+      it('should allow GET requests without authentication', async () => {
+        const response = await request(authApp)
+          .get(`/api/problems/${testProblemId}`)
+          .expect(200);
+
+        expect(response.body.id).toBe(testProblemId);
+      });
+
+      it('should require authentication for PATCH requests', async () => {
+        const response = await request(authApp)
+          .patch(`/api/problems/${testProblemId}`)
+          .send({ problem: 'Updated problem' })
+          .expect(401);
+
+        expect(response.body.error).toContain('Authentication required');
+      });
+
+      it('should require authentication for DELETE requests', async () => {
+        const response = await request(authApp)
+          .delete(`/api/problems/${testProblemId}`)
+          .expect(401);
+
+        expect(response.body.error).toContain('Authentication required');
+      });
+
+      it('should require authentication for MOVE requests', async () => {
+        const response = await request(authApp)
+          .patch(`/api/problems/${testProblemId}/move`)
+          .send({ newParentId: null, afterProblemId: null })
+          .expect(401);
+
+        expect(response.body.error).toContain('Authentication required');
+      });
+
+      it('should require authentication for REORDER requests', async () => {
+        const response = await request(authApp)
+          .patch(`/api/problems/${testProblemId}/reorder`)
+          .send({ position: 'top' })
+          .expect(401);
+
+        expect(response.body.error).toContain('Authentication required');
+      });
+    });
+
+    describe('Required mode', () => {
+      beforeEach(() => {
+        process.env.AUTH_MODE = 'required';
+      });
+
+      it('should require authentication for GET requests', async () => {
+        const response = await request(authApp)
+          .get(`/api/problems/${testProblemId}`)
+          .expect(401);
+
+        expect(response.body.error).toBe('Authentication required');
+      });
+
+      it('should require authentication for PATCH requests', async () => {
+        const response = await request(authApp)
+          .patch(`/api/problems/${testProblemId}`)
+          .send({ problem: 'Updated problem' })
+          .expect(401);
+
+        expect(response.body.error).toBe('Authentication required');
+      });
+
+      it('should require authentication for DELETE requests', async () => {
+        const response = await request(authApp)
+          .delete(`/api/problems/${testProblemId}`)
+          .expect(401);
+
+        expect(response.body.error).toBe('Authentication required');
+      });
     });
   });
 });

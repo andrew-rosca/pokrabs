@@ -10,12 +10,14 @@ import { PrismaProblemRepository } from './prisma-problem-repository';
 import { setupTestDatabase, cleanupTestDatabase } from '../test-helpers/database';
 import { Status } from '../../../shared/types';
 import { resetIdCounter } from '../utils/id-generator';
+import { randomUUID } from 'crypto';
 
 describe('PrismaProblemRepository', () => {
   let repository: PrismaProblemRepository;
   let prisma: PrismaClient;
   let databaseUrl: string;
   let workspaceId: string;
+  let organizationId: string;
 
   beforeEach(async () => {
     // Create a fresh isolated database for this test file
@@ -27,11 +29,21 @@ describe('PrismaProblemRepository', () => {
     // Reset ID counter for predictable test IDs
     await resetIdCounter();
 
+    // Create a test organization
+    organizationId = randomUUID();
+    await prisma.organization.create({
+      data: {
+        id: organizationId,
+        name: 'Test Organization',
+      },
+    });
+
     // Create a test workspace
     workspaceId = 'test-workspace-1';
     await prisma.workspace.create({
       data: {
         id: workspaceId,
+        organizationId,
         name: 'Test Workspace',
       },
     });
@@ -46,6 +58,7 @@ describe('PrismaProblemRepository', () => {
     it('should create a new root problem', async () => {
       const problem = await repository.create({
         workspaceId,
+        organizationId,
       });
 
       expect(problem.id).toMatch(/^[0-9a-z]{2,}$/);
@@ -59,17 +72,18 @@ describe('PrismaProblemRepository', () => {
     });
 
     it('should generate unique IDs', async () => {
-      const problem1 = await repository.create({ workspaceId });
-      const problem2 = await repository.create({ workspaceId });
+      const problem1 = await repository.create({ workspaceId, organizationId });
+      const problem2 = await repository.create({ workspaceId, organizationId });
 
       expect(problem1.id).not.toBe(problem2.id);
     });
 
     it('should create a child problem with correct idPath', async () => {
-      const parent = await repository.create({ workspaceId });
+      const parent = await repository.create({ workspaceId, organizationId });
 
       const child = await repository.create({
         workspaceId,
+        organizationId,
         parentId: parent.id,
       });
 
@@ -78,14 +92,16 @@ describe('PrismaProblemRepository', () => {
     });
 
     it('should create a grandchild problem with correct idPath', async () => {
-      const parent = await repository.create({ workspaceId });
+      const parent = await repository.create({ workspaceId, organizationId });
       const child = await repository.create({
         workspaceId,
+        organizationId,
         parentId: parent.id,
       });
 
       const grandchild = await repository.create({
         workspaceId,
+        organizationId,
         parentId: child.id,
       });
 
@@ -95,6 +111,7 @@ describe('PrismaProblemRepository', () => {
     it('should accept custom fields', async () => {
       const problem = await repository.create({
         workspaceId,
+        organizationId,
         status: Status.InProgress,
         labels: ['urgent', 'important'],
       });
@@ -106,9 +123,9 @@ describe('PrismaProblemRepository', () => {
 
   describe('findById', () => {
     it('should find a problem by ID', async () => {
-      const created = await repository.create({ workspaceId });
+      const created = await repository.create({ workspaceId, organizationId });
 
-      const found = await repository.findById(created.id);
+      const found = await repository.findById(created.id, organizationId);
 
       expect(found).not.toBeNull();
       expect(found?.id).toBe(created.id);
@@ -116,27 +133,42 @@ describe('PrismaProblemRepository', () => {
     });
 
     it('should return null for non-existent problem', async () => {
-      const problem = await repository.findById('non-existent');
+      const problem = await repository.findById('non-existent', organizationId);
       expect(problem).toBeNull();
     });
 
     it('should exclude soft-deleted problems', async () => {
-      const created = await repository.create({ workspaceId });
+      const created = await repository.create({ workspaceId, organizationId });
 
-      await repository.softDelete(created.id);
+      await repository.softDelete(created.id, organizationId);
 
-      const problem = await repository.findById(created.id);
+      const problem = await repository.findById(created.id, organizationId);
       expect(problem).toBeNull();
+    });
+
+    it('should return null for problem in different organization', async () => {
+      const created = await repository.create({ workspaceId, organizationId });
+
+      const otherOrgId = randomUUID();
+      await prisma.organization.create({
+        data: {
+          id: otherOrgId,
+          name: 'Other Organization',
+        },
+      });
+
+      const found = await repository.findById(created.id, otherOrgId);
+      expect(found).toBeNull();
     });
   });
 
   describe('findByWorkspaceId', () => {
     it('should find all problems in a workspace', async () => {
-      await repository.create({ workspaceId });
-      await repository.create({ workspaceId });
-      await repository.create({ workspaceId });
+      await repository.create({ workspaceId, organizationId });
+      await repository.create({ workspaceId, organizationId });
+      await repository.create({ workspaceId, organizationId });
 
-      const problems = await repository.findByWorkspaceId(workspaceId);
+      const problems = await repository.findByWorkspaceId(workspaceId, organizationId);
 
       expect(problems).toHaveLength(3);
       problems.forEach(p => {
@@ -145,29 +177,44 @@ describe('PrismaProblemRepository', () => {
     });
 
     it('should exclude soft-deleted problems', async () => {
-      const problem1 = await repository.create({ workspaceId });
-      const problem2 = await repository.create({ workspaceId });
-      await repository.softDelete(problem1.id);
+      const problem1 = await repository.create({ workspaceId, organizationId });
+      const problem2 = await repository.create({ workspaceId, organizationId });
+      await repository.softDelete(problem1.id, organizationId);
 
-      const problems = await repository.findByWorkspaceId(workspaceId);
+      const problems = await repository.findByWorkspaceId(workspaceId, organizationId);
 
       expect(problems).toHaveLength(1);
       expect(problems[0].id).toBe(problem2.id);
     });
 
     it('should return empty array when no problems exist', async () => {
-      const problems = await repository.findByWorkspaceId(workspaceId);
+      const problems = await repository.findByWorkspaceId(workspaceId, organizationId);
+      expect(problems).toHaveLength(0);
+    });
+
+    it('should not find problems from different organization', async () => {
+      await repository.create({ workspaceId, organizationId });
+
+      const otherOrgId = randomUUID();
+      await prisma.organization.create({
+        data: {
+          id: otherOrgId,
+          name: 'Other Organization',
+        },
+      });
+
+      const problems = await repository.findByWorkspaceId(workspaceId, otherOrgId);
       expect(problems).toHaveLength(0);
     });
   });
 
   describe('findByParentId', () => {
     it('should find all child problems', async () => {
-      const parent = await repository.create({ workspaceId });
-      await repository.create({ workspaceId, parentId: parent.id });
-      await repository.create({ workspaceId, parentId: parent.id });
+      const parent = await repository.create({ workspaceId, organizationId });
+      await repository.create({ workspaceId, organizationId, parentId: parent.id });
+      await repository.create({ workspaceId, organizationId, parentId: parent.id });
 
-      const children = await repository.findByParentId(parent.id);
+      const children = await repository.findByParentId(parent.id, organizationId);
 
       expect(children).toHaveLength(2);
       children.forEach(child => {
@@ -176,12 +223,12 @@ describe('PrismaProblemRepository', () => {
     });
 
     it('should exclude soft-deleted problems', async () => {
-      const parent = await repository.create({ workspaceId });
-      const child1 = await repository.create({ workspaceId, parentId: parent.id });
-      await repository.create({ workspaceId, parentId: parent.id });
-      await repository.softDelete(child1.id);
+      const parent = await repository.create({ workspaceId, organizationId });
+      const child1 = await repository.create({ workspaceId, organizationId, parentId: parent.id });
+      await repository.create({ workspaceId, organizationId, parentId: parent.id });
+      await repository.softDelete(child1.id, organizationId);
 
-      const children = await repository.findByParentId(parent.id);
+      const children = await repository.findByParentId(parent.id, organizationId);
 
       expect(children).toHaveLength(1);
     });
@@ -189,9 +236,9 @@ describe('PrismaProblemRepository', () => {
 
   describe('update', () => {
     it('should update problem fields', async () => {
-      const created = await repository.create({ workspaceId });
+      const created = await repository.create({ workspaceId, organizationId });
 
-      const updated = await repository.update(created.id, {
+      const updated = await repository.update(created.id, organizationId, {
         status: Status.InProgress,
         votes: 5,
         priority: 10,
@@ -207,47 +254,95 @@ describe('PrismaProblemRepository', () => {
     it('should not update fields that are not provided', async () => {
       const created = await repository.create({
         workspaceId,
+        organizationId,
         status: Status.InProgress,
       });
 
-      const updated = await repository.update(created.id, {});
+      const updated = await repository.update(created.id, organizationId, {});
 
       expect(updated.status).toBe(Status.InProgress);
       expect(updated.id).toBe(created.id);
+    });
+
+    it('should throw error if problem does not belong to organization', async () => {
+      const created = await repository.create({ workspaceId, organizationId });
+
+      const otherOrgId = randomUUID();
+      await prisma.organization.create({
+        data: {
+          id: otherOrgId,
+          name: 'Other Organization',
+        },
+      });
+
+      await expect(
+        repository.update(created.id, otherOrgId, { status: Status.InProgress })
+      ).rejects.toThrow('Problem not found or does not belong to organization');
     });
   });
 
   describe('softDelete', () => {
     it('should set deletedAt timestamp', async () => {
-      const created = await repository.create({ workspaceId });
+      const created = await repository.create({ workspaceId, organizationId });
 
-      await repository.softDelete(created.id);
+      await repository.softDelete(created.id, organizationId);
 
-      const problem = await repository.findById(created.id);
+      const problem = await repository.findById(created.id, organizationId);
       expect(problem).toBeNull();
+    });
+
+    it('should throw error if problem does not belong to organization', async () => {
+      const created = await repository.create({ workspaceId, organizationId });
+
+      const otherOrgId = randomUUID();
+      await prisma.organization.create({
+        data: {
+          id: otherOrgId,
+          name: 'Other Organization',
+        },
+      });
+
+      await expect(
+        repository.softDelete(created.id, otherOrgId)
+      ).rejects.toThrow('Problem not found');
     });
   });
 
   describe('checkIdExists', () => {
     it('should return true if ID exists', async () => {
-      const created = await repository.create({ workspaceId });
+      const created = await repository.create({ workspaceId, organizationId });
 
-      const exists = await repository.checkIdExists(created.id, workspaceId);
+      const exists = await repository.checkIdExists(created.id, workspaceId, organizationId);
 
       expect(exists).toBe(true);
     });
 
     it('should return false if ID does not exist', async () => {
-      const exists = await repository.checkIdExists('non-existent', workspaceId);
+      const exists = await repository.checkIdExists('non-existent', workspaceId, organizationId);
       expect(exists).toBe(false);
     });
 
     it('should return false for soft-deleted problems', async () => {
-      const created = await repository.create({ workspaceId });
+      const created = await repository.create({ workspaceId, organizationId });
 
-      await repository.softDelete(created.id);
+      await repository.softDelete(created.id, organizationId);
 
-      const exists = await repository.checkIdExists(created.id, workspaceId);
+      const exists = await repository.checkIdExists(created.id, workspaceId, organizationId);
+      expect(exists).toBe(false);
+    });
+
+    it('should return false for problems in different organization', async () => {
+      const created = await repository.create({ workspaceId, organizationId });
+
+      const otherOrgId = randomUUID();
+      await prisma.organization.create({
+        data: {
+          id: otherOrgId,
+          name: 'Other Organization',
+        },
+      });
+
+      const exists = await repository.checkIdExists(created.id, workspaceId, otherOrgId);
       expect(exists).toBe(false);
     });
   });

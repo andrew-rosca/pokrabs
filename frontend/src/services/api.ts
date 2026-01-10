@@ -6,17 +6,32 @@
 
 import { Problem, Workspace, View, CreateViewRequest, UpdateViewRequest, ViewFilters } from '../../../shared/types';
 
+/**
+ * Custom error for authentication failures
+ */
+export class AuthenticationError extends Error {
+  constructor(message: string = 'Authentication required') {
+    super(message);
+    this.name = 'AuthenticationError';
+  }
+}
+
 // In production (when served from same origin), use relative URLs
-// In development, use explicit URL (defaults to localhost:3001 for dev server)
+// In development, use relative URLs to go through Vite proxy (which forwards to localhost:3001)
 // VITE_API_URL is set by Docker build to empty string for production
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 /**
  * Fetch all workspaces
  */
 export async function fetchWorkspaces(): Promise<Workspace[]> {
-  const response = await fetch(`${API_URL}/api/workspaces`);
+  const response = await fetch(`${API_URL}/api/workspaces`, {
+    credentials: 'include',
+  });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to access workspaces');
+    }
     throw new Error(`Failed to fetch workspaces: ${response.statusText}`);
   }
   return response.json();
@@ -31,9 +46,13 @@ export async function createWorkspace(name: string): Promise<Workspace> {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify({ name }),
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to create workspace');
+    }
     let errorMessage = `Failed to create workspace: ${response.statusText}`;
     try {
       const errorData = await response.json();
@@ -60,9 +79,13 @@ export async function updateWorkspace(
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify(updates),
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to update workspace');
+    }
     let errorMessage = `Failed to update workspace: ${response.statusText}`;
     try {
       const errorData = await response.json();
@@ -83,8 +106,12 @@ export async function updateWorkspace(
 export async function useWorkspace(workspaceId: string): Promise<Workspace> {
   const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}/use`, {
     method: 'PATCH',
+    credentials: 'include',
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required');
+    }
     throw new Error(`Failed to update workspace usage: ${response.statusText}`);
   }
   return response.json();
@@ -96,8 +123,12 @@ export async function useWorkspace(workspaceId: string): Promise<Workspace> {
 export async function deleteWorkspace(workspaceId: string): Promise<void> {
   const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}`, {
     method: 'DELETE',
+    credentials: 'include',
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to delete workspace');
+    }
     let errorMessage = `Failed to delete workspace: ${response.statusText}`;
     try {
       const errorData = await response.json();
@@ -115,8 +146,13 @@ export async function deleteWorkspace(workspaceId: string): Promise<void> {
  * Fetch all problems for a workspace
  */
 export async function fetchProblems(workspaceId: string): Promise<Problem[]> {
-  const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}/problems`);
+  const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}/problems`, {
+    credentials: 'include',
+  });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to access problems');
+    }
     throw new Error(`Failed to fetch problems: ${response.statusText}`);
   }
   return response.json();
@@ -126,8 +162,13 @@ export async function fetchProblems(workspaceId: string): Promise<Problem[]> {
  * Fetch a single problem by ID
  */
 export async function fetchProblem(problemId: string): Promise<Problem> {
-  const response = await fetch(`${API_URL}/api/problems/${problemId}`);
+  const response = await fetch(`${API_URL}/api/problems/${problemId}`, {
+    credentials: 'include',
+  });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to access problem');
+    }
     throw new Error(`Failed to fetch problem: ${response.statusText}`);
   }
   return response.json();
@@ -155,9 +196,13 @@ export async function createProblem(
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify(problem),
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to create problem');
+    }
     let errorMessage = `Failed to create problem: ${response.statusText}`;
     try {
       const errorData = await response.json();
@@ -194,9 +239,13 @@ export async function updateProblem(
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify(updates),
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to save changes');
+    }
     throw new Error(`Failed to update problem: ${response.statusText}`);
   }
   return response.json();
@@ -208,8 +257,12 @@ export async function updateProblem(
 export async function deleteProblem(problemId: string): Promise<void> {
   const response = await fetch(`${API_URL}/api/problems/${problemId}`, {
     method: 'DELETE',
+    credentials: 'include',
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to delete problem');
+    }
     let errorMessage = `Failed to delete problem: ${response.statusText}`;
     try {
       const errorData = await response.json();
@@ -239,9 +292,13 @@ export async function moveProblem(
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify({ newParentId, afterProblemId }),
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to move problem');
+    }
     let errorMessage = `Failed to move problem: ${response.statusText}`;
     try {
       const errorData = await response.json();
@@ -270,9 +327,13 @@ export async function reorderProblem(
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify({ position }),
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to reorder problem');
+    }
     let errorMessage = `Failed to reorder problem: ${response.statusText}`;
     try {
       const errorData = await response.json();
@@ -291,8 +352,13 @@ export async function reorderProblem(
  * Fetch all views for a workspace
  */
 export async function fetchViews(workspaceId: string): Promise<View[]> {
-  const response = await fetch(`${API_URL}/api/views/workspaces/${workspaceId}/views`);
+  const response = await fetch(`${API_URL}/api/views/workspaces/${workspaceId}/views`, {
+    credentials: 'include',
+  });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to access views');
+    }
     throw new Error(`Failed to fetch views: ${response.statusText}`);
   }
   return response.json();
@@ -302,8 +368,13 @@ export async function fetchViews(workspaceId: string): Promise<View[]> {
  * Fetch a single view by ID
  */
 export async function fetchView(viewId: string): Promise<View> {
-  const response = await fetch(`${API_URL}/api/views/${viewId}`);
+  const response = await fetch(`${API_URL}/api/views/${viewId}`, {
+    credentials: 'include',
+  });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to access view');
+    }
     throw new Error(`Failed to fetch view: ${response.statusText}`);
   }
   return response.json();
@@ -318,9 +389,13 @@ export async function createView(workspaceId: string, view: CreateViewRequest): 
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify(view),
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to create view');
+    }
     let errorMessage = `Failed to create view: ${response.statusText}`;
     try {
       const errorData = await response.json();
@@ -344,9 +419,13 @@ export async function updateView(viewId: string, updates: UpdateViewRequest): Pr
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify(updates),
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to update view');
+    }
     let errorMessage = `Failed to update view: ${response.statusText}`;
     try {
       const errorData = await response.json();
@@ -367,8 +446,12 @@ export async function updateView(viewId: string, updates: UpdateViewRequest): Pr
 export async function useView(viewId: string): Promise<View> {
   const response = await fetch(`${API_URL}/api/views/${viewId}/use`, {
     method: 'PATCH',
+    credentials: 'include',
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required');
+    }
     throw new Error(`Failed to update view usage: ${response.statusText}`);
   }
   return response.json();
@@ -380,8 +463,12 @@ export async function useView(viewId: string): Promise<View> {
 export async function deleteView(viewId: string): Promise<void> {
   const response = await fetch(`${API_URL}/api/views/${viewId}`, {
     method: 'DELETE',
+    credentials: 'include',
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to delete view');
+    }
     let errorMessage = `Failed to delete view: ${response.statusText}`;
     try {
       const errorData = await response.json();

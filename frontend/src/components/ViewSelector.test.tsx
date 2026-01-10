@@ -10,11 +10,15 @@ import { View } from '../../../shared/types';
 import { useView, deleteView, updateView } from '../services/api';
 
 // Mock the API service
-vi.mock('../services/api', () => ({
-  useView: vi.fn(),
-  deleteView: vi.fn(),
-  updateView: vi.fn(),
-}));
+vi.mock('../services/api', async () => {
+  const actual = await vi.importActual('../services/api') as any;
+  return {
+    AuthenticationError: actual.AuthenticationError, // Export the class for instanceof checks
+    useView: vi.fn(),
+    deleteView: vi.fn(),
+    updateView: vi.fn(),
+  };
+});
 
 const mockUseView = useView as ReturnType<typeof vi.fn>;
 const mockDeleteView = deleteView as ReturnType<typeof vi.fn>;

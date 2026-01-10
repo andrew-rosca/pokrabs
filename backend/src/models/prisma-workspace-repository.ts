@@ -12,10 +12,11 @@ import { Workspace } from '../../../shared/types';
 export class PrismaWorkspaceRepository implements IWorkspaceRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async create(data: { id: string; name: string }): Promise<Workspace> {
+  async create(data: { id: string; organizationId: string; name: string }): Promise<Workspace> {
     const workspace = await this.prisma.workspace.create({
       data: {
         id: data.id,
+        organizationId: data.organizationId,
         name: data.name,
       },
     });
@@ -23,10 +24,11 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
     return this.mapToWorkspace(workspace as any);
   }
 
-  async findById(id: string): Promise<Workspace | null> {
+  async findById(id: string, organizationId: string): Promise<Workspace | null> {
     const workspace = await this.prisma.workspace.findFirst({
       where: {
         id,
+        organizationId,
         deletedAt: null, // Exclude soft-deleted
       },
     });
@@ -34,9 +36,10 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
     return workspace ? this.mapToWorkspace(workspace as any) : null;
   }
 
-  async findAll(): Promise<Workspace[]> {
+  async findAll(organizationId: string): Promise<Workspace[]> {
     const workspaces = await this.prisma.workspace.findMany({
       where: {
+        organizationId,
         deletedAt: null, // Exclude soft-deleted
       },
       orderBy: {
@@ -47,7 +50,19 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
     return workspaces.map((w: any) => this.mapToWorkspace(w));
   }
 
-  async update(id: string, data: { name?: string }): Promise<Workspace> {
+  async update(id: string, organizationId: string, data: { name?: string }): Promise<Workspace> {
+    // Verify workspace belongs to organization
+    const existing = await this.prisma.workspace.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+    });
+
+    if (!existing) {
+      throw new Error('Workspace not found or does not belong to organization');
+    }
+
     const workspace = await this.prisma.workspace.update({
       where: { id },
       data: {
@@ -58,7 +73,19 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
     return this.mapToWorkspace(workspace as any);
   }
 
-  async updateLastUsedAt(id: string): Promise<void> {
+  async updateLastUsedAt(id: string, organizationId: string): Promise<void> {
+    // Verify workspace belongs to organization
+    const existing = await this.prisma.workspace.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+    });
+
+    if (!existing) {
+      throw new Error('Workspace not found or does not belong to organization');
+    }
+
     await this.prisma.workspace.update({
       where: { id },
       data: {
@@ -67,7 +94,19 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
     });
   }
 
-  async softDelete(id: string): Promise<void> {
+  async softDelete(id: string, organizationId: string): Promise<void> {
+    // Verify workspace belongs to organization
+    const existing = await this.prisma.workspace.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+    });
+
+    if (!existing) {
+      throw new Error('Workspace not found or does not belong to organization');
+    }
+
     await this.prisma.workspace.update({
       where: { id },
       data: {

@@ -10,7 +10,8 @@ import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Problem, Status, CreateProblemRequest, ViewFilters } from '../../../shared/types';
-import { fetchProblems, updateProblem, createProblem, deleteProblem, moveProblem } from '../services/api';
+import { fetchProblems, updateProblem, createProblem, deleteProblem, moveProblem, AuthenticationError } from '../services/api';
+import { authService } from '../services/auth';
 import { SummaryDetailCell } from './SummaryDetailCell';
 import { DeleteButton } from './DeleteButton';
 import { ListCell } from './ListCell';
@@ -78,6 +79,21 @@ export function ProblemsList({
   const [showPositionInput, setShowPositionInput] = useState<string | null>(null); // problem ID
   const [positionInputValue, setPositionInputValue] = useState<string>('');
   const positionInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper function to handle authentication errors
+  const handleAuthError = (error: unknown, defaultMessage: string): boolean => {
+    if (error instanceof AuthenticationError) {
+      const shouldLogin = window.confirm(
+        'Authentication is required to perform this action. Would you like to log in now?'
+      );
+      if (shouldLogin) {
+        authService.login('google');
+      }
+      return true; // Error was handled
+    }
+    // For non-auth errors, don't set error here - let the caller handle it
+    return false; // Error was not handled, caller should handle it
+  };
 
   // Column visibility state - persisted to localStorage
   // Note: votes column hidden until user authentication is implemented (voting requires user identity)
@@ -227,7 +243,18 @@ export function ProblemsList({
         const data = await fetchProblems(workspaceId);
         setProblems(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load problems');
+        if (err instanceof AuthenticationError) {
+          // In required mode, automatically redirect to login
+          const state = authService.getState();
+          if (state.mode === 'required') {
+            authService.login('google');
+            return; // Don't set error, user will be redirected
+          }
+          // In optional mode, show error but allow browsing
+          setError('Authentication required to access problems');
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load problems');
+        }
       } finally {
         setLoading(false);
       }
@@ -409,7 +436,10 @@ export function ProblemsList({
           )
         );
       }
-      console.error('Error saving field:', error);
+      if (!handleAuthError(error, 'Error saving field')) {
+        // If not an auth error, show generic error
+        console.error('Error saving field:', error);
+      }
     }
   };
 
@@ -449,7 +479,7 @@ export function ProblemsList({
           )
         );
       }
-      console.error('Error updating status:', error);
+      handleAuthError(error, 'Error updating status');
     }
   };
 
@@ -491,7 +521,7 @@ export function ProblemsList({
           )
         );
       }
-      console.error('Error updating votes:', error);
+      handleAuthError(error, 'Error updating votes');
     }
   };
 
@@ -514,6 +544,9 @@ export function ProblemsList({
     } catch (err) {
       // Revert on error
       setProblems(previousProblems);
+      if (handleAuthError(err, 'Failed to delete problem')) {
+        return; // Auth error was handled
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete problem';
       setError(errorMessage);
       console.error('Error deleting problem:', err);
@@ -898,6 +931,9 @@ export function ProblemsList({
       const data = await fetchProblems(workspaceId);
       setProblems(data);
     } catch (err) {
+      if (handleAuthError(err, 'Failed to move problem')) {
+        return; // Auth error was handled
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to move problem';
       setError(errorMessage);
       console.error('Error moving problem:', err);
@@ -1095,6 +1131,9 @@ export function ProblemsList({
         setHighlightedProblemId(null);
       }, 2000);
     } catch (err) {
+      if (handleAuthError(err, 'Failed to reorder problem')) {
+        return; // Auth error was handled
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to reorder problem';
       setError(errorMessage);
       console.error('Error reordering problem:', err);
@@ -1162,6 +1201,9 @@ export function ProblemsList({
         setHighlightedProblemId(null);
       }, 2000);
     } catch (err) {
+      if (handleAuthError(err, 'Failed to reorder problem')) {
+        return; // Auth error was handled
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to reorder problem';
       setError(errorMessage);
       console.error('Error reordering problem:', err);
@@ -1206,6 +1248,9 @@ export function ProblemsList({
       // Auto-open the problem editor for the newly created problem
       setAutoOpenEditor({ problemId: created.id, field: 'problem' });
     } catch (err) {
+      if (handleAuthError(err, 'Failed to create problem')) {
+        return; // Auth error was handled
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to create problem';
       setError(errorMessage);
       console.error('Error creating problem:', err);
@@ -1433,6 +1478,23 @@ export function ProblemsList({
             </tr>
           </thead>
           <tbody>
+            {visibleProblems.length === 0 && !loading && !error && (
+              <tr>
+                <td colSpan={
+                  2 + // Row number + ID
+                  (visibleColumns.labels ? 1 : 0) +
+                  (visibleColumns.objective ? 1 : 0) +
+                  (visibleColumns.keyResults ? 1 : 0) +
+                  (visibleColumns.actions ? 1 : 0) +
+                  (visibleColumns.blockers ? 1 : 0) +
+                  (visibleColumns.status ? 1 : 0) +
+                  (visibleColumns.votes ? 1 : 0) +
+                  1 // Problem column (always visible)
+                } style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                  No problems found.
+                </td>
+              </tr>
+            )}
             {visibleProblems.map((problem, index) => {
               const depth = getDepth(problem.idPath);
               const isDragging = draggedProblemId !== null && getDraggedProblems(draggedProblemId).has(problem.id);

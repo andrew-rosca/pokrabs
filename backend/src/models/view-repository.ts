@@ -13,32 +13,35 @@ export interface IViewRepository {
    */
   create(data: { 
     id: string; 
-    workspaceId: string; 
+    workspaceId: string;
+    organizationId: string;
     name: string; 
     filters: ViewFilters;
     isDefault?: boolean;
   }): Promise<View>;
 
   /**
-   * Find a view by ID (excluding soft-deleted)
+   * Find a view by ID within an organization (excluding soft-deleted)
    */
-  findById(id: string): Promise<View | null>;
+  findById(id: string, organizationId: string): Promise<View | null>;
 
   /**
    * Find all views for a workspace (excluding soft-deleted)
+   * Workspace must belong to the specified organization
    * Ordered by lastUsedAt descending (most recent first)
    */
-  findByWorkspaceId(workspaceId: string): Promise<View[]>;
+  findByWorkspaceId(workspaceId: string, organizationId: string): Promise<View[]>;
 
   /**
    * Find the default view for a workspace
+   * Workspace must belong to the specified organization
    */
-  findDefaultByWorkspaceId(workspaceId: string): Promise<View | null>;
+  findDefaultByWorkspaceId(workspaceId: string, organizationId: string): Promise<View | null>;
 
   /**
    * Update a view
    */
-  update(id: string, data: { 
+  update(id: string, organizationId: string, data: { 
     name?: string; 
     filters?: ViewFilters;
   }): Promise<View>;
@@ -46,11 +49,11 @@ export interface IViewRepository {
   /**
    * Update lastUsedAt timestamp for a view
    */
-  updateLastUsedAt(id: string): Promise<void>;
+  updateLastUsedAt(id: string, organizationId: string): Promise<void>;
 
   /**
    * Soft delete a view (sets deletedAt timestamp)
    */
-  softDelete(id: string): Promise<void>;
+  softDelete(id: string, organizationId: string): Promise<void>;
 }
 

@@ -5,6 +5,8 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { AuthenticationError } from '../services/api';
+import { authService } from '../services/auth';
 
 interface EditableCellProps {
   value: string;
@@ -20,6 +22,8 @@ export function EditableCell({ value, onSave, multiline = false, className = '' 
   const [cellRect, setCellRect] = useState<DOMRect | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const cellRef = useRef<HTMLDivElement>(null);
+  const isCancelingRef = useRef(false);
+  const isHandlingKeyRef = useRef(false);
 
   useEffect(() => {
     if (isEditing && cellRef.current) {
@@ -47,7 +51,7 @@ export function EditableCell({ value, onSave, multiline = false, className = '' 
     }
   };
 
-  const handleBlur = async () => {
+  const saveAndClose = async () => {
     if (isSaving) return;
     
     if (editValue !== value) {
@@ -57,7 +61,21 @@ export function EditableCell({ value, onSave, multiline = false, className = '' 
       } catch (error) {
         // Revert on error
         setEditValue(value);
-        console.error('Failed to save:', error);
+        
+        // Handle authentication errors
+        if (error instanceof AuthenticationError) {
+          const shouldLogin = window.confirm(
+            'Authentication is required to save changes. Would you like to log in now?'
+          );
+          if (shouldLogin) {
+            authService.login('google');
+            return; // Don't close editor, user will be redirected
+          }
+        } else {
+          console.error('Failed to save:', error);
+          // Show error message for other errors
+          alert(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       } finally {
         setIsSaving(false);
       }
@@ -65,15 +83,31 @@ export function EditableCell({ value, onSave, multiline = false, className = '' 
     setIsEditing(false);
   };
 
+  const handleBlur = async () => {
+    if (isSaving || isCancelingRef.current || isHandlingKeyRef.current) {
+      isCancelingRef.current = false; // Reset flag
+      return;
+    }
+    await saveAndClose();
+  };
+
   const handleKeyDown = async (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !multiline) {
       e.preventDefault();
-      await handleBlur();
+      isHandlingKeyRef.current = true; // Prevent blur event from calling handleBlur
+      inputRef.current?.blur(); // Trigger blur to close input
+      await saveAndClose();
+      isHandlingKeyRef.current = false;
     } else if (e.key === 'Enter' && multiline && (e.metaKey || e.ctrlKey)) {
       // Cmd/Ctrl+Enter to save in multiline mode
       e.preventDefault();
-      await handleBlur();
+      isHandlingKeyRef.current = true; // Prevent blur event from calling handleBlur
+      inputRef.current?.blur(); // Trigger blur to close input
+      await saveAndClose();
+      isHandlingKeyRef.current = false;
     } else if (e.key === 'Escape') {
+      e.preventDefault();
+      isCancelingRef.current = true; // Prevent blur from saving
       setEditValue(value);
       setIsEditing(false);
     }

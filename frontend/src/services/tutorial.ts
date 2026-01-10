@@ -169,6 +169,14 @@ export function getTutorialSteps(): TutorialStep[] {
       },
       placement: 'bottom',
     },
+    {
+      target: '[data-tutorial="settings-menu"]',
+      content: {
+        title: 'Settings Menu',
+        body: 'Click the settings button to access theme preferences, user information, and authentication options.',
+      },
+      placement: 'bottom',
+    },
   ];
 }
 
