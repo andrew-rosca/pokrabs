@@ -88,14 +88,28 @@ router.patch('/:id', async (req: Request, res: Response) => {
     }
     
     // Validate array fields length if provided
+    // Accept both arrays and JSON strings (for backward compatibility)
     if (keyResults !== undefined) {
-      if (!Array.isArray(keyResults)) {
-        return res.status(400).json({ error: 'Key results must be an array' });
+      let keyResultsArray: any[];
+      if (typeof keyResults === 'string') {
+        try {
+          keyResultsArray = JSON.parse(keyResults);
+          if (!Array.isArray(keyResultsArray)) {
+            return res.status(400).json({ error: 'Key results must be a JSON array string' });
+          }
+        } catch {
+          return res.status(400).json({ error: 'Key results must be a valid JSON array string' });
+        }
+      } else if (Array.isArray(keyResults)) {
+        keyResultsArray = keyResults;
+      } else {
+        return res.status(400).json({ error: 'Key results must be an array or JSON array string' });
       }
-      if (keyResults.length > 100) {
+      
+      if (keyResultsArray.length > 100) {
         return res.status(400).json({ error: 'Too many key results (max 100)' });
       }
-      for (const item of keyResults) {
+      for (const item of keyResultsArray) {
         if (typeof item === 'string' && item.length > MAX_ARRAY_ITEM_LENGTH) {
           return res.status(400).json({ 
             error: `Key result item too long (max ${MAX_ARRAY_ITEM_LENGTH} characters)` 
@@ -105,13 +119,26 @@ router.patch('/:id', async (req: Request, res: Response) => {
     }
     
     if (actions !== undefined) {
-      if (!Array.isArray(actions)) {
-        return res.status(400).json({ error: 'Actions must be an array' });
+      let actionsArray: any[];
+      if (typeof actions === 'string') {
+        try {
+          actionsArray = JSON.parse(actions);
+          if (!Array.isArray(actionsArray)) {
+            return res.status(400).json({ error: 'Actions must be a JSON array string' });
+          }
+        } catch {
+          return res.status(400).json({ error: 'Actions must be a valid JSON array string' });
+        }
+      } else if (Array.isArray(actions)) {
+        actionsArray = actions;
+      } else {
+        return res.status(400).json({ error: 'Actions must be an array or JSON array string' });
       }
-      if (actions.length > 100) {
+      
+      if (actionsArray.length > 100) {
         return res.status(400).json({ error: 'Too many actions (max 100)' });
       }
-      for (const item of actions) {
+      for (const item of actionsArray) {
         if (typeof item === 'string' && item.length > MAX_ARRAY_ITEM_LENGTH) {
           return res.status(400).json({ 
             error: `Action item too long (max ${MAX_ARRAY_ITEM_LENGTH} characters)` 
@@ -121,13 +148,26 @@ router.patch('/:id', async (req: Request, res: Response) => {
     }
     
     if (blockers !== undefined) {
-      if (!Array.isArray(blockers)) {
-        return res.status(400).json({ error: 'Blockers must be an array' });
+      let blockersArray: any[];
+      if (typeof blockers === 'string') {
+        try {
+          blockersArray = JSON.parse(blockers);
+          if (!Array.isArray(blockersArray)) {
+            return res.status(400).json({ error: 'Blockers must be a JSON array string' });
+          }
+        } catch {
+          return res.status(400).json({ error: 'Blockers must be a valid JSON array string' });
+        }
+      } else if (Array.isArray(blockers)) {
+        blockersArray = blockers;
+      } else {
+        return res.status(400).json({ error: 'Blockers must be an array or JSON array string' });
       }
-      if (blockers.length > 100) {
+      
+      if (blockersArray.length > 100) {
         return res.status(400).json({ error: 'Too many blockers (max 100)' });
       }
-      for (const item of blockers) {
+      for (const item of blockersArray) {
         if (typeof item === 'string' && item.length > MAX_ARRAY_ITEM_LENGTH) {
           return res.status(400).json({ 
             error: `Blocker item too long (max ${MAX_ARRAY_ITEM_LENGTH} characters)` 

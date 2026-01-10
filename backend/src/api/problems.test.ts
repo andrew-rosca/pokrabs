@@ -317,7 +317,7 @@ describe('Problems API', () => {
         .send({ votes: 'not-a-number' });
       
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Votes must be a number');
+      expect(response.body.error).toBe('Votes must be a non-negative integer');
     });
 
     it('should reject non-number priority', async () => {
@@ -334,7 +334,7 @@ describe('Problems API', () => {
         .send({ priority: 'not-a-number' });
       
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Priority must be a number');
+      expect(response.body.error).toBe('Priority must be a number between 0 and 1000');
     });
   });
 

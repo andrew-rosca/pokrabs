@@ -12,11 +12,7 @@ export default defineConfig({
     // Each test file uses its own in-memory database, but this ensures
     // no interference from parallel execution
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true, // Run tests sequentially
-      },
-    },
+    fileParallelism: false, // Run tests sequentially (Vitest 4 migration)
   },
 });
 
