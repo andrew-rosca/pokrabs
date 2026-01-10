@@ -32,6 +32,10 @@ FROM node:20-alpine
 # Install only Prisma CLI (needed for db push at runtime)
 RUN apk add --no-cache openssl
 
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
 WORKDIR /app/backend
 
 # Copy only production dependencies from builder
@@ -48,8 +52,9 @@ COPY backend/prisma/schema.prisma ./prisma/schema.prisma
 # Copy compiled shared directory
 COPY shared ./node_modules/shared
 
-# Create data directory for SQLite
-RUN mkdir -p /app/data
+# Create data directory for SQLite and set ownership
+RUN mkdir -p /app/data && \
+    chown -R nodejs:nodejs /app
 
 # Set default environment variables
 ENV DATABASE_TYPE=sqlite
@@ -59,6 +64,9 @@ ENV NODE_ENV=production
 
 # Generate Prisma client (only for Alpine Linux, not all platforms)
 RUN npx prisma generate
+
+# Switch to non-root user
+USER nodejs
 
 EXPOSE 3001
 

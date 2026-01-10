@@ -21,6 +21,12 @@ declare global {
 
 const router = Router();
 
+// Input validation constants
+const MAX_NAME_LENGTH = 255;
+const MAX_TEXT_FIELD_LENGTH = 10000; // For problem, objective, etc.
+const MAX_ARRAY_ITEM_LENGTH = 500; // For individual items in arrays
+const MAX_LABELS_COUNT = 50; // Maximum number of labels
+
 // Middleware to use Prisma client from request if available (for testing)
 const getRepositoryWithPrisma = (req: Request) => {
   return req.prisma ? getWorkspaceRepository(req.prisma) : getWorkspaceRepository();
@@ -61,11 +67,18 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Workspace name is required' });
     }
     
+    const trimmedName = name.trim();
+    if (trimmedName.length > MAX_NAME_LENGTH) {
+      return res.status(400).json({ 
+        error: `Workspace name too long (max ${MAX_NAME_LENGTH} characters)` 
+      });
+    }
+    
     const repository = getRepositoryWithPrisma(req);
     const workspace = await repository.create({
       id: await generateId(),
       organizationId: req.organizationId,
-      name: name.trim(),
+      name: trimmedName,
     });
     
     // Create default "All Problems" view for the new workspace
@@ -141,12 +154,80 @@ router.post('/:workspaceId/problems', async (req: Request, res: Response) => {
     }
     
     // Validation
-    if (!problem || typeof problem !== 'string') {
+    if (!problem || typeof problem !== 'string' || problem.trim().length === 0) {
       return res.status(400).json({ error: 'Problem field is required' });
     }
     
-    if (!objective || typeof objective !== 'string') {
+    if (problem.length > MAX_TEXT_FIELD_LENGTH) {
+      return res.status(400).json({ 
+        error: `Problem field too long (max ${MAX_TEXT_FIELD_LENGTH} characters)` 
+      });
+    }
+    
+    if (!objective || typeof objective !== 'string' || objective.trim().length === 0) {
       return res.status(400).json({ error: 'Objective field is required' });
+    }
+    
+    if (objective.length > MAX_TEXT_FIELD_LENGTH) {
+      return res.status(400).json({ 
+        error: `Objective field too long (max ${MAX_TEXT_FIELD_LENGTH} characters)` 
+      });
+    }
+    
+    // Validate array fields length
+    if (keyResults && Array.isArray(keyResults)) {
+      if (keyResults.length > 100) {
+        return res.status(400).json({ error: 'Too many key results (max 100)' });
+      }
+      for (const item of keyResults) {
+        if (typeof item === 'string' && item.length > MAX_ARRAY_ITEM_LENGTH) {
+          return res.status(400).json({ 
+            error: `Key result item too long (max ${MAX_ARRAY_ITEM_LENGTH} characters)` 
+          });
+        }
+      }
+    }
+    
+    if (actions && Array.isArray(actions)) {
+      if (actions.length > 100) {
+        return res.status(400).json({ error: 'Too many actions (max 100)' });
+      }
+      for (const item of actions) {
+        if (typeof item === 'string' && item.length > MAX_ARRAY_ITEM_LENGTH) {
+          return res.status(400).json({ 
+            error: `Action item too long (max ${MAX_ARRAY_ITEM_LENGTH} characters)` 
+          });
+        }
+      }
+    }
+    
+    if (blockers && Array.isArray(blockers)) {
+      if (blockers.length > 100) {
+        return res.status(400).json({ error: 'Too many blockers (max 100)' });
+      }
+      for (const item of blockers) {
+        if (typeof item === 'string' && item.length > MAX_ARRAY_ITEM_LENGTH) {
+          return res.status(400).json({ 
+            error: `Blocker item too long (max ${MAX_ARRAY_ITEM_LENGTH} characters)` 
+          });
+        }
+      }
+    }
+    
+    if (labels && Array.isArray(labels)) {
+      if (labels.length > MAX_LABELS_COUNT) {
+        return res.status(400).json({ 
+          error: `Too many labels (max ${MAX_LABELS_COUNT})` 
+        });
+      }
+      for (const label of labels) {
+        if (typeof label !== 'string' || label.trim().length === 0) {
+          return res.status(400).json({ error: 'Labels must be non-empty strings' });
+        }
+        if (label.length > 100) {
+          return res.status(400).json({ error: 'Label too long (max 100 characters)' });
+        }
+      }
     }
     
     // Validate status if provided
@@ -162,8 +243,18 @@ router.post('/:workspaceId/problems', async (req: Request, res: Response) => {
       }
     }
     
+    // Validate priority if provided
+    if (priority !== undefined && (typeof priority !== 'number' || priority < 0 || priority > 1000)) {
+      return res.status(400).json({ 
+        error: 'Priority must be a number between 0 and 1000' 
+      });
+    }
+    
     // Validate parentId if provided
     if (parentId) {
+      if (typeof parentId !== 'string') {
+        return res.status(400).json({ error: 'Parent ID must be a string' });
+      }
       const problemRepo = getProblemRepositoryWithPrisma(req);
       const parent = await problemRepo.findById(parentId, req.organizationId);
       if (!parent || parent.workspaceId !== workspaceId) {
@@ -241,9 +332,17 @@ router.patch('/:id', async (req: Request, res: Response) => {
       if (typeof name !== 'string' || name.trim().length === 0) {
         return res.status(400).json({ error: 'Workspace name must be a non-empty string' });
       }
+      const trimmedName = name.trim();
+      if (trimmedName.length > MAX_NAME_LENGTH) {
+        return res.status(400).json({ 
+          error: `Workspace name too long (max ${MAX_NAME_LENGTH} characters)` 
+        });
+      }
     }
     
-    const updated = await repository.update(req.params.id, req.organizationId, { name: name?.trim() });
+    const updated = await repository.update(req.params.id, req.organizationId, { 
+      name: name ? name.trim() : undefined 
+    });
     
     res.json(updated);
   } catch (error: any) {
