@@ -3069,3 +3069,40 @@ Added a safety feature to prevent accidental parent changes when dragging and dr
 - `frontend/src/components/ProblemsList.test.tsx` - Added comprehensive test suite for parent change confirmation
 
 ---
+
+## GitHub Actions CI Workflow - Test Automation
+
+**Date:** 2025-01-27
+
+**Implementation:**
+- Created GitHub Actions workflow for automated test execution
+- Workflow runs on all branches and pull requests
+- Automatically executes both backend and frontend tests
+- Prevents merging to main if tests fail (when branch protection is enabled)
+
+**Workflow Details:**
+- **File:** `.github/workflows/test.yml`
+- **Triggers:** Push to any branch, pull requests to any branch
+- **Node.js Version:** 20 (LTS)
+- **Test Execution:** Runs `npm test` which executes both backend and frontend test suites
+- **Dependencies:** Uses `npm run install:all` to install all dependencies (root, backend, frontend)
+- **Caching:** Configured npm cache for faster subsequent runs
+
+**Features:**
+- ✅ Automatic test execution on push and PR events
+- ✅ Node.js 20 setup with npm caching
+- ✅ Multi-package dependency installation
+- ✅ Combined backend and frontend test execution
+- ✅ Workflow failure on test failures (blocks merges when branch protection enabled)
+
+**Files Created:**
+- `.github/workflows/test.yml` - Main CI workflow file
+
+**Next Steps:**
+- Configure branch protection rules in GitHub repository settings:
+  - Settings → Branches → Add rule for `main`
+  - Enable "Require status checks to pass before merging"
+  - Select "test" (or "Run Tests") as required check
+  - Optionally enable "Require branches to be up to date before merging"
+
+---
