@@ -19,7 +19,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "CC-BY-NC-4.0",
   "dependencies": {
     "@prisma/client": "^6.19.1",
     "@types/better-sqlite3": "^7.6.13",

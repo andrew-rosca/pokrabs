@@ -3155,3 +3155,46 @@ Added a safety feature to prevent accidental parent changes when dragging and dr
 - Environment variables are properly configured for both development and production
 
 ---
+
+## 2025-01-XX: Feature Verification, README Updates, and License Change
+
+**Date:** 2025-01-XX
+
+**Feature Verification:**
+- Verified and marked as complete:
+  - **F009**: Docker configuration for single container deployment (Dockerfiles and docker-compose files exist)
+  - **F071**: Seeding integration into database setup (integrated in backend/src/index.ts)
+  - **F072**: Unit tests for ID generation functions (comprehensive tests exist)
+  - **F073**: Unit tests for repository methods (all repository tests implemented)
+  - **F074**: Integration tests for API endpoints (comprehensive integration tests exist)
+  - **F075**: E2E tests for core user workflows (implemented via integration tests)
+  - **F076**: Test database isolation (implemented in test-helpers/database.ts)
+  - **F077**: Test server pattern for E2E tests (implemented via integration test pattern)
+
+**README Updates:**
+- Added curl script option as the primary/recommended way to launch the demo
+- Updated Quick Start section to prioritize one-command launch using published images
+- Kept local build option as alternative for developers
+- Updated Docker Deployment Options section to mention both demo launch methods
+- Verified all information is accurate (ports, commands, deployment modes)
+
+**License Change:**
+- Changed license from ISC (permissive, allows commercial use) to CC BY-NC 4.0 (non-commercial)
+- Created LICENSE file with Creative Commons Attribution-NonCommercial 4.0 terms
+- Updated README.md to explain license restrictions
+- Updated package.json files (root and backend) to reflect new license
+
+**Files Modified:**
+- `docs/feature_list.json` - Marked F009, F071, F072-F077 as complete with implementation notes
+- `README.md` - Added curl script option, updated license section
+- `LICENSE` - Created new file with CC BY-NC 4.0 license
+- `package.json` - Updated license field to CC-BY-NC-4.0
+- `backend/package.json` - Updated license field to CC-BY-NC-4.0
+
+**Result:**
+- Feature list accurately reflects implementation status
+- README provides simplest launch option first (curl script)
+- License clearly prohibits commercial use while allowing free non-commercial use
+- All documentation is up to date and accurate
+
+---
