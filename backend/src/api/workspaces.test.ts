@@ -391,6 +391,32 @@ describe('Workspaces API', () => {
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Invalid status value');
     });
+
+    it('should reject priority greater than 10000', async () => {
+      const response = await request(app)
+        .post(`/api/workspaces/${workspaceId}/problems`)
+        .send({
+          problem: JSON.stringify({ summary: 'Test', detail: '' }),
+          objective: JSON.stringify({ summary: 'Test', detail: '' }),
+          priority: 10001,
+        });
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Priority must be a number between 0 and 10000');
+    });
+
+    it('should accept priority up to 10000', async () => {
+      const response = await request(app)
+        .post(`/api/workspaces/${workspaceId}/problems`)
+        .send({
+          problem: JSON.stringify({ summary: 'Test', detail: '' }),
+          objective: JSON.stringify({ summary: 'Test', detail: '' }),
+          priority: 10000,
+        });
+      
+      expect(response.status).toBe(201);
+      expect(response.body.priority).toBe(10000);
+    });
   });
 
   describe('PATCH /api/workspaces/:id', () => {

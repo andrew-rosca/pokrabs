@@ -334,7 +334,41 @@ describe('Problems API', () => {
         .send({ priority: 'not-a-number' });
       
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Priority must be a number between 0 and 1000');
+      expect(response.body.error).toBe('Priority must be a number');
+    });
+
+    it('should reject priority greater than 10000', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const created = await problemRepo.create({
+        workspaceId,
+        organizationId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${created.id}`)
+        .send({ priority: 10001 });
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Priority must be a number between 0 and 10000');
+    });
+
+    it('should accept priority up to 10000', async () => {
+      const problemRepo = getProblemRepository(prisma);
+      const created = await problemRepo.create({
+        workspaceId,
+        organizationId,
+        problem: 'Test problem',
+        objective: 'Test objective',
+      });
+
+      const response = await request(app)
+        .patch(`/api/problems/${created.id}`)
+        .send({ priority: 10000 });
+      
+      expect(response.status).toBe(200);
+      expect(response.body.priority).toBe(10000);
     });
   });
 
