@@ -54,11 +54,6 @@ export function SettingsMenu() {
     };
   }, [isOpen]);
 
-  // Don't show in demo mode
-  if (authState.mode === 'demo') {
-    return null;
-  }
-
   const handleToggleMenu = () => {
     setIsOpen(!isOpen);
   };
@@ -119,20 +114,22 @@ export function SettingsMenu() {
           >
             Toggle Theme
           </button>
-          {authState.user ? (
-            <button
-              className="settings-menu-item"
-              onClick={handleLogout}
-            >
-              Logout
-            </button>
-          ) : (
-            <button
-              className="settings-menu-item"
-              onClick={handleLogin}
-            >
-              Sign in
-            </button>
+          {authState.mode !== 'demo' && (
+            authState.user ? (
+              <button
+                className="settings-menu-item"
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
+            ) : (
+              <button
+                className="settings-menu-item"
+                onClick={handleLogin}
+              >
+                Sign in
+              </button>
+            )
           )}
         </div>
       )}

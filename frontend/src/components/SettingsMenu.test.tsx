@@ -84,12 +84,24 @@ describe('SettingsMenu', () => {
       expect(button).toHaveAttribute('data-tutorial', 'settings-menu');
     });
 
-    it('should not render in demo mode', () => {
+    it('should render in demo mode but hide login/logout options', async () => {
       mockAuthService.getState.mockReturnValue({ mode: 'demo', user: null, isLoading: false });
       
-      const { container } = render(<SettingsMenu />);
+      render(<SettingsMenu />);
       
-      expect(container.firstChild).toBeNull();
+      expect(screen.getByLabelText('Settings')).toBeInTheDocument();
+      
+      // Open menu
+      const button = screen.getByLabelText('Settings');
+      await userEvent.click(button);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Toggle Theme')).toBeInTheDocument();
+      });
+      
+      // Login/logout options should not be shown in demo mode
+      expect(screen.queryByText('Sign in')).not.toBeInTheDocument();
+      expect(screen.queryByText('Logout')).not.toBeInTheDocument();
     });
   });
 
