@@ -16,7 +16,9 @@ export class PrismaWorkspaceRepository implements IWorkspaceRepository {
     const workspace = await this.prisma.workspace.create({
       data: {
         id: data.id,
-        organizationId: data.organizationId,
+        organization: {
+          connect: { id: data.organizationId },
+        },
         name: data.name,
       },
     });
