@@ -208,9 +208,12 @@ router.patch('/:id', async (req: Request, res: Response) => {
     }
     
     if (priority !== undefined) {
-      if (typeof priority !== 'number' || priority < 0 || priority > 1000) {
+      if (typeof priority !== 'number') {
+        return res.status(400).json({ error: 'Priority must be a number' });
+      }
+      if (priority < 0 || priority > 10000) {
         return res.status(400).json({ 
-          error: 'Priority must be a number between 0 and 1000' 
+          error: 'Priority must be a number between 0 and 10000' 
         });
       }
     }

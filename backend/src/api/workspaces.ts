@@ -244,10 +244,15 @@ router.post('/:workspaceId/problems', async (req: Request, res: Response) => {
     }
     
     // Validate priority if provided
-    if (priority !== undefined && (typeof priority !== 'number' || priority < 0 || priority > 1000)) {
-      return res.status(400).json({ 
-        error: 'Priority must be a number between 0 and 1000' 
-      });
+    if (priority !== undefined) {
+      if (typeof priority !== 'number') {
+        return res.status(400).json({ error: 'Priority must be a number' });
+      }
+      if (priority < 0 || priority > 10000) {
+        return res.status(400).json({ 
+          error: 'Priority must be a number between 0 and 10000' 
+        });
+      }
     }
     
     // Validate parentId if provided
