@@ -10,16 +10,21 @@ import { GoogleOAuthProvider } from './google-oauth-provider';
 
 // Mock google-auth-library
 vi.mock('google-auth-library', () => {
-  const mockGenerateAuthUrl = vi.fn();
-  const mockGetToken = vi.fn();
-  const mockVerifyIdToken = vi.fn();
+  const mockGenerateAuthUrl = vi.fn(() => '');
+  const mockGetToken = vi.fn(() => Promise.resolve({ tokens: {} }));
+  const mockVerifyIdToken = vi.fn(() => Promise.resolve({ getPayload: () => null }));
+
+  class MockOAuth2Client {
+    generateAuthUrl = mockGenerateAuthUrl;
+    getToken = mockGetToken;
+    verifyIdToken = mockVerifyIdToken;
+    constructor(clientId: string, clientSecret: string) {
+      // Constructor for OAuth2Client
+    }
+  }
 
   return {
-    OAuth2Client: vi.fn().mockImplementation(() => ({
-      generateAuthUrl: mockGenerateAuthUrl,
-      getToken: mockGetToken,
-      verifyIdToken: mockVerifyIdToken,
-    })),
+    OAuth2Client: MockOAuth2Client,
     __mocks: {
       generateAuthUrl: mockGenerateAuthUrl,
       getToken: mockGetToken,

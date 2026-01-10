@@ -12,6 +12,10 @@ import { generateId } from '../utils/id-generator';
 
 const router = Router();
 
+// Input validation constants
+const MAX_NAME_LENGTH = 255;
+const MAX_LABELS_COUNT = 50;
+
 // Helper to get repository with Prisma client from request if available (for testing)
 const getViewRepoWithPrisma = (req: Request) => {
   return req.prisma ? getViewRepository(req.prisma) : getViewRepository();
@@ -66,14 +70,36 @@ router.post('/workspaces/:workspaceId/views', async (req: Request, res: Response
       return res.status(400).json({ error: 'View name is required' });
     }
     
+    const trimmedName = name.trim();
+    if (trimmedName.length > MAX_NAME_LENGTH) {
+      return res.status(400).json({ 
+        error: `View name too long (max ${MAX_NAME_LENGTH} characters)` 
+      });
+    }
+    
     if (!filters || typeof filters !== 'object') {
       return res.status(400).json({ error: 'Filters are required' });
     }
     
     // Validate filters structure
+    const selectedLabels = Array.isArray(filters.selectedLabels) ? filters.selectedLabels : [];
+    if (selectedLabels.length > MAX_LABELS_COUNT) {
+      return res.status(400).json({ 
+        error: `Too many selected labels (max ${MAX_LABELS_COUNT})` 
+      });
+    }
+    for (const label of selectedLabels) {
+      if (typeof label !== 'string' || label.trim().length === 0) {
+        return res.status(400).json({ error: 'Selected labels must be non-empty strings' });
+      }
+      if (label.length > 100) {
+        return res.status(400).json({ error: 'Label too long (max 100 characters)' });
+      }
+    }
+    
     const viewFilters: ViewFilters = {
       selectedStatuses: Array.isArray(filters.selectedStatuses) ? filters.selectedStatuses : [],
-      selectedLabels: Array.isArray(filters.selectedLabels) ? filters.selectedLabels : [],
+      selectedLabels,
     };
     
     const viewRepo = getViewRepoWithPrisma(req);
@@ -133,16 +159,36 @@ router.patch('/:id', async (req: Request, res: Response) => {
       if (typeof name !== 'string' || name.trim().length === 0) {
         return res.status(400).json({ error: 'View name must be a non-empty string' });
       }
-      updateData.name = name.trim();
+      const trimmedName = name.trim();
+      if (trimmedName.length > MAX_NAME_LENGTH) {
+        return res.status(400).json({ 
+          error: `View name too long (max ${MAX_NAME_LENGTH} characters)` 
+        });
+      }
+      updateData.name = trimmedName;
     }
     
     if (filters !== undefined) {
       if (typeof filters !== 'object') {
         return res.status(400).json({ error: 'Filters must be an object' });
       }
+      const selectedLabels = Array.isArray(filters.selectedLabels) ? filters.selectedLabels : [];
+      if (selectedLabels.length > MAX_LABELS_COUNT) {
+        return res.status(400).json({ 
+          error: `Too many selected labels (max ${MAX_LABELS_COUNT})` 
+        });
+      }
+      for (const label of selectedLabels) {
+        if (typeof label !== 'string' || label.trim().length === 0) {
+          return res.status(400).json({ error: 'Selected labels must be non-empty strings' });
+        }
+        if (label.length > 100) {
+          return res.status(400).json({ error: 'Label too long (max 100 characters)' });
+        }
+      }
       updateData.filters = {
         selectedStatuses: Array.isArray(filters.selectedStatuses) ? filters.selectedStatuses : [],
-        selectedLabels: Array.isArray(filters.selectedLabels) ? filters.selectedLabels : [],
+        selectedLabels,
       };
     }
     

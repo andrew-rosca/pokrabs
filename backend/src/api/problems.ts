@@ -11,6 +11,11 @@ import { PrismaClient } from '@prisma/client';
 
 const router = Router();
 
+// Input validation constants
+const MAX_TEXT_FIELD_LENGTH = 10000; // For problem, objective, etc.
+const MAX_ARRAY_ITEM_LENGTH = 500; // For individual items in arrays
+const MAX_LABELS_COUNT = 50; // Maximum number of labels
+
 // Helper to get repository with Prisma client from request if available (for testing)
 const getProblemRepoWithPrisma = (req: Request) => {
   return req.prisma ? getProblemRepository(req.prisma) : getProblemRepository();
@@ -53,18 +58,161 @@ router.patch('/:id', async (req: Request, res: Response) => {
       labels,
     } = req.body;
     
+    // Validate text fields length if provided
+    if (problem !== undefined) {
+      if (typeof problem !== 'string') {
+        return res.status(400).json({ error: 'Problem must be a string' });
+      }
+      if (problem.trim().length === 0) {
+        return res.status(400).json({ error: 'Problem cannot be empty' });
+      }
+      if (problem.length > MAX_TEXT_FIELD_LENGTH) {
+        return res.status(400).json({ 
+          error: `Problem field too long (max ${MAX_TEXT_FIELD_LENGTH} characters)` 
+        });
+      }
+    }
+    
+    if (objective !== undefined) {
+      if (typeof objective !== 'string') {
+        return res.status(400).json({ error: 'Objective must be a string' });
+      }
+      if (objective.trim().length === 0) {
+        return res.status(400).json({ error: 'Objective cannot be empty' });
+      }
+      if (objective.length > MAX_TEXT_FIELD_LENGTH) {
+        return res.status(400).json({ 
+          error: `Objective field too long (max ${MAX_TEXT_FIELD_LENGTH} characters)` 
+        });
+      }
+    }
+    
+    // Validate array fields length if provided
+    // Accept both arrays and JSON strings (for backward compatibility)
+    if (keyResults !== undefined) {
+      let keyResultsArray: any[];
+      if (typeof keyResults === 'string') {
+        try {
+          keyResultsArray = JSON.parse(keyResults);
+          if (!Array.isArray(keyResultsArray)) {
+            return res.status(400).json({ error: 'Key results must be a JSON array string' });
+          }
+        } catch {
+          return res.status(400).json({ error: 'Key results must be a valid JSON array string' });
+        }
+      } else if (Array.isArray(keyResults)) {
+        keyResultsArray = keyResults;
+      } else {
+        return res.status(400).json({ error: 'Key results must be an array or JSON array string' });
+      }
+      
+      if (keyResultsArray.length > 100) {
+        return res.status(400).json({ error: 'Too many key results (max 100)' });
+      }
+      for (const item of keyResultsArray) {
+        if (typeof item === 'string' && item.length > MAX_ARRAY_ITEM_LENGTH) {
+          return res.status(400).json({ 
+            error: `Key result item too long (max ${MAX_ARRAY_ITEM_LENGTH} characters)` 
+          });
+        }
+      }
+    }
+    
+    if (actions !== undefined) {
+      let actionsArray: any[];
+      if (typeof actions === 'string') {
+        try {
+          actionsArray = JSON.parse(actions);
+          if (!Array.isArray(actionsArray)) {
+            return res.status(400).json({ error: 'Actions must be a JSON array string' });
+          }
+        } catch {
+          return res.status(400).json({ error: 'Actions must be a valid JSON array string' });
+        }
+      } else if (Array.isArray(actions)) {
+        actionsArray = actions;
+      } else {
+        return res.status(400).json({ error: 'Actions must be an array or JSON array string' });
+      }
+      
+      if (actionsArray.length > 100) {
+        return res.status(400).json({ error: 'Too many actions (max 100)' });
+      }
+      for (const item of actionsArray) {
+        if (typeof item === 'string' && item.length > MAX_ARRAY_ITEM_LENGTH) {
+          return res.status(400).json({ 
+            error: `Action item too long (max ${MAX_ARRAY_ITEM_LENGTH} characters)` 
+          });
+        }
+      }
+    }
+    
+    if (blockers !== undefined) {
+      let blockersArray: any[];
+      if (typeof blockers === 'string') {
+        try {
+          blockersArray = JSON.parse(blockers);
+          if (!Array.isArray(blockersArray)) {
+            return res.status(400).json({ error: 'Blockers must be a JSON array string' });
+          }
+        } catch {
+          return res.status(400).json({ error: 'Blockers must be a valid JSON array string' });
+        }
+      } else if (Array.isArray(blockers)) {
+        blockersArray = blockers;
+      } else {
+        return res.status(400).json({ error: 'Blockers must be an array or JSON array string' });
+      }
+      
+      if (blockersArray.length > 100) {
+        return res.status(400).json({ error: 'Too many blockers (max 100)' });
+      }
+      for (const item of blockersArray) {
+        if (typeof item === 'string' && item.length > MAX_ARRAY_ITEM_LENGTH) {
+          return res.status(400).json({ 
+            error: `Blocker item too long (max ${MAX_ARRAY_ITEM_LENGTH} characters)` 
+          });
+        }
+      }
+    }
+    
+    if (labels !== undefined) {
+      if (!Array.isArray(labels)) {
+        return res.status(400).json({ error: 'Labels must be an array' });
+      }
+      if (labels.length > MAX_LABELS_COUNT) {
+        return res.status(400).json({ 
+          error: `Too many labels (max ${MAX_LABELS_COUNT})` 
+        });
+      }
+      for (const label of labels) {
+        if (typeof label !== 'string' || label.trim().length === 0) {
+          return res.status(400).json({ error: 'Labels must be non-empty strings' });
+        }
+        if (label.length > 100) {
+          return res.status(400).json({ error: 'Label too long (max 100 characters)' });
+        }
+      }
+    }
+    
     // Validate status if provided
-    if (status && !Object.values(Status).includes(status)) {
+    if (status !== undefined && !Object.values(Status).includes(status)) {
       return res.status(400).json({ error: 'Invalid status value' });
     }
     
     // Validate votes and priority are numbers if provided
-    if (votes !== undefined && typeof votes !== 'number') {
-      return res.status(400).json({ error: 'Votes must be a number' });
+    if (votes !== undefined) {
+      if (typeof votes !== 'number' || !Number.isInteger(votes) || votes < 0) {
+        return res.status(400).json({ error: 'Votes must be a non-negative integer' });
+      }
     }
     
-    if (priority !== undefined && typeof priority !== 'number') {
-      return res.status(400).json({ error: 'Priority must be a number' });
+    if (priority !== undefined) {
+      if (typeof priority !== 'number' || priority < 0 || priority > 1000) {
+        return res.status(400).json({ 
+          error: 'Priority must be a number between 0 and 1000' 
+        });
+      }
     }
     
     const problemRepo = getProblemRepoWithPrisma(req);

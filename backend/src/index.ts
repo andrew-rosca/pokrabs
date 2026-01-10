@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import session from 'express-session';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { runMigrations } from './database/migrate';
 import { execSync } from 'child_process';
 import { seedDatabase } from './database/seed';
@@ -21,11 +23,67 @@ dotenv.config();
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
-// Middleware
-app.use(cors({
-  origin: true, // Allow all origins (can be restricted in production)
-  credentials: true, // Allow cookies to be sent
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Allow embedding if needed
 }));
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // stricter limit for auth endpoints (5 attempts per 15 minutes)
+  message: 'Too many authentication attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// CORS configuration - restrict in production
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+      // In production, restrict to allowed origins
+      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+      if (allowedOrigins.length === 0) {
+        console.error('❌ ALLOWED_ORIGINS not set in production. This is a security risk.');
+        console.error('   Set ALLOWED_ORIGINS environment variable with comma-separated list of allowed origins.');
+        // In production without ALLOWED_ORIGINS, fail secure by rejecting all
+        return callback(new Error('CORS policy: origin not allowed'));
+      }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error('CORS policy: origin not allowed'));
+      }
+    } else {
+      // In development, allow all origins
+      return callback(null, true);
+    }
+  },
+  credentials: true, // Allow cookies to be sent
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Session configuration
@@ -33,12 +91,20 @@ app.use(express.json());
 const authMode = process.env.AUTH_MODE || 'demo';
 if (authMode !== 'demo') {
   const sessionSecret = process.env.SESSION_SECRET;
+  
+  // Require SESSION_SECRET in production
   if (!sessionSecret) {
-    console.warn('⚠️  SESSION_SECRET not set. Sessions will not be secure. Set SESSION_SECRET in production.');
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ SESSION_SECRET is required in production. Server cannot start without a secure session secret.');
+      console.error('   Set SESSION_SECRET environment variable to a strong random string (32+ characters).');
+      process.exit(1);
+    }
+    console.warn('⚠️  SESSION_SECRET not set. Using insecure default for development only.');
+    console.warn('   Set SESSION_SECRET in production for secure sessions.');
   }
 
   app.use(session({
-    secret: sessionSecret || 'default-secret-change-in-production',
+    secret: sessionSecret || 'default-secret-change-in-production-dev-only',
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -55,16 +121,18 @@ if (authMode !== 'demo') {
   console.log('✅ Session middleware configured');
 }
 
-// Health check endpoint
+// Health check endpoint (excluded from rate limiting)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API routes
-app.use('/api/auth', authRouter);
-app.use('/api/workspaces', authenticate, workspacesRouter);
-app.use('/api/problems', authenticate, problemsRouter);
-app.use('/api/views', authenticate, viewsRouter);
+// API routes with rate limiting
+// Auth routes get stricter rate limiting
+app.use('/api/auth', authLimiter, authRouter);
+// Other API routes get standard rate limiting
+app.use('/api/workspaces', apiLimiter, authenticate, workspacesRouter);
+app.use('/api/problems', apiLimiter, authenticate, problemsRouter);
+app.use('/api/views', apiLimiter, authenticate, viewsRouter);
 
 // Error handling middleware (must come before SPA routing)
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
