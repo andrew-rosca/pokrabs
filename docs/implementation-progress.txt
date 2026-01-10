@@ -3124,3 +3124,34 @@ Added a safety feature to prevent accidental parent changes when dragging and dr
 - `.github/workflows/test.yml` - Updated trigger conditions to prevent duplicate test runs
 
 ---
+
+## 2025-01-10: Fixed init.sh Script and Environment Configuration
+
+**Issue:**
+- `init.sh` script was broken:
+  - Looked for `.env` file in `backend/` directory instead of root
+  - Tried to copy non-existent `.env.example` file
+  - Created minimal `.env` with only `DATABASE_TYPE=sqlite`
+  - Database setup failed because Prisma requires `file:` protocol for SQLite URLs
+- Database schema wasn't being pushed correctly due to missing `file:` protocol in `DATABASE_URL`
+
+**Solution:**
+- Updated `init.sh` to:
+  - Create comprehensive `.env` file in root directory with all required environment variables
+  - Include proper configuration for database, server, authentication, OAuth, and production settings
+  - Use correct `DATABASE_URL` format (`file:./data/pokrabs.db`) when running Prisma db:setup
+  - Provide better error messages and status feedback
+- Fixed `backend/.env` to use `file:` protocol for `DATABASE_URL`
+- Successfully pushed Prisma schema to create all database tables (organizations, users, workspaces, problems, views, id_counter)
+
+**Files Modified:**
+- `init.sh` - Complete rewrite of environment and database setup section
+- `.env` - Created comprehensive environment configuration file in root
+- `backend/.env` - Fixed `DATABASE_URL` to use `file:` protocol
+
+**Result:**
+- `init.sh` now properly sets up the development environment
+- Database schema is correctly initialized with all required tables
+- Environment variables are properly configured for both development and production
+
+---

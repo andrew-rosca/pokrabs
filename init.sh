@@ -52,18 +52,61 @@ else
 fi
 cd ..
 
-# Set up database
+# Set up environment file
 echo ""
-echo "🗄️  Setting up database..."
-cd backend
+echo "🗄️  Setting up environment and database..."
 if [ ! -f ".env" ]; then
     echo "   Creating .env file..."
-    cp .env.example .env 2>/dev/null || echo "DATABASE_TYPE=sqlite" > .env
+    cat > .env << 'ENVEOF'
+# POKRABS Environment Configuration
+
+# ============================================
+# Database Configuration
+# ============================================
+DATABASE_TYPE=sqlite
+DATABASE_URL=./data/pokrabs.db
+
+# ============================================
+# Server Configuration
+# ============================================
+PORT=3001
+NODE_ENV=development
+
+# ============================================
+# Authentication Configuration
+# ============================================
+AUTH_MODE=demo
+SESSION_SECRET=default-secret-change-in-production-dev-only
+
+# ============================================
+# OAuth Configuration (Google)
+# ============================================
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+OAUTH_CALLBACK_URL=
+FRONTEND_URL=http://localhost:5173
+
+# ============================================
+# Production Security Settings
+# ============================================
+ALLOWED_ORIGINS=
+
+# ============================================
+# Optional/Development Settings
+# ============================================
+DEBUG=
+ENVEOF
+    echo "   ✅ .env file created"
+else
+    echo "   .env file already exists"
 fi
 
 # Run database migrations/seeding if available
+cd backend
 if [ -f "package.json" ] && grep -q "\"db:setup\"" package.json; then
-    npm run db:setup || echo "   Database setup script not available yet"
+    echo "   Running database setup..."
+    # Prisma requires file: protocol for SQLite
+    DATABASE_URL="file:./data/pokrabs.db" npm run db:setup || echo "   ⚠️  Database setup failed (this is okay if database already exists)"
 fi
 cd ..
 
