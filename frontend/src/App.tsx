@@ -2,9 +2,10 @@ import { BrowserRouter, Routes, Route, useParams, useNavigate, useLocation } fro
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Workspace, View, ViewFilters } from '../../../shared/types';
-import { fetchWorkspaces, fetchViews, createView, updateView, useWorkspace } from './services/api';
+import { fetchWorkspaces, fetchViews, createView, updateView, useWorkspace, AuthenticationError } from './services/api';
+import { authService } from './services/auth';
 import { ProblemsList } from './components/ProblemsList';
-import { ThemeToggle } from './components/ThemeToggle';
+import { SettingsMenu } from './components/SettingsMenu';
 import { ViewSelector } from './components/ViewSelector';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { Tutorial } from './components/Tutorial';
@@ -23,7 +24,7 @@ function App() {
   );
 }
 
-function AppContent() {
+export function AppContent() {
   const params = useParams<{
     workspaceId?: string;
     viewId?: string;
@@ -95,7 +96,18 @@ function AppContent() {
           }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load workspaces');
+        if (err instanceof AuthenticationError) {
+          // In required mode, automatically redirect to login
+          const state = authService.getState();
+          if (state.mode === 'required') {
+            authService.login('google');
+            return; // Don't set error, user will be redirected
+          }
+          // In optional mode, show error but allow browsing
+          setError('Authentication required to access workspaces');
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load workspaces');
+        }
       } finally {
         setLoading(false);
       }
@@ -162,9 +174,20 @@ function AppContent() {
           }
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load views';
-        console.error('Failed to load views:', err);
-        setViewsError(errorMessage);
+        if (err instanceof AuthenticationError) {
+          // In required mode, automatically redirect to login
+          const state = authService.getState();
+          if (state.mode === 'required') {
+            authService.login('google');
+            return; // Don't set error, user will be redirected
+          }
+          // In optional mode, show error but allow browsing
+          setViewsError('Authentication required to access views');
+        } else {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to load views';
+          console.error('Failed to load views:', err);
+          setViewsError(errorMessage);
+        }
       }
     }
 
@@ -498,7 +521,7 @@ function AppContent() {
                 </button>
               )}
             </div>
-            <ThemeToggle />
+            <SettingsMenu />
           </div>
         </header>
         <main className="app-main">

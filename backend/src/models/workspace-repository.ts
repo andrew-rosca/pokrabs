@@ -11,31 +11,31 @@ export interface IWorkspaceRepository {
   /**
    * Create a new workspace
    */
-  create(data: { id: string; name: string }): Promise<Workspace>;
+  create(data: { id: string; organizationId: string; name: string }): Promise<Workspace>;
 
   /**
-   * Find a workspace by ID (excluding soft-deleted)
+   * Find a workspace by ID within an organization (excluding soft-deleted)
    */
-  findById(id: string): Promise<Workspace | null>;
+  findById(id: string, organizationId: string): Promise<Workspace | null>;
 
   /**
-   * Find all workspaces (excluding soft-deleted)
+   * Find all workspaces in an organization (excluding soft-deleted)
    */
-  findAll(): Promise<Workspace[]>;
+  findAll(organizationId: string): Promise<Workspace[]>;
 
   /**
    * Update a workspace
    */
-  update(id: string, data: { name?: string }): Promise<Workspace>;
+  update(id: string, organizationId: string, data: { name?: string }): Promise<Workspace>;
 
   /**
    * Update lastUsedAt timestamp for a workspace
    */
-  updateLastUsedAt(id: string): Promise<void>;
+  updateLastUsedAt(id: string, organizationId: string): Promise<void>;
 
   /**
    * Soft delete a workspace (sets deletedAt timestamp)
    */
-  softDelete(id: string): Promise<void>;
+  softDelete(id: string, organizationId: string): Promise<void>;
 }
 

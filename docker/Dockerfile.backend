@@ -1,5 +1,7 @@
 # POKRABS Backend Dockerfile
 # Multi-stage build to reduce final image size
+# Supports both amd64 (x86) and arm64 architectures
+# For multi-arch builds, use: docker buildx build --platform linux/amd64,linux/arm64
 
 # Stage 1: Build dependencies (with build tools)
 FROM node:20-alpine AS builder
@@ -33,6 +35,7 @@ RUN apk add --no-cache openssl
 WORKDIR /app/backend
 
 # Copy only production dependencies from builder
+# Native modules (better-sqlite3) are already compiled for the target platform
 COPY --from=builder /app/backend/node_modules ./node_modules
 
 # Copy built backend code

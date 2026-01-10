@@ -7,9 +7,11 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Problem, Status, CreateProblemRequest, ViewFilters } from '../../../shared/types';
-import { fetchProblems, updateProblem, createProblem, deleteProblem, moveProblem } from '../services/api';
+import { fetchProblems, updateProblem, createProblem, deleteProblem, moveProblem, AuthenticationError } from '../services/api';
+import { authService } from '../services/auth';
 import { SummaryDetailCell } from './SummaryDetailCell';
 import { DeleteButton } from './DeleteButton';
 import { ListCell } from './ListCell';
@@ -65,11 +67,33 @@ export function ProblemsList({
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | 'child' | null>(null);
   const dragOverCountRef = useRef(0);
+  
+  // Pending move operation (when parent change requires confirmation)
+  const [pendingMove, setPendingMove] = useState<{
+    problemId: string;
+    newParentId: string | null;
+    afterProblemId: string | null;
+  } | null>(null);
 
   // Reorder position input state
   const [showPositionInput, setShowPositionInput] = useState<string | null>(null); // problem ID
   const [positionInputValue, setPositionInputValue] = useState<string>('');
   const positionInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper function to handle authentication errors
+  const handleAuthError = (error: unknown, defaultMessage: string): boolean => {
+    if (error instanceof AuthenticationError) {
+      const shouldLogin = window.confirm(
+        'Authentication is required to perform this action. Would you like to log in now?'
+      );
+      if (shouldLogin) {
+        authService.login('google');
+      }
+      return true; // Error was handled
+    }
+    // For non-auth errors, don't set error here - let the caller handle it
+    return false; // Error was not handled, caller should handle it
+  };
 
   // Column visibility state - persisted to localStorage
   // Note: votes column hidden until user authentication is implemented (voting requires user identity)
@@ -156,6 +180,27 @@ export function ProblemsList({
     }
   }, [selectedLabels, viewFilters]);
 
+  // Handle Escape key to cancel pending move
+  useEffect(() => {
+    if (!pendingMove) return;
+    
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        setPendingMove(null);
+        // Reset drag state
+        setDraggedProblemId(null);
+        setDropTargetIndex(null);
+        setDropPosition(null);
+        dragOverCountRef.current = 0;
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [pendingMove]);
+
   // Toggle column visibility
   const toggleColumn = (column: keyof typeof visibleColumns) => {
     setVisibleColumns(prev => ({ ...prev, [column]: !prev[column] }));
@@ -198,7 +243,18 @@ export function ProblemsList({
         const data = await fetchProblems(workspaceId);
         setProblems(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load problems');
+        if (err instanceof AuthenticationError) {
+          // In required mode, automatically redirect to login
+          const state = authService.getState();
+          if (state.mode === 'required') {
+            authService.login('google');
+            return; // Don't set error, user will be redirected
+          }
+          // In optional mode, show error but allow browsing
+          setError('Authentication required to access problems');
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load problems');
+        }
       } finally {
         setLoading(false);
       }
@@ -380,7 +436,10 @@ export function ProblemsList({
           )
         );
       }
-      console.error('Error saving field:', error);
+      if (!handleAuthError(error, 'Error saving field')) {
+        // If not an auth error, show generic error
+        console.error('Error saving field:', error);
+      }
     }
   };
 
@@ -420,7 +479,7 @@ export function ProblemsList({
           )
         );
       }
-      console.error('Error updating status:', error);
+      handleAuthError(error, 'Error updating status');
     }
   };
 
@@ -462,7 +521,7 @@ export function ProblemsList({
           )
         );
       }
-      console.error('Error updating votes:', error);
+      handleAuthError(error, 'Error updating votes');
     }
   };
 
@@ -485,6 +544,9 @@ export function ProblemsList({
     } catch (err) {
       // Revert on error
       setProblems(previousProblems);
+      if (handleAuthError(err, 'Failed to delete problem')) {
+        return; // Auth error was handled
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete problem';
       setError(errorMessage);
       console.error('Error deleting problem:', err);
@@ -857,6 +919,27 @@ export function ProblemsList({
     }
   };
 
+  // Execute the actual move operation
+  const executeMove = async (problemId: string, newParentId: string | null, afterProblemId: string | null) => {
+    try {
+      setError(null);
+      
+      // Call the API to move the problem
+      await moveProblem(problemId, newParentId, afterProblemId);
+      
+      // Reload problems to get updated idPaths
+      const data = await fetchProblems(workspaceId);
+      setProblems(data);
+    } catch (err) {
+      if (handleAuthError(err, 'Failed to move problem')) {
+        return; // Auth error was handled
+      }
+      const errorMessage = err instanceof Error ? err.message : 'Failed to move problem';
+      setError(errorMessage);
+      console.error('Error moving problem:', err);
+    }
+  };
+
   // Handle drop
   const handleDrop = async (e: React.DragEvent, _targetIndex: number, targetProblem: Problem) => {
     e.preventDefault();
@@ -877,43 +960,48 @@ export function ProblemsList({
       return;
     }
     
-    try {
-      setError(null);
-      
-      let newParentId: string | null;
-      let afterProblemId: string | null;
-      
-      if (dropPosition === 'child') {
-        // Drop as child of target - find last child of target to insert after
-        newParentId = targetProblem.id;
-        const children = sortedProblems.filter(p => p.parentId === targetProblem.id);
-        afterProblemId = children.length > 0 ? children[children.length - 1].id : null;
-      } else if (dropPosition === 'before') {
-        // Drop before target - same parent as target
-        newParentId = targetProblem.parentId;
-        // Find the sibling before the target
-        const siblings = sortedProblems.filter(p => p.parentId === targetProblem.parentId && !draggedProblems.has(p.id));
-        const targetSiblingIndex = siblings.findIndex(p => p.id === targetProblem.id);
-        afterProblemId = targetSiblingIndex > 0 ? siblings[targetSiblingIndex - 1].id : null;
-      } else {
-        // Drop after target - same parent as target
-        newParentId = targetProblem.parentId;
-        afterProblemId = targetProblem.id;
-      }
-      
-      // Call the API to move the problem
-      await moveProblem(draggedProblemId, newParentId, afterProblemId);
-      
-      // Reload problems to get updated idPaths
-      const data = await fetchProblems(workspaceId);
-      setProblems(data);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to move problem';
-      setError(errorMessage);
-      console.error('Error moving problem:', err);
-    } finally {
+    // Find the dragged problem to check its current parent
+    const draggedProblem = problems.find(p => p.id === draggedProblemId);
+    if (!draggedProblem) {
       handleDragEnd();
+      return;
     }
+    
+    let newParentId: string | null;
+    let afterProblemId: string | null;
+    
+    if (dropPosition === 'child') {
+      // Drop as child of target - find last child of target to insert after
+      newParentId = targetProblem.id;
+      const children = sortedProblems.filter(p => p.parentId === targetProblem.id);
+      afterProblemId = children.length > 0 ? children[children.length - 1].id : null;
+    } else if (dropPosition === 'before') {
+      // Drop before target - same parent as target
+      newParentId = targetProblem.parentId;
+      // Find the sibling before the target
+      const siblings = sortedProblems.filter(p => p.parentId === targetProblem.parentId && !draggedProblems.has(p.id));
+      const targetSiblingIndex = siblings.findIndex(p => p.id === targetProblem.id);
+      afterProblemId = targetSiblingIndex > 0 ? siblings[targetSiblingIndex - 1].id : null;
+    } else {
+      // Drop after target - same parent as target
+      newParentId = targetProblem.parentId;
+      afterProblemId = targetProblem.id;
+    }
+    
+    // Check if parent is changing
+    const currentParentId = draggedProblem.parentId;
+    const parentIsChanging = currentParentId !== newParentId;
+    
+    if (parentIsChanging) {
+      // Parent is changing - show confirmation dialog
+      setPendingMove({ problemId: draggedProblemId, newParentId, afterProblemId });
+      // Don't call handleDragEnd yet - keep drag state until confirmation
+      return;
+    }
+    
+    // Parent is not changing - just reordering, proceed immediately
+    await executeMove(draggedProblemId, newParentId, afterProblemId);
+    handleDragEnd();
   };
 
   // Handle drop on the "add new" row (drop as root-level at end)
@@ -926,24 +1014,47 @@ export function ProblemsList({
       return;
     }
     
-    try {
-      setError(null);
-      
-      // Drop as root level at the end
-      const rootProblems = sortedProblems.filter(p => !p.parentId);
-      const lastRootProblem = rootProblems.length > 0 ? rootProblems[rootProblems.length - 1] : null;
-      
-      await moveProblem(draggedProblemId, null, lastRootProblem?.id ?? null);
-      
-      const data = await fetchProblems(workspaceId);
-      setProblems(data);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to move problem';
-      setError(errorMessage);
-      console.error('Error moving problem:', err);
-    } finally {
+    // Find the dragged problem to check its current parent
+    const draggedProblem = problems.find(p => p.id === draggedProblemId);
+    if (!draggedProblem) {
       handleDragEnd();
+      return;
     }
+    
+    // Drop as root level at the end
+    const rootProblems = sortedProblems.filter(p => !p.parentId);
+    const lastRootProblem = rootProblems.length > 0 ? rootProblems[rootProblems.length - 1] : null;
+    const newParentId: string | null = null;
+    
+    // Check if parent is changing
+    const currentParentId = draggedProblem.parentId;
+    const parentIsChanging = currentParentId !== newParentId;
+    
+    if (parentIsChanging) {
+      // Parent is changing - show confirmation dialog
+      setPendingMove({ problemId: draggedProblemId, newParentId, afterProblemId: lastRootProblem?.id ?? null });
+      // Don't call handleDragEnd yet - keep drag state until confirmation
+      return;
+    }
+    
+    // Parent is not changing - just reordering, proceed immediately
+    await executeMove(draggedProblemId, newParentId, lastRootProblem?.id ?? null);
+    handleDragEnd();
+  };
+  
+  // Handle confirming a pending move (parent change)
+  const handleConfirmMove = async () => {
+    if (!pendingMove) return;
+    
+    await executeMove(pendingMove.problemId, pendingMove.newParentId, pendingMove.afterProblemId);
+    setPendingMove(null);
+    handleDragEnd();
+  };
+  
+  // Handle canceling a pending move
+  const handleCancelMove = () => {
+    setPendingMove(null);
+    handleDragEnd();
   };
 
   // Get siblings of a problem (problems with the same parent)
@@ -1020,6 +1131,9 @@ export function ProblemsList({
         setHighlightedProblemId(null);
       }, 2000);
     } catch (err) {
+      if (handleAuthError(err, 'Failed to reorder problem')) {
+        return; // Auth error was handled
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to reorder problem';
       setError(errorMessage);
       console.error('Error reordering problem:', err);
@@ -1087,6 +1201,9 @@ export function ProblemsList({
         setHighlightedProblemId(null);
       }, 2000);
     } catch (err) {
+      if (handleAuthError(err, 'Failed to reorder problem')) {
+        return; // Auth error was handled
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to reorder problem';
       setError(errorMessage);
       console.error('Error reordering problem:', err);
@@ -1131,6 +1248,9 @@ export function ProblemsList({
       // Auto-open the problem editor for the newly created problem
       setAutoOpenEditor({ problemId: created.id, field: 'problem' });
     } catch (err) {
+      if (handleAuthError(err, 'Failed to create problem')) {
+        return; // Auth error was handled
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to create problem';
       setError(errorMessage);
       console.error('Error creating problem:', err);
@@ -1139,6 +1259,55 @@ export function ProblemsList({
 
   return (
     <div className="problems-list" data-tutorial="problems-list">
+      {/* Parent change confirmation dialog */}
+      {pendingMove && createPortal(
+        <>
+          <div
+            className="parent-change-confirm-overlay"
+            onClick={handleCancelMove}
+          />
+          <div
+            className="parent-change-confirm-dialog"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="parent-change-title"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                handleCancelMove();
+              }
+            }}
+          >
+            <div className="parent-change-confirm-content">
+              <div id="parent-change-title" className="parent-change-title">Change parent?</div>
+              <div className="parent-change-message">
+                This will move the problem and all its children to a different parent. Are you sure?
+              </div>
+              <div className="parent-change-actions">
+                <button
+                  type="button"
+                  className="row-action-button confirm"
+                  aria-label="Confirm move"
+                  onClick={handleConfirmMove}
+                  title="Confirm move"
+                >
+                  ✔
+                </button>
+                <button
+                  type="button"
+                  className="row-action-button cancel"
+                  aria-label="Cancel move"
+                  onClick={handleCancelMove}
+                  title="Cancel move"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
       <div className="table-container">
         <table className="problems-table" data-tutorial="problems-table">
           <thead data-tutorial="problems-table-header">
@@ -1212,7 +1381,7 @@ export function ProblemsList({
                   )}
                 </div>
               </th>
-              <th>
+              <th style={{ paddingLeft: 0 }}>
                 <div className="header-with-action" style={{ justifyContent: 'space-between' }}>
                   <div className="header-with-action">
                     <span>Problem</span>
@@ -1309,6 +1478,23 @@ export function ProblemsList({
             </tr>
           </thead>
           <tbody>
+            {visibleProblems.length === 0 && !loading && !error && (
+              <tr>
+                <td colSpan={
+                  2 + // Row number + ID
+                  (visibleColumns.labels ? 1 : 0) +
+                  (visibleColumns.objective ? 1 : 0) +
+                  (visibleColumns.keyResults ? 1 : 0) +
+                  (visibleColumns.actions ? 1 : 0) +
+                  (visibleColumns.blockers ? 1 : 0) +
+                  (visibleColumns.status ? 1 : 0) +
+                  (visibleColumns.votes ? 1 : 0) +
+                  1 // Problem column (always visible)
+                } style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                  No problems found.
+                </td>
+              </tr>
+            )}
             {visibleProblems.map((problem, index) => {
               const depth = getDepth(problem.idPath);
               const isDragging = draggedProblemId !== null && getDraggedProblems(draggedProblemId).has(problem.id);
@@ -1341,6 +1527,7 @@ export function ProblemsList({
                     }
                   }}
                   className={`problem-row depth-${depth}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}${highlightedProblemId === problem.id ? ' highlighted' : ''}`}
+                  data-depth={depth}
                   style={{
                     opacity: isDragging ? 0.5 : 1,
                     ...dropIndicatorStyle,
@@ -1453,19 +1640,6 @@ export function ProblemsList({
                           gap: '2px'
                         }}
                       >
-                        {depth > 0 && (
-                          <span style={{ 
-                            color: '#888',
-                            fontSize: '0.75em',
-                            lineHeight: 1,
-                            display: 'inline-flex',
-                            gap: '2px'
-                          }}>
-                            {Array(depth).fill(null).map((_, i) => (
-                              <span key={i}>&mdash;</span>
-                            ))}
-                          </span>
-                        )}
                         {problem.idPath}
                       </span>
                       {copiedId === problem.id && (
@@ -1559,7 +1733,7 @@ export function ProblemsList({
                       )}
                     </div>
                   </td>
-                  <td className="problem-text">
+                  <td className="problem-text" style={{ paddingLeft: depth > 0 ? `calc(${depth} * 0.5rem + 0.5rem)` : '0' }}>
                     <SummaryDetailCell
                       value={problem.problem}
                       onSave={(value) => handleSaveField(problem.id, 'problem', value)}

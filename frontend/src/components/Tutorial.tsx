@@ -27,13 +27,68 @@ export function Tutorial({ autoStart = false, onComplete }: TutorialProps) {
     const joyrideSteps: Step[] = stepsData.map((step) => ({
       target: step.target,
       content: (
-        <div>
-          <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', fontWeight: 600 }}>
+        <div className="tutorial-content">
+          <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
             {step.content.title}
           </h3>
-          <p style={{ margin: 0, fontSize: '0.875rem', lineHeight: '1.5' }}>
-            {step.content.body}
-          </p>
+          <div 
+            className="tutorial-body"
+            style={{ 
+              margin: 0, 
+              fontSize: '0.875rem', 
+              lineHeight: '1.6',
+              color: 'var(--text-primary)',
+            }}
+            dangerouslySetInnerHTML={{ __html: step.content.body.replace(/\n/g, '<br />') }}
+          />
+          <style>{`
+            .tutorial-content a {
+              color: var(--accent-color);
+              text-decoration: underline;
+              transition: opacity 0.2s ease;
+            }
+            .tutorial-content a:hover {
+              opacity: 0.8;
+              color: var(--accent-hover);
+            }
+            .tutorial-content a:visited {
+              color: var(--accent-color);
+            }
+            .tutorial-body p {
+              margin: 0.5rem 0;
+            }
+            .tutorial-body p:first-child {
+              margin-top: 0;
+            }
+            .tutorial-body p:last-child {
+              margin-bottom: 0;
+            }
+            .tutorial-body strong,
+            .tutorial-body b {
+              font-weight: 600;
+              color: var(--text-primary);
+            }
+            .tutorial-body em,
+            .tutorial-body i {
+              font-style: italic;
+            }
+            .tutorial-body code {
+              background-color: var(--bg-tertiary);
+              padding: 0.125rem 0.25rem;
+              border-radius: 3px;
+              font-size: 0.8125rem;
+              font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+              color: var(--text-primary);
+            }
+            .tutorial-body ul,
+            .tutorial-body ol {
+              margin: 0.5rem 0;
+              padding-left: 1.25rem;
+            }
+            .tutorial-body li {
+              margin: 0.25rem 0;
+            }
+          `}</style>
         </div>
       ),
       placement: step.placement || 'auto',

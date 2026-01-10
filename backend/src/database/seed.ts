@@ -8,9 +8,10 @@
  */
 
 import { getPrismaClient } from './prisma-client';
-import { getWorkspaceRepository, getProblemRepository, getViewRepository } from '../models/repository-factory';
+import { getWorkspaceRepository, getProblemRepository, getViewRepository, getOrganizationRepository, getUserRepository } from '../models/repository-factory';
 import { Status } from '../../../shared/types';
 import { generateId } from '../utils/id-generator';
+import { randomUUID } from 'crypto';
 
 // Sample data for generating varied problems
 const problemTemplates = [
@@ -105,12 +106,43 @@ function generateBlockers(status: Status): string[] {
  */
 export async function seedDatabase(options: { large?: boolean } = {}): Promise<void> {
   const prisma = getPrismaClient();
+  const organizationRepo = getOrganizationRepository(prisma);
+  const userRepo = getUserRepository(prisma);
   const workspaceRepo = getWorkspaceRepository(prisma);
   const problemRepo = getProblemRepository(prisma);
 
   try {
+    // Find or create default organization
+    let organization = await organizationRepo.findDefault();
+    if (!organization) {
+      organization = await organizationRepo.create({
+        id: randomUUID(),
+        name: 'Default Organization',
+      });
+      console.log('Created default organization');
+    } else {
+      console.log('Using existing default organization');
+    }
+
+    // Find or create default user
+    const defaultUserEmail = 'default@pokrabs.local';
+    let defaultUser = await userRepo.findByAuthId(defaultUserEmail, 'internal');
+    if (!defaultUser) {
+      defaultUser = await userRepo.create({
+        id: randomUUID(),
+        organizationId: organization.id,
+        email: defaultUserEmail,
+        name: 'Default User',
+        authId: defaultUserEmail,
+        authProvider: 'internal',
+      });
+      console.log('Created default user');
+    } else {
+      console.log('Using existing default user');
+    }
+
     // Check if Default workspace already exists and delete it to allow reseeding
-    const existingWorkspaces = await workspaceRepo.findAll();
+    const existingWorkspaces = await workspaceRepo.findAll(organization.id);
     const defaultWorkspace = existingWorkspaces.find(w => w.name === 'Default Workspace');
 
     if (defaultWorkspace) {
@@ -126,6 +158,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
     // Create Default workspace
     const workspace = await workspaceRepo.create({
       id: await generateId(),
+      organizationId: organization.id,
       name: 'Default Workspace',
     });
 
@@ -136,6 +169,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
     await viewRepo.create({
       id: await generateId(),
       workspaceId: workspace.id,
+      organizationId: organization.id,
       name: 'All Problems',
       filters: {
         selectedStatuses: [Status.NotStarted, Status.InProgress, Status.Blocked, Status.Resolved],
@@ -145,6 +179,21 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
     });
 
     console.log('Created default view');
+
+    // Create Active problems view (non-default)
+    await viewRepo.create({
+      id: await generateId(),
+      workspaceId: workspace.id,
+      organizationId: organization.id,
+      name: 'Active problems',
+      filters: {
+        selectedStatuses: [Status.NotStarted, Status.InProgress, Status.Blocked],
+        selectedLabels: [],
+      },
+      isDefault: false,
+    });
+
+    console.log('Created Active problems view');
 
     if (options.large) {
       // Generate large dataset for testing
@@ -158,6 +207,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
         
         const rootProblem = await problemRepo.create({
           workspaceId: workspace.id,
+          organizationId: organization.id,
           parentId: null,
           problem: JSON.stringify({
             summary: generateProblemSummary(i),
@@ -192,6 +242,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
           
           await problemRepo.create({
             workspaceId: workspace.id,
+            organizationId: organization.id,
             parentId: rootProblem.id,
             problem: JSON.stringify({
               summary: `Sub-problem ${j + 1} of: ${JSON.parse(rootProblem.problem).summary}`,
@@ -223,6 +274,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
       // Root problem
       const rootProblem = await problemRepo.create({
         workspaceId: workspace.id,
+        organizationId: organization.id,
         parentId: null,
         problem: JSON.stringify({
           summary: 'Support team is overwhelmed',
@@ -243,6 +295,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
       // Child 1: Analyze ticket patterns
       const child1 = await problemRepo.create({
         workspaceId: workspace.id,
+        organizationId: organization.id,
         parentId: rootProblem.id,
         problem: JSON.stringify({
           summary: 'We don\'t know root causes of tickets',
@@ -263,6 +316,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
       // Child 2 of child1: Implement categorization
       const child2a = await problemRepo.create({
         workspaceId: workspace.id,
+        organizationId: organization.id,
         parentId: child1.id,
         problem: JSON.stringify({
           summary: 'Tickets aren\'t categorized',
@@ -283,6 +337,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
       // Child 3 of child2a: Define taxonomy (actionable - no blockers)
       const child3a = await problemRepo.create({
         workspaceId: workspace.id,
+        organizationId: organization.id,
         parentId: child2a.id,
         problem: JSON.stringify({
           summary: 'Don\'t know what ticket categories to use',
@@ -303,6 +358,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
       // Child 4 of child1: Retroactively categorize
       const child2b = await problemRepo.create({
         workspaceId: workspace.id,
+        organizationId: organization.id,
         parentId: child1.id,
         problem: JSON.stringify({
           summary: 'Historical tickets lack categories',
@@ -323,6 +379,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
       // Child 5 of child2b: Get API access (actionable - no blockers)
       const child3b = await problemRepo.create({
         workspaceId: workspace.id,
+        organizationId: organization.id,
         parentId: child2b.id,
         problem: JSON.stringify({
           summary: 'No API access to support system',
@@ -335,7 +392,7 @@ export async function seedDatabase(options: { large?: boolean } = {}): Promise<v
         keyResults: JSON.stringify(['API credentials with read/write access to tickets']),
         actions: JSON.stringify(['Request API access from support platform', 'Set up authentication']),
         blockers: JSON.stringify([]),
-        status: Status.NotStarted,
+        status: Status.Resolved,
         labels: ['support', 'technical'],
       });
       console.log(`Created problem: ${child3b.idPath}`);

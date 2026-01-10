@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import session from 'express-session';
 import { runMigrations } from './database/migrate';
 import { execSync } from 'child_process';
 import { seedDatabase } from './database/seed';
@@ -12,6 +13,8 @@ import { getPrismaClient, getDatabaseUrl } from './database/prisma-client';
 import workspacesRouter from './api/workspaces';
 import problemsRouter from './api/problems';
 import viewsRouter from './api/views';
+import authRouter from './api/auth';
+import { authenticate } from './middleware/auth';
 
 dotenv.config();
 
@@ -19,8 +22,38 @@ const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: true, // Allow all origins (can be restricted in production)
+  credentials: true, // Allow cookies to be sent
+}));
 app.use(express.json());
+
+// Session configuration
+// Only configure sessions if AUTH_MODE is not 'demo' (sessions needed for OAuth)
+const authMode = process.env.AUTH_MODE || 'demo';
+if (authMode !== 'demo') {
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (!sessionSecret) {
+    console.warn('⚠️  SESSION_SECRET not set. Sessions will not be secure. Set SESSION_SECRET in production.');
+  }
+
+  app.use(session({
+    secret: sessionSecret || 'default-secret-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true, // Prevent XSS attacks
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: 'lax' as const, // CSRF protection
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      // In development, set domain to 'localhost' (without port) so cookies work across ports
+      // In production, don't set domain (let browser use default)
+      ...(process.env.NODE_ENV !== 'production' && { domain: 'localhost' }),
+    },
+  }));
+
+  console.log('✅ Session middleware configured');
+}
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -28,9 +61,10 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use('/api/workspaces', workspacesRouter);
-app.use('/api/problems', problemsRouter);
-app.use('/api/views', viewsRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/workspaces', authenticate, workspacesRouter);
+app.use('/api/problems', authenticate, problemsRouter);
+app.use('/api/views', authenticate, viewsRouter);
 
 // Error handling middleware (must come before SPA routing)
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
@@ -95,33 +129,30 @@ async function startServer() {
       console.log('✅ Migrations completed');
     }
     
-    // Seed database if in demo mode or if database is empty
-    const demoMode = process.env.DEMO_MODE === 'true';
-    if (demoMode) {
-      console.log('🌱 Demo mode enabled, seeding database...');
-      try {
+    // Seed database if empty
+    try {
+      const prisma = getPrismaClient();
+      const workspaceRepo = getWorkspaceRepository(prisma);
+      const organizationRepo = await import('./models/repository-factory').then(m => m.getOrganizationRepository(prisma));
+      const organization = await organizationRepo.findDefault();
+      
+      if (!organization) {
+        console.log('🌱 No default organization found, seeding database...');
         await seedDatabase({ large: false });
         console.log('✅ Database seeded successfully');
-      } catch (error) {
-        console.error('❌ Failed to seed database:', error);
-        // Don't exit on seeding failure, allow server to start
-      }
-    } else {
-      // Check if database is empty and seed if needed
-      try {
-        const prisma = getPrismaClient();
-        const workspaceRepo = getWorkspaceRepository(prisma);
-        const workspaces = await workspaceRepo.findAll();
+      } else {
+        // Check if database is empty (no workspaces)
+        const workspaces = await workspaceRepo.findAll(organization.id);
         
         if (workspaces.length === 0) {
           console.log('🌱 Database is empty, seeding with default data...');
           await seedDatabase({ large: false });
           console.log('✅ Database seeded successfully');
         }
-      } catch (error) {
-        console.warn('⚠️  Could not check database for seeding:', error);
-        // Continue startup even if seeding check fails
       }
+    } catch (error) {
+      console.warn('⚠️  Could not check database for seeding:', error);
+      // Continue startup even if seeding check fails
     }
     
     // Start server - bind to 0.0.0.0 to accept connections from all interfaces

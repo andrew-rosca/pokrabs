@@ -46,24 +46,45 @@ cd "$PROJECT_ROOT"
 BACKEND_IMAGE="ghcr.io/${GHCR_USERNAME}/pokrabs-backend:latest"
 FRONTEND_IMAGE="ghcr.io/${GHCR_USERNAME}/pokrabs-frontend:latest"
 
-# Build and publish backend
-echo -e "${YELLOW}Building backend image...${NC}"
-docker build -f docker/Dockerfile.backend -t pokrabs-backend:local .
-docker tag pokrabs-backend:local "$BACKEND_IMAGE"
+# Check if buildx is available
+if ! docker buildx version > /dev/null 2>&1; then
+    echo -e "${RED}Error: docker buildx is not available${NC}"
+    echo "Please install Docker Buildx or update Docker Desktop"
+    exit 1
+fi
 
-echo -e "${YELLOW}Pushing backend image to $BACKEND_IMAGE...${NC}"
-docker push "$BACKEND_IMAGE"
-echo -e "${GREEN}✓ Backend image published${NC}"
+# Create and use a buildx builder if it doesn't exist
+BUILDER_NAME="pokrabs-builder"
+if ! docker buildx inspect "$BUILDER_NAME" > /dev/null 2>&1; then
+    echo -e "${YELLOW}Creating buildx builder: $BUILDER_NAME...${NC}"
+    docker buildx create --name "$BUILDER_NAME" --use
+fi
+
+# Use the builder
+docker buildx use "$BUILDER_NAME"
+
+# Build and publish backend (multi-arch: amd64 and arm64)
+echo -e "${YELLOW}Building backend image for amd64 and arm64...${NC}"
+docker buildx build \
+    --platform linux/amd64,linux/arm64 \
+    -f docker/Dockerfile.backend \
+    -t "$BACKEND_IMAGE" \
+    --push \
+    .
+
+echo -e "${GREEN}✓ Backend image published (multi-arch)${NC}"
 echo ""
 
-# Build and publish frontend
-echo -e "${YELLOW}Building frontend image...${NC}"
-docker build -f docker/Dockerfile.frontend -t pokrabs-frontend:local .
-docker tag pokrabs-frontend:local "$FRONTEND_IMAGE"
+# Build and publish frontend (multi-arch: amd64 and arm64)
+echo -e "${YELLOW}Building frontend image for amd64 and arm64...${NC}"
+docker buildx build \
+    --platform linux/amd64,linux/arm64 \
+    -f docker/Dockerfile.frontend \
+    -t "$FRONTEND_IMAGE" \
+    --push \
+    .
 
-echo -e "${YELLOW}Pushing frontend image to $FRONTEND_IMAGE...${NC}"
-docker push "$FRONTEND_IMAGE"
-echo -e "${GREEN}✓ Frontend image published${NC}"
+echo -e "${GREEN}✓ Frontend image published (multi-arch)${NC}"
 echo ""
 
 echo -e "${GREEN}✓ All images published successfully!${NC}"

@@ -14,7 +14,8 @@ export class PrismaViewRepository implements IViewRepository {
 
   async create(data: { 
     id: string; 
-    workspaceId: string; 
+    workspaceId: string;
+    organizationId: string;
     name: string; 
     filters: ViewFilters;
     isDefault?: boolean;
@@ -23,6 +24,7 @@ export class PrismaViewRepository implements IViewRepository {
       data: {
         id: data.id,
         workspaceId: data.workspaceId,
+        organizationId: data.organizationId,
         name: data.name,
         filters: JSON.stringify(data.filters),
         isDefault: data.isDefault ?? false,
@@ -32,10 +34,11 @@ export class PrismaViewRepository implements IViewRepository {
     return this.mapToView(view);
   }
 
-  async findById(id: string): Promise<View | null> {
+  async findById(id: string, organizationId: string): Promise<View | null> {
     const view = await this.prisma.view.findFirst({
       where: {
         id,
+        organizationId,
         deletedAt: null, // Exclude soft-deleted
       },
     });
@@ -43,10 +46,11 @@ export class PrismaViewRepository implements IViewRepository {
     return view ? this.mapToView(view) : null;
   }
 
-  async findByWorkspaceId(workspaceId: string): Promise<View[]> {
+  async findByWorkspaceId(workspaceId: string, organizationId: string): Promise<View[]> {
     const views = await this.prisma.view.findMany({
       where: {
         workspaceId,
+        organizationId,
         deletedAt: null, // Exclude soft-deleted
       },
       orderBy: {
@@ -57,10 +61,11 @@ export class PrismaViewRepository implements IViewRepository {
     return views.map(this.mapToView);
   }
 
-  async findDefaultByWorkspaceId(workspaceId: string): Promise<View | null> {
+  async findDefaultByWorkspaceId(workspaceId: string, organizationId: string): Promise<View | null> {
     const view = await this.prisma.view.findFirst({
       where: {
         workspaceId,
+        organizationId,
         isDefault: true,
         deletedAt: null, // Exclude soft-deleted
       },
@@ -69,10 +74,22 @@ export class PrismaViewRepository implements IViewRepository {
     return view ? this.mapToView(view) : null;
   }
 
-  async update(id: string, data: { 
+  async update(id: string, organizationId: string, data: { 
     name?: string; 
     filters?: ViewFilters;
   }): Promise<View> {
+    // Verify view belongs to organization
+    const existing = await this.prisma.view.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+    });
+
+    if (!existing) {
+      throw new Error('View not found or does not belong to organization');
+    }
+
     const updateData: any = {};
     
     if (data.name !== undefined) {
@@ -91,7 +108,19 @@ export class PrismaViewRepository implements IViewRepository {
     return this.mapToView(view);
   }
 
-  async updateLastUsedAt(id: string): Promise<void> {
+  async updateLastUsedAt(id: string, organizationId: string): Promise<void> {
+    // Verify view belongs to organization
+    const existing = await this.prisma.view.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+    });
+
+    if (!existing) {
+      throw new Error('View not found or does not belong to organization');
+    }
+
     await this.prisma.view.update({
       where: { id },
       data: {
@@ -100,7 +129,19 @@ export class PrismaViewRepository implements IViewRepository {
     });
   }
 
-  async softDelete(id: string): Promise<void> {
+  async softDelete(id: string, organizationId: string): Promise<void> {
+    // Verify view belongs to organization
+    const existing = await this.prisma.view.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+    });
+
+    if (!existing) {
+      throw new Error('View not found or does not belong to organization');
+    }
+
     await this.prisma.view.update({
       where: { id },
       data: {
