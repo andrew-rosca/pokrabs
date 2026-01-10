@@ -5,11 +5,10 @@ import { Workspace, View, ViewFilters } from '../../../shared/types';
 import { fetchWorkspaces, fetchViews, createView, updateView, useWorkspace, AuthenticationError } from './services/api';
 import { authService } from './services/auth';
 import { ProblemsList } from './components/ProblemsList';
-import { ThemeToggle } from './components/ThemeToggle';
+import { SettingsMenu } from './components/SettingsMenu';
 import { ViewSelector } from './components/ViewSelector';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { Tutorial } from './components/Tutorial';
-import { LoginButton } from './components/LoginButton';
 import { hasTutorialBeenShown } from './services/tutorial';
 
 function App() {
@@ -522,8 +521,7 @@ export function AppContent() {
                 </button>
               )}
             </div>
-            <LoginButton />
-            <ThemeToggle />
+            <SettingsMenu />
           </div>
         </header>
         <main className="app-main">
