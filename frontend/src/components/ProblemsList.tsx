@@ -1312,13 +1312,13 @@ export function ProblemsList({
         <table className="problems-table" data-tutorial="problems-table">
           <thead data-tutorial="problems-table-header">
             <tr>
-              <th title={`${visibleProblems.length} visible rows / ${problems.length} total rows`}>
+              <th className="column-row-number" title={`${visibleProblems.length} visible rows / ${problems.length} total rows`}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1.2' }}>
                   <span>{visibleProblems.length}</span>
                   <span className="total-count">{problems.length}</span>
                 </div>
               </th>
-              <th>
+              <th className="column-id">
                 <div className="header-with-action">
                   <span>ID</span>
                   {anyProblemsHaveChildren && (
@@ -1381,7 +1381,7 @@ export function ProblemsList({
                   )}
                 </div>
               </th>
-              <th style={{ paddingLeft: 0 }}>
+              <th className="column-problem" style={{ paddingLeft: 0 }}>
                 <div className="header-with-action" style={{ justifyContent: 'space-between' }}>
                   <div className="header-with-action">
                     <span>Problem</span>
@@ -1448,7 +1448,7 @@ export function ProblemsList({
                 </div>
               </th>
               {visibleColumns.labels && (
-                <th>
+                <th className="column-labels">
                   <div className="header-with-action">
                     <span>Labels</span>
                     <LabelFilter
@@ -1459,12 +1459,12 @@ export function ProblemsList({
                   </div>
                 </th>
               )}
-              {visibleColumns.objective && <th>Objective</th>}
-              {visibleColumns.keyResults && <th>Key Results</th>}
-              {visibleColumns.actions && <th>Actions</th>}
-              {visibleColumns.blockers && <th>Blockers</th>}
+              {visibleColumns.objective && <th className="column-objective">Objective</th>}
+              {visibleColumns.keyResults && <th className="column-key-results">Key Results</th>}
+              {visibleColumns.actions && <th className="column-actions">Actions</th>}
+              {visibleColumns.blockers && <th className="column-blockers">Blockers</th>}
               {visibleColumns.status && (
-                <th>
+                <th className="column-status">
                   <div className="header-with-action">
                     <span>Status</span>
                     <StatusFilter
@@ -1474,7 +1474,7 @@ export function ProblemsList({
                   </div>
                 </th>
               )}
-              {visibleColumns.votes && <th>Votes</th>}
+              {visibleColumns.votes && <th className="column-votes">Votes</th>}
             </tr>
           </thead>
           <tbody>
@@ -1536,8 +1536,8 @@ export function ProblemsList({
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, index, problem)}
                 >
-                  <td className="row-number">{index + 1}</td>
-                  <td className="problem-id">
+                  <td className="row-number column-row-number">{index + 1}</td>
+                  <td className="problem-id column-id">
                     <div className="row-handle-container">
                       <span className="row-handle-indicator">⋮</span>
                       <div 
@@ -1733,7 +1733,7 @@ export function ProblemsList({
                       )}
                     </div>
                   </td>
-                  <td className="problem-text" style={{ paddingLeft: depth > 0 ? `calc(${depth} * 0.5rem + 0.5rem)` : '0' }}>
+                  <td className="problem-text column-problem" style={{ paddingLeft: depth > 0 ? `calc(${depth} * 0.5rem + 0.5rem)` : '0' }}>
                     <SummaryDetailCell
                       value={problem.problem}
                       onSave={(value) => handleSaveField(problem.id, 'problem', value)}
@@ -1745,7 +1745,7 @@ export function ProblemsList({
                     />
                   </td>
                   {visibleColumns.labels && (
-                    <td className="problem-text">
+                    <td className="problem-text column-labels">
                       <LabelCell
                         labels={problem.labels || []}
                         predefinedLabels={predefinedLabels}
@@ -1759,7 +1759,7 @@ export function ProblemsList({
                     </td>
                   )}
                   {visibleColumns.objective && (
-                    <td className="problem-text">
+                    <td className="problem-text column-objective">
                       <SummaryDetailCell
                         value={problem.objective}
                         onSave={(value) => handleSaveField(problem.id, 'objective', value)}
@@ -1772,7 +1772,7 @@ export function ProblemsList({
                     </td>
                   )}
                   {visibleColumns.keyResults && (
-                    <td className="problem-text">
+                    <td className="problem-text column-key-results">
                       <ListCell
                         value={problem.keyResults}
                         onSave={(value) => handleSaveField(problem.id, 'keyResults', value)}
@@ -1783,7 +1783,7 @@ export function ProblemsList({
                     </td>
                   )}
                   {visibleColumns.actions && (
-                    <td className="problem-text">
+                    <td className="problem-text column-actions">
                       <ListCell
                         value={problem.actions}
                         onSave={(value) => handleSaveField(problem.id, 'actions', value)}
@@ -1794,7 +1794,7 @@ export function ProblemsList({
                     </td>
                   )}
                   {visibleColumns.blockers && (
-                    <td className="problem-text">
+                    <td className="problem-text column-blockers">
                       <ListCell
                         value={problem.blockers}
                         onSave={(value) => handleSaveField(problem.id, 'blockers', value)}
@@ -1805,7 +1805,7 @@ export function ProblemsList({
                     </td>
                   )}
                   {visibleColumns.status && (
-                    <td>
+                    <td className="column-status">
                       <select
                         value={problem.status}
                         onChange={(e) => handleStatusChange(problem.id, e.target.value as Status)}
@@ -1819,7 +1819,7 @@ export function ProblemsList({
                     </td>
                   )}
                   {visibleColumns.votes && (
-                    <td className="problem-votes">
+                    <td className="problem-votes column-votes">
                       <button
                         onClick={() => handleVoteIncrement(problem.id)}
                         style={{
@@ -1856,9 +1856,9 @@ export function ProblemsList({
               }}
               onDrop={handleDropOnNewRow}
             >
-              <td className="insert-button-cell"></td>
-              <td className="insert-button-cell"></td>
-              <td className="insert-button-cell">
+              <td className="insert-button-cell column-row-number"></td>
+              <td className="insert-button-cell column-id"></td>
+              <td className="insert-button-cell column-problem">
                 <button
                   className="row-action-button"
                   data-tutorial="add-problem-bottom"
@@ -1868,13 +1868,13 @@ export function ProblemsList({
                   +
                 </button>
               </td>
-              {visibleColumns.labels && <td className="insert-button-cell"></td>}
-              {visibleColumns.objective && <td className="insert-button-cell"></td>}
-              {visibleColumns.keyResults && <td className="insert-button-cell"></td>}
-              {visibleColumns.actions && <td className="insert-button-cell"></td>}
-              {visibleColumns.blockers && <td className="insert-button-cell"></td>}
-              {visibleColumns.status && <td className="insert-button-cell"></td>}
-              {visibleColumns.votes && <td className="insert-button-cell"></td>}
+              {visibleColumns.labels && <td className="insert-button-cell column-labels"></td>}
+              {visibleColumns.objective && <td className="insert-button-cell column-objective"></td>}
+              {visibleColumns.keyResults && <td className="insert-button-cell column-key-results"></td>}
+              {visibleColumns.actions && <td className="insert-button-cell column-actions"></td>}
+              {visibleColumns.blockers && <td className="insert-button-cell column-blockers"></td>}
+              {visibleColumns.status && <td className="insert-button-cell column-status"></td>}
+              {visibleColumns.votes && <td className="insert-button-cell column-votes"></td>}
             </tr>
           </tbody>
         </table>

@@ -311,7 +311,7 @@ code {
   border-collapse: collapse;
   background-color: var(--bg-primary);
   font-size: 0.75rem;
-  table-layout: auto;
+  table-layout: fixed;
   position: relative;
 }
 
@@ -1229,63 +1229,65 @@ code {
   overflow-wrap: break-word;
 }
 
-/* Column widths - apply to both th and td */
-.problems-table th:nth-child(1),
-.problems-table td:nth-child(1) { 
-  width: auto;
-}  /* Row number - auto size to fit content */
+/* Column widths - apply to both th and td using class-based selectors */
+/* Using fixed pixel widths for small columns and flexible widths for content columns */
+.problems-table th.column-row-number,
+.problems-table td.column-row-number { 
+  width: 40px;
+}  /* Row number - small fixed width */
 
-.problems-table th:nth-child(2),
-.problems-table td:nth-child(2) { 
-  width: auto;
-  min-width: 60px;
-  max-width: 200px;
-}  /* ID - auto size to fit content, with reasonable limits */
+.problems-table th.column-id,
+.problems-table td.column-id { 
+  width: 120px;
+}  /* ID - fixed width */
 
-.problems-table th:nth-child(3),
-.problems-table td:nth-child(3) { 
-  width: auto;
+.problems-table th.column-problem,
+.problems-table td.column-problem { 
+  width: 200px;
   min-width: 150px;
-  max-width: 400px;
-} /* Problem - wider column for detailed descriptions */
+} /* Problem - fixed reasonable width to prevent wasting space */
 
-.problems-table th:nth-child(4),
-.problems-table td:nth-child(4) { 
-  width: auto;
-  min-width: 150px;
-  max-width: 400px;
-} /* Objective - wider column for detailed objectives */
-
-.problems-table th:nth-child(5),
-.problems-table td:nth-child(5) { 
-  width: auto;
+.problems-table th.column-labels,
+.problems-table td.column-labels { 
+  width: 120px;
   min-width: 100px;
-  max-width: 300px;
-} /* Key Results - medium width for concise metrics */
+} /* Labels - fixed medium width */
 
-.problems-table th:nth-child(6),
-.problems-table td:nth-child(6) { 
-  width: auto;
-  min-width: 100px;
-  max-width: 300px;
-} /* Actions - medium width for action items */
+.problems-table th.column-objective,
+.problems-table td.column-objective { 
+  width: 150px;
+  min-width: 120px;
+} /* Objective - fixed medium width */
 
-.problems-table th:nth-child(7),
-.problems-table td:nth-child(7) { 
+.problems-table th.column-key-results,
+.problems-table td.column-key-results { 
   width: auto;
-  min-width: 100px;
-  max-width: 300px;
-} /* Blockers - medium width for blockers */
+  min-width: 180px;
+} /* Key Results - flexible width, gets remaining space */
 
-.problems-table th:nth-child(8),
-.problems-table td:nth-child(8) { 
+.problems-table th.column-actions,
+.problems-table td.column-actions { 
   width: auto;
+  min-width: 180px;
+} /* Actions - flexible width, gets remaining space */
+
+.problems-table th.column-blockers,
+.problems-table td.column-blockers { 
+  width: auto;
+  min-width: 180px;
+} /* Blockers - flexible width, gets remaining space */
+
+.problems-table th.column-status,
+.problems-table td.column-status { 
+  width: 100px;
   min-width: 90px;
   white-space: nowrap;
-}  /* Status - auto size to fit "Actionable" and other statuses */
+}  /* Status - fixed width for dropdown */
 
-.problems-table th:nth-child(9),
-.problems-table td:nth-child(9) { width: 60px; }  /* Votes - fixed small width */
+.problems-table th.column-votes,
+.problems-table td.column-votes { 
+  width: 60px;
+}  /* Votes - fixed small width */
 
 .problem-votes {
   text-align: center;
