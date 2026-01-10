@@ -15,6 +15,11 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
+        // Vite's http-proxy automatically forwards cookies, but we need to ensure
+        // the cookie domain is rewritten so cookies set by backend work with proxy
+        cookieDomainRewrite: {
+          'localhost:3001': 'localhost:3000',
+        },
       },
     },
   },

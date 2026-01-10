@@ -113,8 +113,8 @@ router.get('/:provider', async (req: Request, res: Response) => {
  */
 router.get('/:provider/callback', async (req: Request, res: Response) => {
   try {
-    const { provider, code } = req.query;
-    const { state } = req.query;
+    const provider = req.params.provider; // Get provider from URL path parameter
+    const { code, state } = req.query;
     const session = (req as any).session;
 
     if (!code || typeof code !== 'string') {

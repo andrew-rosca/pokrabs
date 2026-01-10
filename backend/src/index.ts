@@ -46,6 +46,9 @@ if (authMode !== 'demo') {
       secure: process.env.NODE_ENV === 'production', // HTTPS only in production
       sameSite: 'lax' as const, // CSRF protection
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      // In development, set domain to 'localhost' (without port) so cookies work across ports
+      // In production, don't set domain (let browser use default)
+      ...(process.env.NODE_ENV !== 'production' && { domain: 'localhost' }),
     },
   }));
 
