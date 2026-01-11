@@ -85,3 +85,24 @@ export interface UpdateViewRequest {
   name?: string;
   filters?: ViewFilters;
 }
+
+// Voting types
+export interface VoterInfo {
+  userId: string;
+  userName: string;
+  count: number;
+}
+
+export interface VoteStatusResponse {
+  availableVotes: number;
+  maxVotes: number;
+  /** Map of problemId to user's vote count on that problem */
+  userVotes: Record<string, number>;
+}
+
+export interface VoteResponse {
+  problem: Problem;
+  userVoteCount: number;
+  availableVotes: number;
+  voters: VoterInfo[];
+}

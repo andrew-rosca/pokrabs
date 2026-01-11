@@ -10,7 +10,8 @@ import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Problem, Status, CreateProblemRequest, ViewFilters } from '../../../shared/types';
-import { fetchProblems, updateProblem, createProblem, deleteProblem, moveProblem, AuthenticationError } from '../services/api';
+import { fetchProblems, updateProblem, createProblem, deleteProblem, moveProblem, fetchVoteStatus, addVote, removeVote, fetchVoters, AuthenticationError } from '../services/api';
+import { VoterInfo } from '../../../shared/types';
 import { authService } from '../services/auth';
 import { SummaryDetailCell } from './SummaryDetailCell';
 import { DeleteButton } from './DeleteButton';
@@ -80,6 +81,18 @@ export function ProblemsList({
   const [positionInputValue, setPositionInputValue] = useState<string>('');
   const positionInputRef = useRef<HTMLInputElement>(null);
 
+  // Voting state
+  const [userVotes, setUserVotes] = useState<Record<string, number>>({}); // problemId -> user's vote count
+  const [availableVotes, setAvailableVotes] = useState<number>(10);
+  const [maxVotes, setMaxVotes] = useState<number>(10);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  
+  // Voting popup state
+  const [votingPopup, setVotingPopup] = useState<{
+    problemId: string;
+    voters: VoterInfo[];
+  } | null>(null);
+
   // Helper function to handle authentication errors
   const handleAuthError = (error: unknown, defaultMessage: string): boolean => {
     if (error instanceof AuthenticationError) {
@@ -96,7 +109,6 @@ export function ProblemsList({
   };
 
   // Column visibility state - persisted to localStorage
-  // Note: votes column hidden until user authentication is implemented (voting requires user identity)
   const [visibleColumns, setVisibleColumns] = useState<{
     labels: boolean;
     objective: boolean;
@@ -110,13 +122,13 @@ export function ProblemsList({
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        // Default votes to false if not present in stored config
-        return { ...parsed, labels: parsed.labels ?? true, votes: parsed.votes ?? false };
+        // Default votes to true if not present in stored config
+        return { ...parsed, labels: parsed.labels ?? true, votes: parsed.votes ?? true };
       } catch {
-        return { labels: true, objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: false };
+        return { labels: true, objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: true };
       }
     }
-    return { labels: true, objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: false };
+    return { labels: true, objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: true };
   });
 
   // Status filter state - use viewFilters if provided, otherwise fallback to localStorage
@@ -242,6 +254,21 @@ export function ProblemsList({
         setError(null);
         const data = await fetchProblems(workspaceId);
         setProblems(data);
+        
+        // Try to load vote status (requires authentication)
+        try {
+          const voteStatus = await fetchVoteStatus(workspaceId);
+          setUserVotes(voteStatus.userVotes);
+          setAvailableVotes(voteStatus.availableVotes);
+          setMaxVotes(voteStatus.maxVotes);
+          setIsAuthenticated(true);
+        } catch (voteErr) {
+          // If vote status fails (likely not authenticated), just set defaults
+          setUserVotes({});
+          setAvailableVotes(10);
+          setMaxVotes(10);
+          setIsAuthenticated(false);
+        }
       } catch (err) {
         if (err instanceof AuthenticationError) {
           // In required mode, automatically redirect to login
@@ -483,46 +510,169 @@ export function ProblemsList({
     }
   };
 
-  // Handle vote increment
-  const handleVoteIncrement = async (problemId: string) => {
+  // Handle adding a vote
+  const handleAddVote = async (problemId: string) => {
     clearUrlIfDifferentProblem(problemId);
+    
+    if (!isAuthenticated) {
+      const shouldLogin = window.confirm(
+        'You must be logged in to vote. Would you like to log in now?'
+      );
+      if (shouldLogin) {
+        authService.login('google');
+      }
+      return;
+    }
     
     const problem = problems.find(p => p.id === problemId);
     if (!problem) return;
     
-    const newVoteCount = problem.votes + 1;
+    // Check if can vote
+    if (problem.status === Status.Resolved) {
+      setError('Cannot vote on resolved problems');
+      return;
+    }
+    
+    if (availableVotes <= 0) {
+      setError(`Vote limit reached (${maxVotes} votes per workspace)`);
+      return;
+    }
     
     // Optimistically update the UI
+    const previousProblem = problem;
+    const previousUserVotes = userVotes[problemId] || 0;
+    const previousAvailableVotes = availableVotes;
+    
     setProblems(prevProblems =>
       prevProblems.map(p =>
         p.id === problemId
-          ? { ...p, votes: newVoteCount }
+          ? { ...p, votes: p.votes + 1 }
           : p
       )
     );
+    setUserVotes(prev => ({ ...prev, [problemId]: (prev[problemId] || 0) + 1 }));
+    setAvailableVotes(prev => prev - 1);
 
     try {
-      // Save to backend
-      const updated = await updateProblem(problemId, { votes: newVoteCount });
+      const result = await addVote(problemId);
       
       // Update with server response
       setProblems(prevProblems =>
         prevProblems.map(p =>
-          p.id === problemId ? updated : p
+          p.id === problemId ? result.problem : p
         )
       );
-    } catch (error) {
-      // Revert on error
-      const originalProblem = problems.find(p => p.id === problemId);
-      if (originalProblem) {
-        setProblems(prevProblems =>
-          prevProblems.map(p =>
-            p.id === problemId ? originalProblem : p
-          )
-        );
+      setUserVotes(prev => ({ ...prev, [problemId]: result.userVoteCount }));
+      setAvailableVotes(result.availableVotes);
+      
+      // Update popup if it's open
+      if (votingPopup?.problemId === problemId) {
+        setVotingPopup({ problemId, voters: result.voters });
       }
-      handleAuthError(error, 'Error updating votes');
+    } catch (error: any) {
+      // Revert on error
+      setProblems(prevProblems =>
+        prevProblems.map(p =>
+          p.id === problemId ? previousProblem : p
+        )
+      );
+      setUserVotes(prev => ({ ...prev, [problemId]: previousUserVotes }));
+      setAvailableVotes(previousAvailableVotes);
+      
+      if (!handleAuthError(error, 'Error adding vote')) {
+        setError(error.message || 'Failed to add vote');
+      }
     }
+  };
+
+  // Handle removing a vote
+  const handleRemoveVote = async (problemId: string) => {
+    clearUrlIfDifferentProblem(problemId);
+    
+    if (!isAuthenticated) {
+      return;
+    }
+    
+    const problem = problems.find(p => p.id === problemId);
+    if (!problem) return;
+    
+    const currentUserVotes = userVotes[problemId] || 0;
+    if (currentUserVotes <= 0) {
+      return; // No votes to remove
+    }
+    
+    // Optimistically update the UI
+    const previousProblem = problem;
+    const previousUserVotes = currentUserVotes;
+    const previousAvailableVotes = availableVotes;
+    
+    setProblems(prevProblems =>
+      prevProblems.map(p =>
+        p.id === problemId
+          ? { ...p, votes: Math.max(0, p.votes - 1) }
+          : p
+      )
+    );
+    setUserVotes(prev => ({ ...prev, [problemId]: Math.max(0, (prev[problemId] || 0) - 1) }));
+    // Only restore available votes if the problem is not resolved
+    if (problem.status !== Status.Resolved) {
+      setAvailableVotes(prev => prev + 1);
+    }
+
+    try {
+      const result = await removeVote(problemId);
+      
+      // Update with server response
+      setProblems(prevProblems =>
+        prevProblems.map(p =>
+          p.id === problemId ? result.problem : p
+        )
+      );
+      setUserVotes(prev => ({ ...prev, [problemId]: result.userVoteCount }));
+      setAvailableVotes(result.availableVotes);
+      
+      // Update popup if it's open
+      if (votingPopup?.problemId === problemId) {
+        setVotingPopup({ problemId, voters: result.voters });
+      }
+    } catch (error: any) {
+      // Revert on error
+      setProblems(prevProblems =>
+        prevProblems.map(p =>
+          p.id === problemId ? previousProblem : p
+        )
+      );
+      setUserVotes(prev => ({ ...prev, [problemId]: previousUserVotes }));
+      setAvailableVotes(previousAvailableVotes);
+      
+      if (!handleAuthError(error, 'Error removing vote')) {
+        setError(error.message || 'Failed to remove vote');
+      }
+    }
+  };
+
+  // Open voting popup
+  const openVotingPopup = async (problemId: string) => {
+    const problem = problems.find(p => p.id === problemId);
+    if (!problem) return;
+    
+    // For resolved problems without user votes, don't open popup
+    if (problem.status === Status.Resolved && (userVotes[problemId] || 0) === 0) {
+      return;
+    }
+    
+    try {
+      const voters = await fetchVoters(problemId);
+      setVotingPopup({ problemId, voters });
+    } catch (error) {
+      // If we can't fetch voters, still open popup with empty list
+      setVotingPopup({ problemId, voters: [] });
+    }
+  };
+
+  // Close voting popup
+  const closeVotingPopup = () => {
+    setVotingPopup(null);
   };
 
   // Handle deleting a problem
@@ -1395,6 +1545,14 @@ export function ProblemsList({
                     </button>
                   </div>
                   <div className="column-visibility-toggles" data-tutorial="column-visibility-toggles">
+                  <button
+                      className={`column-toggle-button ${visibleColumns.votes ? 'active' : 'inactive'}`}
+                      onClick={() => toggleColumn('votes')}
+                      title={`${visibleColumns.votes ? 'Hide' : 'Show'} Votes column`}
+                      aria-label={`${visibleColumns.votes ? 'Hide' : 'Show'} Votes column`}
+                    >
+                      V
+                    </button>                    
                     <button
                       className={`column-toggle-button ${visibleColumns.labels ? 'active' : 'inactive'}`}
                       data-tutorial="toggle-column"
@@ -1447,6 +1605,7 @@ export function ProblemsList({
                   </div>
                 </div>
               </th>
+              {visibleColumns.votes && <th className="column-votes">Votes</th>}
               {visibleColumns.labels && (
                 <th className="column-labels">
                   <div className="header-with-action">
@@ -1474,7 +1633,6 @@ export function ProblemsList({
                   </div>
                 </th>
               )}
-              {visibleColumns.votes && <th className="column-votes">Votes</th>}
             </tr>
           </thead>
           <tbody>
@@ -1744,6 +1902,31 @@ export function ProblemsList({
                       problemId={problem.id}
                     />
                   </td>
+                  {visibleColumns.votes && (
+                    <td className="problem-votes column-votes">
+                      {(() => {
+                        const userVoteCount = userVotes[problem.id] || 0;
+                        const hasUserVotes = userVoteCount > 0;
+                        const isResolved = problem.status === Status.Resolved;
+                        const isDisabled = isResolved && !hasUserVotes;
+                        
+                        const tooltipText = isResolved 
+                          ? (hasUserVotes ? 'Click to remove your votes' : 'Cannot vote on resolved problems')
+                          : (hasUserVotes ? `Your votes: ${userVoteCount} — Click to adjust` : 'Click to vote');
+                        
+                        return (
+                          <button
+                            onClick={() => !isDisabled && openVotingPopup(problem.id)}
+                            disabled={isDisabled}
+                            className={`vote-bubble ${hasUserVotes ? 'voted' : 'not-voted'} ${isDisabled ? 'disabled' : ''}`}
+                            title={tooltipText}
+                          >
+                            {problem.votes}
+                          </button>
+                        );
+                      })()}
+                    </td>
+                  )}
                   {visibleColumns.labels && (
                     <td className="problem-text column-labels">
                       <LabelCell
@@ -1818,32 +2001,6 @@ export function ProblemsList({
                       </select>
                     </td>
                   )}
-                  {visibleColumns.votes && (
-                    <td className="problem-votes column-votes">
-                      <button
-                        onClick={() => handleVoteIncrement(problem.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'inherit',
-                          cursor: 'pointer',
-                          fontSize: '0.75rem',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '4px',
-                          transition: 'background-color 0.2s',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'var(--bg-hover, rgba(0,0,0,0.05))';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
-                        title="Click to increment votes"
-                      >
-                        {problem.votes}
-                      </button>
-                    </td>
-                  )}
                 </tr>
               );
             })}
@@ -1868,17 +2025,94 @@ export function ProblemsList({
                   +
                 </button>
               </td>
+              {visibleColumns.votes && <td className="insert-button-cell column-votes"></td>}
               {visibleColumns.labels && <td className="insert-button-cell column-labels"></td>}
               {visibleColumns.objective && <td className="insert-button-cell column-objective"></td>}
               {visibleColumns.keyResults && <td className="insert-button-cell column-key-results"></td>}
               {visibleColumns.actions && <td className="insert-button-cell column-actions"></td>}
               {visibleColumns.blockers && <td className="insert-button-cell column-blockers"></td>}
               {visibleColumns.status && <td className="insert-button-cell column-status"></td>}
-              {visibleColumns.votes && <td className="insert-button-cell column-votes"></td>}
             </tr>
           </tbody>
         </table>
       </div>
+
+      {/* Voting Popup */}
+      {votingPopup && createPortal(
+        <>
+          <div className="vote-popup-backdrop" onClick={closeVotingPopup} />
+          <div className="vote-popup">
+            <h4>Adjust Your Votes</h4>
+            <p className="vote-popup-problem-text">
+              {(() => {
+                const problem = problems.find(p => p.id === votingPopup.problemId);
+                if (!problem) return '';
+                try {
+                  const parsed = JSON.parse(problem.problem);
+                  return parsed.summary || '';
+                } catch {
+                  return problem.problem || '';
+                }
+              })()}
+            </p>
+            <div className="vote-popup-controls">
+              <button
+                className="vote-popup-btn"
+                onClick={() => handleRemoveVote(votingPopup.problemId)}
+                disabled={(userVotes[votingPopup.problemId] || 0) === 0}
+              >
+                −
+              </button>
+              <span className="vote-popup-count">{userVotes[votingPopup.problemId] || 0}</span>
+              <button
+                className="vote-popup-btn"
+                onClick={() => handleAddVote(votingPopup.problemId)}
+                disabled={
+                  problems.find(p => p.id === votingPopup.problemId)?.status === Status.Resolved || 
+                  availableVotes === 0
+                }
+              >
+                +
+              </button>
+            </div>
+            <p className="vote-popup-info">
+              {problems.find(p => p.id === votingPopup.problemId)?.status === Status.Resolved
+                ? 'Resolved — can only remove votes'
+                : `${availableVotes} vote${availableVotes !== 1 ? 's' : ''} remaining`}
+            </p>
+            
+            {votingPopup.voters.length > 0 && (
+              <div className="vote-popup-voters">
+                <h5>Who Voted</h5>
+                <div className="voters-list">
+                  {votingPopup.voters.map((voter) => (
+                    <div 
+                      key={voter.userId} 
+                      className={`voter-item ${voter.userName === 'You' ? 'current-user' : ''}`}
+                    >
+                      <div className="voter-info">
+                        <div className="voter-avatar">
+                          {voter.userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className="voter-name">{voter.userName}</span>
+                      </div>
+                      <div className="voter-votes">
+                        <span className="count">{voter.count}</span>
+                        <span>vote{voter.count !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <button className="vote-popup-close-btn" onClick={closeVotingPopup} title="Close">
+              ×
+            </button>
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   );
 }

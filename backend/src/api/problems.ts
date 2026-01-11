@@ -5,7 +5,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { getProblemRepository } from '../models/repository-factory';
+import { getProblemRepository, getVoteRepository } from '../models/repository-factory';
+import { getVoteService } from '../services/vote-service';
 import { Status } from '../../../shared/types';
 import { PrismaClient } from '@prisma/client';
 
@@ -350,6 +351,105 @@ router.patch('/:id/reorder', async (req: Request, res: Response) => {
     }
     console.error('Error reordering problem:', error);
     res.status(500).json({ error: 'Failed to reorder problem' });
+  }
+});
+
+/**
+ * POST /api/problems/:id/vote
+ * Add a vote to a problem
+ * 
+ * Requires authentication. Increments the user's vote count on this problem
+ * and the problem's total vote count.
+ * 
+ * Response: VoteResponse with updated problem, user's vote count, available votes, and voters list
+ */
+router.post('/:id/vote', async (req: Request, res: Response) => {
+  try {
+    // Voting requires authentication
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required to vote' });
+    }
+
+    const voteService = getVoteService(req.prisma);
+    const result = await voteService.addVote(
+      req.userId,
+      req.organizationId,
+      req.params.id
+    );
+
+    res.json(result);
+  } catch (error: any) {
+    if (error.message === 'Problem not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    if (error.message === 'Cannot vote on resolved problems') {
+      return res.status(400).json({ error: error.message });
+    }
+    if (error.message.includes('Vote limit reached')) {
+      return res.status(400).json({ error: error.message });
+    }
+    console.error('Error adding vote:', error);
+    res.status(500).json({ error: 'Failed to add vote' });
+  }
+});
+
+/**
+ * DELETE /api/problems/:id/vote
+ * Remove a vote from a problem
+ * 
+ * Requires authentication. Decrements the user's vote count on this problem
+ * and the problem's total vote count.
+ * 
+ * Response: VoteResponse with updated problem, user's vote count, available votes, and voters list
+ */
+router.delete('/:id/vote', async (req: Request, res: Response) => {
+  try {
+    // Voting requires authentication
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required to vote' });
+    }
+
+    const voteService = getVoteService(req.prisma);
+    const result = await voteService.removeVote(
+      req.userId,
+      req.organizationId,
+      req.params.id
+    );
+
+    res.json(result);
+  } catch (error: any) {
+    if (error.message === 'Problem not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    if (error.message === 'No votes to remove') {
+      return res.status(400).json({ error: error.message });
+    }
+    console.error('Error removing vote:', error);
+    res.status(500).json({ error: 'Failed to remove vote' });
+  }
+});
+
+/**
+ * GET /api/problems/:id/voters
+ * Get the list of voters for a problem
+ * 
+ * Response: Array of VoterInfo objects
+ */
+router.get('/:id/voters', async (req: Request, res: Response) => {
+  try {
+    const voteService = getVoteService(req.prisma);
+    const voters = await voteService.getVotersForProblem(
+      req.organizationId,
+      req.params.id
+    );
+
+    res.json(voters);
+  } catch (error: any) {
+    if (error.message === 'Problem not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error('Error getting voters:', error);
+    res.status(500).json({ error: 'Failed to get voters' });
   }
 });
 

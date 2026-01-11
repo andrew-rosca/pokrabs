@@ -6,6 +6,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { getWorkspaceRepository, getProblemRepository, getViewRepository } from '../models/repository-factory';
+import { getVoteService } from '../services/vote-service';
 import { generateId } from '../utils/id-generator';
 import { Status } from '../../../shared/types';
 import { PrismaClient } from '@prisma/client';
@@ -390,10 +391,45 @@ router.delete('/:id', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/workspaces/:workspaceId/votes
+ * Get the current user's vote status in a workspace
+ * 
+ * Returns:
+ *   - availableVotes: number of votes the user can still cast
+ *   - maxVotes: maximum votes allowed per user per workspace
+ *   - userVotes: map of problemId to user's vote count on that problem
+ */
+router.get('/:workspaceId/votes', async (req: Request, res: Response) => {
+  try {
+    const { workspaceId } = req.params;
+    
+    // Voting status requires authentication
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    // Verify workspace exists
+    const workspaceRepo = getRepositoryWithPrisma(req);
+    const workspace = await workspaceRepo.findById(workspaceId, req.organizationId);
+    if (!workspace) {
+      return res.status(404).json({ error: 'Workspace not found' });
+    }
+    
+    const voteService = getVoteService(req.prisma);
+    const voteStatus = await voteService.getVoteStatus(req.userId, workspaceId);
+    
+    res.json(voteStatus);
+  } catch (error) {
+    console.error('Error getting vote status:', error);
+    res.status(500).json({ error: 'Failed to get vote status' });
+  }
+});
+
+/**
  * GET /api/workspaces/:id
  * Get a workspace by ID
  * 
- * NOTE: This route must come after /:workspaceId/problems and /:id/use to avoid route conflicts
+ * NOTE: This route must come after /:workspaceId/problems, /:workspaceId/votes, and /:id/use to avoid route conflicts
  */
 router.get('/:id', async (req: Request, res: Response) => {
   try {

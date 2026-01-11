@@ -4,7 +4,7 @@
  * Handles all communication with the backend API.
  */
 
-import { Problem, Workspace, View, CreateViewRequest, UpdateViewRequest, ViewFilters } from '../../../shared/types';
+import { Problem, Workspace, View, CreateViewRequest, UpdateViewRequest, ViewFilters, VoteStatusResponse, VoteResponse, VoterInfo } from '../../../shared/types';
 
 /**
  * Custom error for authentication failures
@@ -482,3 +482,93 @@ export async function deleteView(viewId: string): Promise<void> {
   }
 }
 
+// =============================================================================
+// Voting API
+// =============================================================================
+
+/**
+ * Get the current user's vote status in a workspace
+ * Returns available votes, max votes, and map of user's votes per problem
+ */
+export async function fetchVoteStatus(workspaceId: string): Promise<VoteStatusResponse> {
+  const response = await fetch(`${API_URL}/api/workspaces/${workspaceId}/votes`, {
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to access vote status');
+    }
+    throw new Error(`Failed to fetch vote status: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Add a vote to a problem
+ * Returns updated problem, user's vote count, available votes, and voters list
+ */
+export async function addVote(problemId: string): Promise<VoteResponse> {
+  const response = await fetch(`${API_URL}/api/problems/${problemId}/vote`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to vote');
+    }
+    let errorMessage = `Failed to add vote: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+}
+
+/**
+ * Remove a vote from a problem
+ * Returns updated problem, user's vote count, available votes, and voters list
+ */
+export async function removeVote(problemId: string): Promise<VoteResponse> {
+  const response = await fetch(`${API_URL}/api/problems/${problemId}/vote`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to vote');
+    }
+    let errorMessage = `Failed to remove vote: ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+}
+
+/**
+ * Get the list of voters for a problem
+ */
+export async function fetchVoters(problemId: string): Promise<VoterInfo[]> {
+  const response = await fetch(`${API_URL}/api/problems/${problemId}/voters`, {
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthenticationError('Authentication required to access voters');
+    }
+    throw new Error(`Failed to fetch voters: ${response.statusText}`);
+  }
+  return response.json();
+}
