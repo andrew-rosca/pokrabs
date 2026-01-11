@@ -100,6 +100,8 @@ router.post('/workspaces/:workspaceId/views', async (req: Request, res: Response
     const viewFilters: ViewFilters = {
       selectedStatuses: Array.isArray(filters.selectedStatuses) ? filters.selectedStatuses : [],
       selectedLabels,
+      filterByMyVotes: filters.filterByMyVotes === true ? true : undefined,
+      sortBy: filters.sortBy === 'votes' || filters.sortBy === 'priority' ? filters.sortBy : undefined,
     };
     
     const viewRepo = getViewRepoWithPrisma(req);
@@ -189,6 +191,8 @@ router.patch('/:id', async (req: Request, res: Response) => {
       updateData.filters = {
         selectedStatuses: Array.isArray(filters.selectedStatuses) ? filters.selectedStatuses : [],
         selectedLabels,
+        filterByMyVotes: filters.filterByMyVotes === true ? true : undefined,
+        sortBy: filters.sortBy === 'votes' || filters.sortBy === 'priority' ? filters.sortBy : undefined,
       };
     }
     

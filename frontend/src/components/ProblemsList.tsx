@@ -93,8 +93,22 @@ export function ProblemsList({
     voters: VoterInfo[];
   } | null>(null);
 
+  // Vote filter dialog state
+  const [voteFilterDialogOpen, setVoteFilterDialogOpen] = useState<boolean>(false);
+  const voteFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const [voteFilterDialogPosition, setVoteFilterDialogPosition] = useState({ top: 0, left: 0 });
+
+  // Vote filter and sort state - use viewFilters if provided
+  const [filterByMyVotes, setFilterByMyVotes] = useState<boolean>(() => {
+    return viewFilters?.filterByMyVotes ?? false;
+  });
+
+  const [sortBy, setSortBy] = useState<'votes' | 'priority'>(() => {
+    return viewFilters?.sortBy ?? 'priority';
+  });
+
   // Helper function to handle authentication errors
-  const handleAuthError = (error: unknown, defaultMessage: string): boolean => {
+  const handleAuthError = (error: unknown, _defaultMessage: string): boolean => {
     if (error instanceof AuthenticationError) {
       const shouldLogin = window.confirm(
         'Authentication is required to perform this action. Would you like to log in now?'
@@ -170,6 +184,8 @@ export function ProblemsList({
     if (viewFilters) {
       setSelectedStatuses(new Set(viewFilters.selectedStatuses as Status[]));
       setSelectedLabels(new Set(viewFilters.selectedLabels));
+      setFilterByMyVotes(viewFilters.filterByMyVotes ?? false);
+      setSortBy(viewFilters.sortBy ?? 'priority');
     }
   }, [viewFilters]);
 
@@ -192,26 +208,34 @@ export function ProblemsList({
     }
   }, [selectedLabels, viewFilters]);
 
-  // Handle Escape key to cancel pending move
+  // Handle Escape key to cancel pending move or close dialogs
   useEffect(() => {
-    if (!pendingMove) return;
+    if (!pendingMove && !votingPopup && !voteFilterDialogOpen) return;
     
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
-        setPendingMove(null);
-        // Reset drag state
-        setDraggedProblemId(null);
-        setDropTargetIndex(null);
-        setDropPosition(null);
-        dragOverCountRef.current = 0;
+        if (pendingMove) {
+          setPendingMove(null);
+          // Reset drag state
+          setDraggedProblemId(null);
+          setDropTargetIndex(null);
+          setDropPosition(null);
+          dragOverCountRef.current = 0;
+        }
+        if (votingPopup) {
+          closeVotingPopup();
+        }
+        if (voteFilterDialogOpen) {
+          closeVoteFilterDialog();
+        }
       }
     };
     
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [pendingMove]);
+  }, [pendingMove, votingPopup, voteFilterDialogOpen]);
 
   // Toggle column visibility
   const toggleColumn = (column: keyof typeof visibleColumns) => {
@@ -302,6 +326,14 @@ export function ProblemsList({
         navigate('/', { replace: true });
       }
     }
+  };
+
+  // Check if a problem has any children (direct or nested)
+  // Defined early so it can be used in useEffect hooks
+  const hasChildren = (problemId: string): boolean => {
+    const problem = problems.find(p => p.id === problemId);
+    if (!problem) return false;
+    return problems.some(p => p.idPath.startsWith(problem.idPath + '-'));
   };
 
   // Handle URL navigation to specific problem
@@ -675,6 +707,69 @@ export function ProblemsList({
     setVotingPopup(null);
   };
 
+  // Handle filter by my votes change
+  const handleFilterByMyVotesChange = (value: boolean) => {
+    setFilterByMyVotes(value);
+    if (onFiltersChange && viewFilters) {
+      onFiltersChange({
+        ...viewFilters,
+        filterByMyVotes: value || undefined,
+        sortBy: sortBy === 'priority' ? undefined : sortBy,
+      });
+    }
+  };
+
+  // Handle sort by change
+  const handleSortByChange = (value: 'votes' | 'priority') => {
+    setSortBy(value);
+    if (onFiltersChange && viewFilters) {
+      onFiltersChange({
+        ...viewFilters,
+        filterByMyVotes: filterByMyVotes || undefined,
+        sortBy: value === 'priority' ? undefined : value,
+      });
+    }
+  };
+
+  // Open vote filter dialog
+  const openVoteFilterDialog = () => {
+    if (voteFilterButtonRef.current) {
+      const rect = voteFilterButtonRef.current.getBoundingClientRect();
+      const dialogWidth = 280;
+      const dialogHeight = 200; // approximate height
+      
+      // Calculate initial position
+      let top = rect.bottom + 4;
+      let left = rect.left;
+      
+      // Adjust horizontal position if it would go off-screen
+      const viewportWidth = window.innerWidth;
+      if (left + dialogWidth > viewportWidth) {
+        left = rect.right - dialogWidth;
+        if (left < 0) {
+          left = 10;
+        }
+      }
+      
+      // Adjust vertical position if it would go off-screen
+      const viewportHeight = window.innerHeight;
+      if (top + dialogHeight > viewportHeight) {
+        top = rect.top - dialogHeight - 4;
+        if (top < 0) {
+          top = 10;
+        }
+      }
+      
+      setVoteFilterDialogPosition({ top, left });
+    }
+    setVoteFilterDialogOpen(true);
+  };
+
+  // Close vote filter dialog
+  const closeVoteFilterDialog = () => {
+    setVoteFilterDialogOpen(false);
+  };
+
   // Handle deleting a problem
   const handleDeleteProblem = async (problemId: string) => {
     clearUrlIfDifferentProblem(problemId);
@@ -723,12 +818,6 @@ export function ProblemsList({
     }
   };
 
-  // Check if a problem has any children (direct or nested)
-  const hasChildren = (problemId: string): boolean => {
-    const problem = problems.find(p => p.id === problemId);
-    if (!problem) return false;
-    return problems.some(p => p.idPath.startsWith(problem.idPath + '-'));
-  };
 
   // Check if a problem has grandchildren (at least 2 levels of depth below)
   const hasGrandchildren = (problemId: string): boolean => {
@@ -905,14 +994,25 @@ export function ProblemsList({
       childrenByParent.get(effectiveParentId)!.push(p);
     }
     
-    // Sort each group of siblings by priority, then by createdAt
+    // Sort each group of siblings based on sortBy option
     for (const children of childrenByParent.values()) {
       children.sort((a, b) => {
-        if (a.priority !== b.priority) {
-          return a.priority - b.priority;
+        if (sortBy === 'votes') {
+          // Sort by votes descending (highest first), then priority, then createdAt
+          if (a.votes !== b.votes) {
+            return b.votes - a.votes;
+          }
+          if (a.priority !== b.priority) {
+            return a.priority - b.priority;
+          }
+          return a.createdAt.localeCompare(b.createdAt);
+        } else {
+          // Sort by priority ascending (lower number = higher priority), then createdAt
+          if (a.priority !== b.priority) {
+            return a.priority - b.priority;
+          }
+          return a.createdAt.localeCompare(b.createdAt);
         }
-        // If same priority, sort by createdAt (older first)
-        return a.createdAt.localeCompare(b.createdAt);
       });
     }
     
@@ -973,6 +1073,10 @@ export function ProblemsList({
           p.labels.some(label => selectedLabels.has(label))
         );
       }
+      // Apply vote filter
+      if (filterByMyVotes) {
+        filtered = filtered.filter(p => (userVotes[p.id] || 0) > 0);
+      }
       return filtered;
     }
     
@@ -985,6 +1089,11 @@ export function ProblemsList({
         p.labels && p.labels.length > 0 && 
         p.labels.some(label => selectedLabels.has(label))
       );
+    }
+    
+    // Apply vote filter
+    if (filterByMyVotes) {
+      filtered = filtered.filter(p => (userVotes[p.id] || 0) > 0);
     }
     
     // When not searching, filter out problems hidden by collapsed parents
@@ -1605,7 +1714,21 @@ export function ProblemsList({
                   </div>
                 </div>
               </th>
-              {visibleColumns.votes && <th className="column-votes">Votes</th>}
+              {visibleColumns.votes && (
+                <th className="column-votes">
+                  <div className="header-with-action">
+                    <button
+                      ref={voteFilterButtonRef}
+                      className={`vote-filter-button ${(filterByMyVotes || sortBy !== 'priority') ? 'active' : ''}`}
+                      onClick={openVoteFilterDialog}
+                      title={filterByMyVotes || sortBy !== 'priority' ? 'Vote filter active' : 'Filter and sort options'}
+                      aria-label="Filter and sort by votes"
+                    >
+                      VOTES
+                    </button>
+                  </div>
+                </th>
+              )}
               {visibleColumns.labels && (
                 <th className="column-labels">
                   <div className="header-with-action">
@@ -2081,7 +2204,7 @@ export function ProblemsList({
                 : `${availableVotes} vote${availableVotes !== 1 ? 's' : ''} remaining`}
             </p>
             
-            {votingPopup.voters.length > 0 && (
+            {votingPopup.voters && votingPopup.voters.length > 0 && (
               <div className="vote-popup-voters">
                 <h5>Who Voted</h5>
                 <div className="voters-list">
@@ -2107,6 +2230,80 @@ export function ProblemsList({
             )}
             
             <button className="vote-popup-close-btn" onClick={closeVotingPopup} title="Close">
+              ×
+            </button>
+          </div>
+        </>,
+        document.body
+      )}
+
+      {/* Vote Filter Dialog */}
+      {voteFilterDialogOpen && createPortal(
+        <>
+          <div className="vote-filter-dialog-backdrop" onClick={closeVoteFilterDialog} />
+          <div 
+            className="vote-filter-dialog"
+            style={{
+              top: `${voteFilterDialogPosition.top}px`,
+              left: `${voteFilterDialogPosition.left}px`,
+            }}
+          >
+            <h4>Filter & Sort</h4>
+            
+            <div className="vote-filter-options">
+              <h5>Filter</h5>
+              <label className="vote-filter-radio">
+                <input
+                  type="radio"
+                  name="filterBy"
+                  value="all"
+                  checked={!filterByMyVotes}
+                  onChange={() => handleFilterByMyVotesChange(false)}
+                  disabled={!isAuthenticated}
+                />
+                <span>Show all problems</span>
+              </label>
+              <label className="vote-filter-radio">
+                <input
+                  type="radio"
+                  name="filterBy"
+                  value="myVotes"
+                  checked={filterByMyVotes}
+                  onChange={() => handleFilterByMyVotesChange(true)}
+                  disabled={!isAuthenticated}
+                />
+                <span>Only show problems I voted on</span>
+              </label>
+              {!isAuthenticated && (
+                <span className="vote-filter-hint">Requires authentication</span>
+              )}
+            </div>
+
+            <div className="vote-filter-sort-options">
+              <h5>Sort by</h5>
+              <label className="vote-filter-radio">
+                <input
+                  type="radio"
+                  name="sortBy"
+                  value="priority"
+                  checked={sortBy === 'priority'}
+                  onChange={() => handleSortByChange('priority')}
+                />
+                <span>Priority</span>
+              </label>
+              <label className="vote-filter-radio">
+                <input
+                  type="radio"
+                  name="sortBy"
+                  value="votes"
+                  checked={sortBy === 'votes'}
+                  onChange={() => handleSortByChange('votes')}
+                />
+                <span>Total votes</span>
+              </label>
+            </div>
+
+            <button className="vote-filter-dialog-close-btn" onClick={closeVoteFilterDialog} title="Close">
               ×
             </button>
           </div>

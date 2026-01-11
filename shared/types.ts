@@ -61,6 +61,8 @@ export interface UpdateProblemRequest {
 export interface ViewFilters {
   selectedStatuses: string[];
   selectedLabels: string[];
+  filterByMyVotes?: boolean;
+  sortBy?: 'votes' | 'priority' | null;
 }
 
 export interface View {
