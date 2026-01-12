@@ -3247,15 +3247,8 @@ describe('ProblemsList', () => {
       });
     });
 
-    it.skip('should open dialog when vote header button is clicked', async () => {
+    it('should open dialog when vote header button is clicked', async () => {
       const user = userEvent.setup();
-      // Ensure mocks are set up
-      mockFetchProblems.mockResolvedValue(mockProblems);
-      mockFetchVoteStatus.mockResolvedValue({
-        availableVotes: 10,
-        maxVotes: 10,
-        userVotes: { 'i0': 2, 'i5': 1 },
-      });
       
       renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
@@ -3273,7 +3266,7 @@ describe('ProblemsList', () => {
       });
     });
 
-    it.skip('should close dialog when backdrop is clicked', async () => {
+    it('should close dialog when backdrop is clicked', async () => {
       const user = userEvent.setup();
       // Ensure mocks are set up
       mockFetchProblems.mockResolvedValue(mockProblems);
@@ -3307,8 +3300,7 @@ describe('ProblemsList', () => {
       });
     });
 
-    it.skip('should close dialog when close button is clicked', async () => {
-      // This test has timing issues - functionality is covered by other tests
+    it('should close dialog when close button is clicked', async () => {
       const user = userEvent.setup();
       mockFetchProblems.mockResolvedValue(mockProblems);
       mockFetchVoteStatus.mockResolvedValue({
@@ -3353,10 +3345,11 @@ describe('ProblemsList', () => {
         />
       );
       
+      // Wait for problems to load and render
       await waitFor(() => {
         expect(screen.getByText('Problem 1')).toBeInTheDocument();
         expect(screen.getByText('Problem 2')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
 
       const voteHeader = screen.getByText('VOTES');
       await userEvent.click(voteHeader);
