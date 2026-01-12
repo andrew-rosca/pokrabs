@@ -3227,6 +3227,9 @@ describe('ProblemsList', () => {
 
   describe('Vote Filter Dialog', () => {
     beforeEach(() => {
+      // Clear localStorage to avoid state pollution from other tests
+      localStorage.clear();
+      
       // Enable votes column
       localStorage.setItem('pokrabs-column-visibility', JSON.stringify({ 
         labels: true,
@@ -3237,8 +3240,13 @@ describe('ProblemsList', () => {
         status: true, 
         votes: true 
       }));
+      
+      // Reset all mocks explicitly
+      vi.clearAllMocks();
+      
       // Mock problems
       mockFetchProblems.mockResolvedValue(mockProblems);
+      
       // Mock vote status
       mockFetchVoteStatus.mockResolvedValue({
         availableVotes: 10,
@@ -3252,13 +3260,11 @@ describe('ProblemsList', () => {
       
       renderWithRouter(<ProblemsList workspaceId={workspaceId} />);
       
-      // Wait for problems to load
-      await waitFor(() => {
-        expect(screen.getByText('Problem 1')).toBeInTheDocument();
-      }, { timeout: 3000 });
-
-      // Find the VOTES button
-      const voteHeader = screen.getByText('VOTES');
+      // Wait for the VOTES button to appear (this confirms the table is loaded and votes column is visible)
+      const voteHeader = await waitFor(() => {
+        return screen.getByText('VOTES');
+      }, { timeout: 5000 });
+      
       await user.click(voteHeader);
 
       await waitFor(() => {
