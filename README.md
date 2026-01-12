@@ -8,16 +8,37 @@ The fastest way to try POKRABS is using Docker in demo mode. This will start the
 
 ### Prerequisites
 
-- [Docker](https://www.docker.com/get-started) and Docker Compose installed
+- [Docker](https://www.docker.com/get-started) installed and running
+- Docker Compose (included with Docker Desktop, or install separately)
 
-### Launch the Application
+### Option 1: Quick Launch (Recommended - Uses Published Images)
+
+The simplest way to launch the demo is using our one-command script that pulls pre-built images from the cloud:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/andrew-rosca/pokrabs/main/scripts/run-demo.sh | bash
+```
+
+That's it! The script will:
+- Check that Docker is running
+- Download the docker-compose configuration
+- Pull the latest published images from GitHub Container Registry
+- Start the application with sample data
+
+**Access the application:** Open http://localhost:3000 in your browser
+
+**To stop:** Press `Ctrl+C` in the terminal
+
+### Option 2: Local Build (For Development)
+
+If you want to build the images locally or make code changes:
 
 ```bash
 docker-compose -f docker-compose.demo.yml up
 ```
 
-That's it! The application will:
-- Build the Docker image (first time only)
+This will:
+- Build the Docker images locally (first time only, takes longer)
 - Run database migrations automatically
 - Seed the database with sample data
 - Start the server
@@ -39,6 +60,10 @@ docker-compose down
 
 **Restart the application:**
 ```bash
+# For published images (Option 1):
+curl -sSL https://raw.githubusercontent.com/andrew-rosca/pokrabs/main/scripts/run-demo.sh | bash
+
+# For local build (Option 2):
 docker-compose -f docker-compose.demo.yml up
 ```
 
@@ -47,7 +72,7 @@ docker-compose -f docker-compose.demo.yml up
 docker-compose logs -f
 ```
 
-**Rebuild after code changes:**
+**Rebuild after code changes (Option 2 only):**
 ```bash
 docker-compose -f docker-compose.demo.yml up --build
 ```
@@ -147,12 +172,18 @@ POKRABS supports three deployment modes via Docker:
 
 ### 1. Demo Mode
 
-**File:** `docker-compose.demo.yml`
+**Files:** `docker-compose.demo.yml` (local build) or `docker-compose.demo-pull.yml` (published images)
 
 - Ephemeral data storage (data lost on container removal)
 - Automatic seeding on startup
 - Perfect for demonstrations and testing
 
+**Quick start (uses published images):**
+```bash
+curl -sSL https://raw.githubusercontent.com/andrew-rosca/pokrabs/main/scripts/run-demo.sh | bash
+```
+
+**Local build:**
 ```bash
 docker-compose -f docker-compose.demo.yml up
 ```
@@ -321,4 +352,11 @@ This setup is designed to easily integrate with GitHub Actions:
 
 ## License
 
-ISC
+This project is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International License** (CC BY-NC 4.0).
+
+This means:
+- ✅ You can use, modify, and distribute this software
+- ✅ You must give appropriate credit and link to the license
+- ❌ **You may NOT use this software for commercial purposes**
+
+For full license terms, see [LICENSE](LICENSE) file or visit: https://creativecommons.org/licenses/by-nc/4.0/

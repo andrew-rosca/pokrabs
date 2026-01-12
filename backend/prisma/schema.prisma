@@ -80,6 +80,9 @@ model User {
   /// Relationship to organization
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  /// Related votes
+  votes Vote[]
+
   @@unique([authId, authProvider])
   @@index([organizationId])
   @@index([authId, authProvider])
@@ -199,6 +202,9 @@ model Problem {
   /// Relationship to organization
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  /// Related votes
+  voteRecords Vote[]
+
   @@index([workspaceId])
   @@index([organizationId])
   @@index([parentId])
@@ -269,6 +275,43 @@ model View {
   @@index([organizationId, deletedAt])
   @@index([workspaceId, lastUsedAt])
   @@map("views")
+}
+
+/**
+ * Votes Table
+ * Tracks individual user votes on problems.
+ * A user can cast multiple votes on the same problem (dot voting).
+ */
+model Vote {
+  /// Unique identifier for the vote (UUID)
+  id String @id
+
+  /// User ID (required - who cast this vote)
+  userId String
+
+  /// Problem ID (required - what problem this vote is for)
+  problemId String
+
+  /// Number of votes the user has cast on this problem
+  count Int @default(1)
+
+  /// Timestamp when vote was created
+  createdAt DateTime @default(now())
+
+  /// Timestamp when vote was last updated
+  updatedAt DateTime @updatedAt
+
+  /// Relationship to user (cascade delete when user is deleted)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Relationship to problem (cascade delete when problem is deleted)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  /// Each user can only have one vote record per problem (but count can be > 1)
+  @@unique([userId, problemId])
+  @@index([userId])
+  @@index([problemId])
+  @@map("votes")
 }
 
 /**

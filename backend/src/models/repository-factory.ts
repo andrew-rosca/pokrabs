@@ -12,17 +12,20 @@ import { IProblemRepository } from './problem-repository';
 import { IViewRepository } from './view-repository';
 import { IOrganizationRepository } from './organization-repository';
 import { IUserRepository } from './user-repository';
+import { IVoteRepository } from './vote-repository';
 import { PrismaWorkspaceRepository } from './prisma-workspace-repository';
 import { PrismaProblemRepository } from './prisma-problem-repository';
 import { PrismaViewRepository } from './prisma-view-repository';
 import { PrismaOrganizationRepository } from './prisma-organization-repository';
 import { PrismaUserRepository } from './prisma-user-repository';
+import { PrismaVoteRepository } from './prisma-vote-repository';
 
 let workspaceRepository: IWorkspaceRepository | null = null;
 let problemRepository: IProblemRepository | null = null;
 let viewRepository: IViewRepository | null = null;
 let organizationRepository: IOrganizationRepository | null = null;
 let userRepository: IUserRepository | null = null;
+let voteRepository: IVoteRepository | null = null;
 
 /**
  * Get or create Workspace repository instance
@@ -125,6 +128,26 @@ export function getUserRepository(prisma?: PrismaClient): IUserRepository {
 }
 
 /**
+ * Get or create Vote repository instance
+ * 
+ * @param prisma - Optional Prisma client (for testing)
+ * @returns Vote repository instance
+ */
+export function getVoteRepository(prisma?: PrismaClient): IVoteRepository {
+  if (prisma) {
+    // For testing: create new instance with provided client
+    return new PrismaVoteRepository(prisma);
+  }
+
+  // Production: use singleton pattern
+  if (!voteRepository) {
+    voteRepository = new PrismaVoteRepository(getPrismaClient());
+  }
+
+  return voteRepository;
+}
+
+/**
  * Reset repository singletons (for testing)
  */
 export function resetRepositories(): void {
@@ -133,5 +156,6 @@ export function resetRepositories(): void {
   viewRepository = null;
   organizationRepository = null;
   userRepository = null;
+  voteRepository = null;
 }
 
