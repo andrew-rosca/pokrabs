@@ -19,6 +19,7 @@ import { ListCell } from './ListCell';
 import { StatusFilter } from './StatusFilter';
 import { LabelFilter } from './LabelFilter';
 import { LabelCell } from './LabelCell';
+import { useKeyboardShortcuts, ShortcutConfig } from '../hooks/useKeyboardShortcuts';
 
 interface ProblemsListProps {
   workspaceId: string;
@@ -27,13 +28,13 @@ interface ProblemsListProps {
   onFiltersChange?: (filters: ViewFilters) => void;
 }
 
-export function ProblemsList({ 
-  workspaceId, 
+export function ProblemsList({
+  workspaceId,
   searchQuery: externalSearchQuery,
   viewFilters,
   onFiltersChange,
 }: ProblemsListProps) {
-  const { workspaceId: urlWorkspaceId, viewId: urlViewId, problemId: urlProblemId } = useParams<{ 
+  const { workspaceId: urlWorkspaceId, viewId: urlViewId, problemId: urlProblemId } = useParams<{
     workspaceId?: string;
     viewId?: string;
     problemId?: string;
@@ -43,32 +44,32 @@ export function ProblemsList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoOpenEditor, setAutoOpenEditor] = useState<{ problemId: string; field: 'problem' | 'objective' } | null>(null);
-  
+
   // Collapse state - set of collapsed problem IDs (children hidden)
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
-  
+
   // Copy feedback state - tracks which ID was just copied
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  
+
   // Expanded problem details - tracks which problems have their detail sections expanded
   const [expandedDetails, setExpandedDetails] = useState<Set<string>>(new Set());
-  
+
   // Highlighted problem - used to flash attention on URL navigation
   const [highlightedProblemId, setHighlightedProblemId] = useState<string | null>(null);
-  
+
   // Ref to track problem rows for scrolling
   const problemRowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
-  
+
   // Search/filter state - use external search if provided, otherwise use local state
   const [localSearchQuery] = useState<string>('');
   const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : localSearchQuery;
-  
+
   // Drag-and-drop state
   const [draggedProblemId, setDraggedProblemId] = useState<string | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | 'child' | null>(null);
   const dragOverCountRef = useRef(0);
-  
+
   // Pending move operation (when parent change requires confirmation)
   const [pendingMove, setPendingMove] = useState<{
     problemId: string;
@@ -86,7 +87,7 @@ export function ProblemsList({
   const [availableVotes, setAvailableVotes] = useState<number>(10);
   const [maxVotes, setMaxVotes] = useState<number>(10);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  
+
   // Voting popup state
   const [votingPopup, setVotingPopup] = useState<{
     problemId: string;
@@ -106,6 +107,9 @@ export function ProblemsList({
   const [sortBy, setSortBy] = useState<'votes' | 'priority'>(() => {
     return viewFilters?.sortBy ?? 'priority';
   });
+
+  // Selection state for keyboard navigation
+  const [selectedProblemIndex, setSelectedProblemIndex] = useState<number>(-1);
 
   // Helper function to handle authentication errors
   const handleAuthError = (error: unknown, _defaultMessage: string): boolean => {
@@ -211,7 +215,7 @@ export function ProblemsList({
   // Handle Escape key to cancel pending move or close dialogs
   useEffect(() => {
     if (!pendingMove && !votingPopup && !voteFilterDialogOpen) return;
-    
+
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -232,7 +236,7 @@ export function ProblemsList({
         }
       }
     };
-    
+
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [pendingMove, votingPopup, voteFilterDialogOpen]);
@@ -278,7 +282,7 @@ export function ProblemsList({
         setError(null);
         const data = await fetchProblems(workspaceId);
         setProblems(data);
-        
+
         // Try to load vote status (requires authentication)
         try {
           const voteStatus = await fetchVoteStatus(workspaceId);
@@ -356,7 +360,7 @@ export function ProblemsList({
 
     // Build set of IDs that should be expanded (not collapsed)
     const shouldBeExpanded = new Set<string>();
-    
+
     // Add all ancestor problems to the expanded set
     const pathParts = targetProblem.idPath.split('-');
     for (let i = 0; i < pathParts.length - 1; i++) {
@@ -366,7 +370,7 @@ export function ProblemsList({
         shouldBeExpanded.add(ancestor.id);
       }
     }
-    
+
     // Add the target problem to show its children
     shouldBeExpanded.add(targetProblem.id);
 
@@ -407,10 +411,10 @@ export function ProblemsList({
           // Fallback to scrollIntoView
           rowElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-        
+
         // Highlight the row to draw attention
         setHighlightedProblemId(targetProblem.id);
-        
+
         // Clear highlight after animation completes
         setTimeout(() => {
           setHighlightedProblemId(null);
@@ -419,13 +423,7 @@ export function ProblemsList({
     }, 100);
   }, [urlProblemId, problems, navigate]);
 
-  if (loading) {
-    return <div className="loading">Loading problems...</div>;
-  }
 
-  if (error) {
-    return <div className="error">Error: {error}</div>;
-  }
 
   // Format value back to JSON for saving
   const formatFieldForSave = (fieldName: string, value: string): string => {
@@ -433,35 +431,35 @@ export function ProblemsList({
     // the value is already JSON from SummaryDetailCell or ListCell
     // So we just pass through the value
     if (fieldName === 'problem' || fieldName === 'objective' ||
-        fieldName === 'keyResults' || fieldName === 'actions' || fieldName === 'blockers') {
+      fieldName === 'keyResults' || fieldName === 'actions' || fieldName === 'blockers') {
       return value; // Already JSON from the cell components
     }
-    
+
     // For labels, convert comma-separated string to JSON array
     if (fieldName === 'labels') {
       const labelsArray = value.split(',').map(l => l.trim()).filter(l => l.length > 0);
       return JSON.stringify(labelsArray);
     }
-    
+
     return value;
   };
 
   // Handle saving a field
   const handleSaveField = async (problemId: string, fieldName: string, value: string) => {
     clearUrlIfDifferentProblem(problemId);
-    
+
     const problem = problems.find(p => p.id === problemId);
     if (!problem) return;
-    
+
     const formattedValue = formatFieldForSave(fieldName, value);
-    
+
     // For labels, convert to array for optimistic update
     let updateData: any = { [fieldName]: formattedValue };
     if (fieldName === 'labels') {
       const labelsArray = JSON.parse(formattedValue);
       updateData.labels = labelsArray;
     }
-    
+
     // Optimistically update the UI
     setProblems(prevProblems =>
       prevProblems.map(p =>
@@ -478,7 +476,7 @@ export function ProblemsList({
         backendUpdate.labels = JSON.parse(formattedValue);
       }
       const updated = await updateProblem(problemId, backendUpdate);
-      
+
       // Update with server response
       setProblems(prevProblems =>
         prevProblems.map(p =>
@@ -505,10 +503,10 @@ export function ProblemsList({
   // Handle status change
   const handleStatusChange = async (problemId: string, newStatus: Status) => {
     clearUrlIfDifferentProblem(problemId);
-    
+
     const problem = problems.find(p => p.id === problemId);
     if (!problem) return;
-    
+
     // Optimistically update the UI
     setProblems(prevProblems =>
       prevProblems.map(p =>
@@ -521,7 +519,7 @@ export function ProblemsList({
     try {
       // Save to backend
       const updated = await updateProblem(problemId, { status: newStatus });
-      
+
       // Update with server response
       setProblems(prevProblems =>
         prevProblems.map(p =>
@@ -545,7 +543,7 @@ export function ProblemsList({
   // Handle adding a vote
   const handleAddVote = async (problemId: string) => {
     clearUrlIfDifferentProblem(problemId);
-    
+
     if (!isAuthenticated) {
       const shouldLogin = window.confirm(
         'You must be logged in to vote. Would you like to log in now?'
@@ -555,26 +553,26 @@ export function ProblemsList({
       }
       return;
     }
-    
+
     const problem = problems.find(p => p.id === problemId);
     if (!problem) return;
-    
+
     // Check if can vote
     if (problem.status === Status.Resolved) {
       setError('Cannot vote on resolved problems');
       return;
     }
-    
+
     if (availableVotes <= 0) {
       setError(`Vote limit reached (${maxVotes} votes per workspace)`);
       return;
     }
-    
+
     // Optimistically update the UI
     const previousProblem = problem;
     const previousUserVotes = userVotes[problemId] || 0;
     const previousAvailableVotes = availableVotes;
-    
+
     setProblems(prevProblems =>
       prevProblems.map(p =>
         p.id === problemId
@@ -587,7 +585,7 @@ export function ProblemsList({
 
     try {
       const result = await addVote(problemId);
-      
+
       // Update with server response
       setProblems(prevProblems =>
         prevProblems.map(p =>
@@ -596,7 +594,7 @@ export function ProblemsList({
       );
       setUserVotes(prev => ({ ...prev, [problemId]: result.userVoteCount }));
       setAvailableVotes(result.availableVotes);
-      
+
       // Update popup if it's open
       if (votingPopup?.problemId === problemId) {
         setVotingPopup({ problemId, voters: result.voters });
@@ -610,7 +608,7 @@ export function ProblemsList({
       );
       setUserVotes(prev => ({ ...prev, [problemId]: previousUserVotes }));
       setAvailableVotes(previousAvailableVotes);
-      
+
       if (!handleAuthError(error, 'Error adding vote')) {
         setError(error.message || 'Failed to add vote');
       }
@@ -620,24 +618,24 @@ export function ProblemsList({
   // Handle removing a vote
   const handleRemoveVote = async (problemId: string) => {
     clearUrlIfDifferentProblem(problemId);
-    
+
     if (!isAuthenticated) {
       return;
     }
-    
+
     const problem = problems.find(p => p.id === problemId);
     if (!problem) return;
-    
+
     const currentUserVotes = userVotes[problemId] || 0;
     if (currentUserVotes <= 0) {
       return; // No votes to remove
     }
-    
+
     // Optimistically update the UI
     const previousProblem = problem;
     const previousUserVotes = currentUserVotes;
     const previousAvailableVotes = availableVotes;
-    
+
     setProblems(prevProblems =>
       prevProblems.map(p =>
         p.id === problemId
@@ -653,7 +651,7 @@ export function ProblemsList({
 
     try {
       const result = await removeVote(problemId);
-      
+
       // Update with server response
       setProblems(prevProblems =>
         prevProblems.map(p =>
@@ -662,7 +660,7 @@ export function ProblemsList({
       );
       setUserVotes(prev => ({ ...prev, [problemId]: result.userVoteCount }));
       setAvailableVotes(result.availableVotes);
-      
+
       // Update popup if it's open
       if (votingPopup?.problemId === problemId) {
         setVotingPopup({ problemId, voters: result.voters });
@@ -676,7 +674,7 @@ export function ProblemsList({
       );
       setUserVotes(prev => ({ ...prev, [problemId]: previousUserVotes }));
       setAvailableVotes(previousAvailableVotes);
-      
+
       if (!handleAuthError(error, 'Error removing vote')) {
         setError(error.message || 'Failed to remove vote');
       }
@@ -687,12 +685,12 @@ export function ProblemsList({
   const openVotingPopup = async (problemId: string) => {
     const problem = problems.find(p => p.id === problemId);
     if (!problem) return;
-    
+
     // For resolved problems without user votes, don't open popup
     if (problem.status === Status.Resolved && (userVotes[problemId] || 0) === 0) {
       return;
     }
-    
+
     try {
       const voters = await fetchVoters(problemId);
       setVotingPopup({ problemId, voters });
@@ -737,11 +735,11 @@ export function ProblemsList({
       const rect = voteFilterButtonRef.current.getBoundingClientRect();
       const dialogWidth = 280;
       const dialogHeight = 200; // approximate height
-      
+
       // Calculate initial position
       let top = rect.bottom + 4;
       let left = rect.left;
-      
+
       // Adjust horizontal position if it would go off-screen
       const viewportWidth = window.innerWidth;
       if (left + dialogWidth > viewportWidth) {
@@ -750,7 +748,7 @@ export function ProblemsList({
           left = 10;
         }
       }
-      
+
       // Adjust vertical position if it would go off-screen
       const viewportHeight = window.innerHeight;
       if (top + dialogHeight > viewportHeight) {
@@ -759,7 +757,7 @@ export function ProblemsList({
           top = 10;
         }
       }
-      
+
       setVoteFilterDialogPosition({ top, left });
     }
     setVoteFilterDialogOpen(true);
@@ -773,7 +771,7 @@ export function ProblemsList({
   // Handle deleting a problem
   const handleDeleteProblem = async (problemId: string) => {
     clearUrlIfDifferentProblem(problemId);
-    
+
     const previousProblems = problems;
     try {
       setError(null);
@@ -797,6 +795,8 @@ export function ProblemsList({
       console.error('Error deleting problem:', err);
     }
   };
+
+
 
   // Calculate depth from idPath (count dashes)
   const getDepth = (idPath: string): number => {
@@ -825,8 +825,8 @@ export function ProblemsList({
     if (!problem) return false;
     const problemDepth = getDepth(problem.idPath);
     // Find any descendant that is at least 2 levels deeper
-    return problems.some(p => 
-      p.idPath.startsWith(problem.idPath + '-') && 
+    return problems.some(p =>
+      p.idPath.startsWith(problem.idPath + '-') &&
       getDepth(p.idPath) >= problemDepth + 2
     );
   };
@@ -835,7 +835,7 @@ export function ProblemsList({
   const getDescendantIds = (problemId: string): Set<string> => {
     const problem = problems.find(p => p.id === problemId);
     if (!problem) return new Set();
-    
+
     const descendantIds = new Set<string>();
     for (const p of problems) {
       if (p.idPath.startsWith(problem.idPath + '-')) {
@@ -865,7 +865,7 @@ export function ProblemsList({
   // Toggle collapse for a single problem (show/hide direct children)
   const toggleCollapse = (problemId: string) => {
     clearUrlIfDifferentProblem(problemId);
-    
+
     setCollapsedIds(prev => {
       const next = new Set(prev);
       if (next.has(problemId)) {
@@ -880,7 +880,7 @@ export function ProblemsList({
   // Expand all descendants (remove from collapsed set)
   const expandAll = (problemId: string) => {
     clearUrlIfDifferentProblem(problemId);
-    
+
     const descendantIds = getDescendantIds(problemId);
     setCollapsedIds(prev => {
       const next = new Set(prev);
@@ -896,7 +896,7 @@ export function ProblemsList({
   // Collapse all descendants (add all with children to collapsed set)
   const collapseAll = (problemId: string) => {
     clearUrlIfDifferentProblem(problemId);
-    
+
     const descendantIds = getDescendantIds(problemId);
     setCollapsedIds(prev => {
       const next = new Set(prev);
@@ -928,7 +928,7 @@ export function ProblemsList({
   const problemIds = new Set(problems.map(p => p.id));
   const rootProblems = problems.filter(p => !p.parentId || !problemIds.has(p.parentId));
   const rootParents = rootProblems.filter(p => hasChildren(p.id));
-  
+
   const anyProblemsHaveChildren = problems.some(p => hasChildren(p.id));
   const anyProblemsHaveGrandchildren = problems.some(p => hasGrandchildren(p.id));
   const allRootParentsCollapsed = rootParents.length > 0 && rootParents.every(p => collapsedIds.has(p.id));
@@ -981,7 +981,7 @@ export function ProblemsList({
   const sortedProblems = (() => {
     // Build a set of all problem IDs for quick lookup
     const problemIds = new Set(problems.map(p => p.id));
-    
+
     // Group problems by parentId
     // Orphaned problems (parent not in list) are treated as root level
     const childrenByParent = new Map<string | null, Problem[]>();
@@ -993,7 +993,7 @@ export function ProblemsList({
       }
       childrenByParent.get(effectiveParentId)!.push(p);
     }
-    
+
     // Sort each group of siblings based on sortBy option
     for (const children of childrenByParent.values()) {
       children.sort((a, b) => {
@@ -1015,7 +1015,7 @@ export function ProblemsList({
         }
       });
     }
-    
+
     // Build flat list by traversing tree in order (DFS)
     const result: Problem[] = [];
     const traverse = (parentId: string | null) => {
@@ -1026,7 +1026,7 @@ export function ProblemsList({
       }
     };
     traverse(null); // Start from root problems
-    
+
     return result;
   })();
 
@@ -1047,7 +1047,7 @@ export function ProblemsList({
   const visibleProblems = (() => {
     // First, apply search filter if query exists
     let filtered = sortedProblems;
-    
+
     if (searchQuery.trim()) {
       const searchLower = searchQuery.toLowerCase();
       filtered = sortedProblems.filter(problem => {
@@ -1062,14 +1062,14 @@ export function ProblemsList({
           problem.labels?.some(label => label.toLowerCase().includes(searchLower))
         );
       });
-      
+
       // When searching, show all matching problems regardless of collapse state
       // Apply status filter
       filtered = filtered.filter(p => selectedStatuses.has(p.status));
       // Apply label filter
       if (selectedLabels.size > 0) {
-        filtered = filtered.filter(p => 
-          p.labels && p.labels.length > 0 && 
+        filtered = filtered.filter(p =>
+          p.labels && p.labels.length > 0 &&
           p.labels.some(label => selectedLabels.has(label))
         );
       }
@@ -1079,23 +1079,23 @@ export function ProblemsList({
       }
       return filtered;
     }
-    
+
     // Apply status filter
     filtered = filtered.filter(p => selectedStatuses.has(p.status));
-    
+
     // Apply label filter
     if (selectedLabels.size > 0) {
-      filtered = filtered.filter(p => 
-        p.labels && p.labels.length > 0 && 
+      filtered = filtered.filter(p =>
+        p.labels && p.labels.length > 0 &&
         p.labels.some(label => selectedLabels.has(label))
       );
     }
-    
+
     // Apply vote filter
     if (filterByMyVotes) {
       filtered = filtered.filter(p => (userVotes[p.id] || 0) > 0);
     }
-    
+
     // When not searching, filter out problems hidden by collapsed parents
     return filtered.filter(p => !isHiddenByCollapse(p));
   })();
@@ -1104,7 +1104,7 @@ export function ProblemsList({
   const getDraggedProblems = (problemId: string): Set<string> => {
     const dragged = problems.find(p => p.id === problemId);
     if (!dragged) return new Set();
-    
+
     const draggedSet = new Set<string>();
     for (const p of problems) {
       if (p.idPath === dragged.idPath || p.idPath.startsWith(dragged.idPath + '-')) {
@@ -1120,7 +1120,7 @@ export function ProblemsList({
     dragOverCountRef.current = 0;
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', problemId);
-    
+
     // Add a small delay to allow the drag image to be created
     setTimeout(() => {
       // The browser will use the dragged element as the ghost image
@@ -1139,23 +1139,23 @@ export function ProblemsList({
   const handleDragOver = (e: React.DragEvent, index: number, problem: Problem) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!draggedProblemId) return;
-    
+
     // Don't allow dropping on itself or its descendants
     const draggedProblems = getDraggedProblems(draggedProblemId);
     if (draggedProblems.has(problem.id)) {
       e.dataTransfer.dropEffect = 'none';
       return;
     }
-    
+
     e.dataTransfer.dropEffect = 'move';
-    
+
     // Determine drop position based on mouse position within the row
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const height = rect.height;
-    
+
     let position: 'before' | 'after' | 'child';
     if (y < height * 0.25) {
       position = 'before';
@@ -1164,7 +1164,7 @@ export function ProblemsList({
     } else {
       position = 'child'; // Drop as child of this problem
     }
-    
+
     setDropTargetIndex(index);
     setDropPosition(position);
   };
@@ -1182,10 +1182,10 @@ export function ProblemsList({
   const executeMove = async (problemId: string, newParentId: string | null, afterProblemId: string | null) => {
     try {
       setError(null);
-      
+
       // Call the API to move the problem
       await moveProblem(problemId, newParentId, afterProblemId);
-      
+
       // Reload problems to get updated idPaths
       const data = await fetchProblems(workspaceId);
       setProblems(data);
@@ -1203,32 +1203,32 @@ export function ProblemsList({
   const handleDrop = async (e: React.DragEvent, _targetIndex: number, targetProblem: Problem) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!draggedProblemId || dropPosition === null) {
       handleDragEnd();
       return;
     }
-    
+
     // Clear URL if dragging a different problem
     clearUrlIfDifferentProblem(draggedProblemId);
-    
+
     // Don't allow dropping on itself or its descendants
     const draggedProblems = getDraggedProblems(draggedProblemId);
     if (draggedProblems.has(targetProblem.id)) {
       handleDragEnd();
       return;
     }
-    
+
     // Find the dragged problem to check its current parent
     const draggedProblem = problems.find(p => p.id === draggedProblemId);
     if (!draggedProblem) {
       handleDragEnd();
       return;
     }
-    
+
     let newParentId: string | null;
     let afterProblemId: string | null;
-    
+
     if (dropPosition === 'child') {
       // Drop as child of target - find last child of target to insert after
       newParentId = targetProblem.id;
@@ -1246,18 +1246,18 @@ export function ProblemsList({
       newParentId = targetProblem.parentId;
       afterProblemId = targetProblem.id;
     }
-    
+
     // Check if parent is changing
     const currentParentId = draggedProblem.parentId;
     const parentIsChanging = currentParentId !== newParentId;
-    
+
     if (parentIsChanging) {
       // Parent is changing - show confirmation dialog
       setPendingMove({ problemId: draggedProblemId, newParentId, afterProblemId });
       // Don't call handleDragEnd yet - keep drag state until confirmation
       return;
     }
-    
+
     // Parent is not changing - just reordering, proceed immediately
     await executeMove(draggedProblemId, newParentId, afterProblemId);
     handleDragEnd();
@@ -1267,49 +1267,49 @@ export function ProblemsList({
   const handleDropOnNewRow = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!draggedProblemId) {
       handleDragEnd();
       return;
     }
-    
+
     // Find the dragged problem to check its current parent
     const draggedProblem = problems.find(p => p.id === draggedProblemId);
     if (!draggedProblem) {
       handleDragEnd();
       return;
     }
-    
+
     // Drop as root level at the end
     const rootProblems = sortedProblems.filter(p => !p.parentId);
     const lastRootProblem = rootProblems.length > 0 ? rootProblems[rootProblems.length - 1] : null;
     const newParentId: string | null = null;
-    
+
     // Check if parent is changing
     const currentParentId = draggedProblem.parentId;
     const parentIsChanging = currentParentId !== newParentId;
-    
+
     if (parentIsChanging) {
       // Parent is changing - show confirmation dialog
       setPendingMove({ problemId: draggedProblemId, newParentId, afterProblemId: lastRootProblem?.id ?? null });
       // Don't call handleDragEnd yet - keep drag state until confirmation
       return;
     }
-    
+
     // Parent is not changing - just reordering, proceed immediately
     await executeMove(draggedProblemId, newParentId, lastRootProblem?.id ?? null);
     handleDragEnd();
   };
-  
+
   // Handle confirming a pending move (parent change)
   const handleConfirmMove = async () => {
     if (!pendingMove) return;
-    
+
     await executeMove(pendingMove.problemId, pendingMove.newParentId, pendingMove.afterProblemId);
     setPendingMove(null);
     handleDragEnd();
   };
-  
+
   // Handle canceling a pending move
   const handleCancelMove = () => {
     setPendingMove(null);
@@ -1344,15 +1344,15 @@ export function ProblemsList({
       // Use workspaceId and viewId from URL params, fallback to props/state if needed
       const wsId = urlWorkspaceId || workspaceId;
       const vId = urlViewId;
-      
+
       if (!wsId || !vId) {
         console.error('Cannot copy problem URL: missing workspaceId or viewId');
         return;
       }
-      
+
       const url = `${window.location.origin}/w/${wsId}/v/${vId}/p/${problemId}`;
       await navigator.clipboard.writeText(url);
-      
+
       // Show visual feedback
       setCopiedId(problemId);
       setTimeout(() => setCopiedId(null), 2000);
@@ -1364,10 +1364,10 @@ export function ProblemsList({
   // Handle reordering a problem to top or bottom of visible list
   const handleReorder = async (problemId: string, position: 'top' | 'bottom') => {
     clearUrlIfDifferentProblem(problemId);
-    
+
     try {
       setError(null);
-      
+
       if (position === 'top') {
         // Move to very first position (before first visible problem)
         const firstProblem = visibleProblems[0];
@@ -1377,14 +1377,14 @@ export function ProblemsList({
         const lastProblem = visibleProblems[visibleProblems.length - 1];
         await moveProblem(problemId, lastProblem.parentId, lastProblem.id);
       }
-      
+
       // Reload problems to get updated priorities
       const data = await fetchProblems(workspaceId);
       setProblems(data);
-      
+
       // Highlight the row to draw attention (without scrolling)
       setHighlightedProblemId(problemId);
-      
+
       // Clear highlight after animation completes
       setTimeout(() => {
         setHighlightedProblemId(null);
@@ -1403,7 +1403,7 @@ export function ProblemsList({
   const handleShowPositionInput = (problemId: string) => {
     // Calculate middle position of visible problems (visible row numbers)
     const middlePosition = Math.ceil(visibleProblems.length / 2);
-    
+
     setPositionInputValue(middlePosition.toString());
     setShowPositionInput(problemId);
   };
@@ -1411,9 +1411,9 @@ export function ProblemsList({
   // Handle reordering to a specific visible row position
   const handleReorderToPosition = async (problemId: string) => {
     clearUrlIfDifferentProblem(problemId);
-    
+
     const targetRowNumber = parseInt(positionInputValue, 10);
-    
+
     if (isNaN(targetRowNumber) || targetRowNumber < 1) {
       setError('Please enter a valid row number (1 or greater)');
       return;
@@ -1427,13 +1427,13 @@ export function ProblemsList({
     try {
       setError(null);
       setShowPositionInput(null);
-      
+
       // Convert 1-based row number to 0-based index
       const targetIndex = targetRowNumber - 1;
-      
+
       // Determine the new parent and position based on visible row number
       // We want to insert the problem at the target visible row position
-      
+
       if (targetIndex === 0) {
         // Move to very first position (before first visible problem)
         const firstProblem = visibleProblems[0];
@@ -1447,14 +1447,14 @@ export function ProblemsList({
         const afterProblem = visibleProblems[targetIndex - 1];
         await moveProblem(problemId, afterProblem.parentId, afterProblem.id);
       }
-      
+
       // Reload problems to get updated priorities
       const data = await fetchProblems(workspaceId);
       setProblems(data);
-      
+
       // Highlight the row to draw attention (without scrolling)
       setHighlightedProblemId(problemId);
-      
+
       // Clear highlight after animation completes
       setTimeout(() => {
         setHighlightedProblemId(null);
@@ -1477,12 +1477,19 @@ export function ProblemsList({
 
   // Handle creating a new problem
   // position: 'top' = first among siblings, 'bottom' = last among siblings
-  const handleCreateProblem = async (parentId: string | null, position: 'top' | 'bottom') => {
+  const handleCreateProblem = async (
+    parentId: string | null,
+    position: 'top' | 'bottom' | 'above' | 'below',
+    referenceProblemId?: string
+  ) => {
     try {
       setError(null);
-      
-      // Calculate priority based on position
-      const priority = calculatePriority(parentId, position);
+
+      // Determine the initial priority and position for creation
+      // For top/above/below, we'll initially create at 'bottom' and then move
+      // This avoids negative priority values (e.g., when inserting at top)
+      const calcPosition = (position === 'above' || position === 'below' || position === 'top') ? 'bottom' : position;
+      const priority = calculatePriority(parentId, calcPosition);
 
       // Create new problem with default values
       const newProblem: CreateProblemRequest = {
@@ -1499,11 +1506,32 @@ export function ProblemsList({
 
       // Create the problem
       const created = await createProblem(workspaceId, newProblem);
-      
+
+      // Handle relative positioning if needed
+      if (position === 'above' || position === 'below' || position === 'top') {
+        let afterId: string | null = null;
+        if (position === 'below') {
+          afterId = referenceProblemId || null;
+        } else if (position === 'above') {
+          // above: find sibling before referenceProblemId
+          const siblings = getSiblings(parentId);
+          const refIndex = siblings.findIndex(s => s.id === referenceProblemId);
+          if (refIndex > 0) {
+            afterId = siblings[refIndex - 1].id;
+          } else {
+            afterId = null; // insert at first
+          }
+        } else {
+          // top: insert at first
+          afterId = null;
+        }
+        await moveProblem(created.id, parentId, afterId);
+      }
+
       // Reload problems to get the new one with correct idPath and proper sorting
       const data = await fetchProblems(workspaceId);
       setProblems(data);
-      
+
       // Auto-open the problem editor for the newly created problem
       setAutoOpenEditor({ problemId: created.id, field: 'problem' });
     } catch (err) {
@@ -1515,6 +1543,171 @@ export function ProblemsList({
       console.error('Error creating problem:', err);
     }
   };
+
+  // Keyboard Navigation Helpers
+  const selectNext = () => {
+    setSelectedProblemIndex(prev => (prev < visibleProblems.length - 1 ? prev + 1 : prev));
+  };
+
+  const selectPrev = () => {
+    setSelectedProblemIndex(prev => (prev > 0 ? prev - 1 : 0));
+  };
+
+  const jumpToTop = () => {
+    setSelectedProblemIndex(0);
+  };
+
+  const jumpToBottom = () => {
+    setSelectedProblemIndex(visibleProblems.length - 1);
+  };
+
+  const toggleSelectedCollapse = () => {
+    if (selectedProblemIndex >= 0 && selectedProblemIndex < visibleProblems.length) {
+      const problem = visibleProblems[selectedProblemIndex];
+      if (hasChildren(problem.id)) {
+        toggleCollapse(problem.id);
+      }
+    }
+  };
+
+  const voteOnSelected = (add: boolean = true) => {
+    if (selectedProblemIndex >= 0 && selectedProblemIndex < visibleProblems.length) {
+      const problem = visibleProblems[selectedProblemIndex];
+      if (add) {
+        handleAddVote(problem.id);
+      } else {
+        handleRemoveVote(problem.id);
+      }
+    }
+  };
+
+  const deleteSelected = () => {
+    if (selectedProblemIndex >= 0 && selectedProblemIndex < visibleProblems.length) {
+      const problem = visibleProblems[selectedProblemIndex];
+      handleDeleteProblem(problem.id);
+    }
+  };
+
+  const navigateToSelected = () => {
+    if (selectedProblemIndex >= 0 && selectedProblemIndex < visibleProblems.length) {
+      const problem = visibleProblems[selectedProblemIndex];
+      navigate(`/w/${urlWorkspaceId || workspaceId}/v/${urlViewId}/p/${problem.id}`, { replace: true });
+    }
+  };
+
+  const openEditorForSelected = (field: 'problem' | 'objective' | 'labels') => {
+    if (selectedProblemIndex >= 0 && selectedProblemIndex < visibleProblems.length) {
+      const problem = visibleProblems[selectedProblemIndex];
+      if (field === 'labels') {
+        // For labels, we'll just flash it or let the user click
+        // But for now let's just use the existing autoOpenEditor mechanism for simplicity if possible
+        // SummaryDetailCell supports autoOpen, ListCell/LabelCell might need it too
+      }
+      setAutoOpenEditor({ problemId: problem.id, field: field as 'problem' | 'objective' });
+    }
+  };
+
+  const copyUrlForSelected = () => {
+    if (selectedProblemIndex >= 0 && selectedProblemIndex < visibleProblems.length) {
+      const problem = visibleProblems[selectedProblemIndex];
+      const url = `${window.location.origin}/w/${urlWorkspaceId || workspaceId}/v/${urlViewId}/p/${problem.id}`;
+      navigator.clipboard.writeText(url).then(() => {
+        // Maybe add a subtle toast or flash here in the future
+        console.log('URL copied to clipboard:', url);
+      }).catch(err => {
+        console.error('Failed to copy URL:', err);
+      });
+    }
+  };
+
+  // Keyboard Shortcuts Config
+  const vimMotions: ShortcutConfig[] = [
+    { key: 'j', handler: selectNext, description: 'Next problem', category: 'Navigation' },
+    { key: 'k', handler: selectPrev, description: 'Previous problem', category: 'Navigation' },
+    { key: 'gg', handler: jumpToTop, description: 'Jump to top', category: 'Navigation' },
+    { key: 'G', handler: jumpToBottom, description: 'Jump to bottom', category: 'Navigation' },
+    { key: 'Enter', handler: navigateToSelected, description: 'Navigate to problem', category: 'Navigation' },
+    { key: 'x', handler: toggleSelectedCollapse, description: 'Toggle collapse', category: 'Selection Actions' },
+    { key: 'v', handler: () => voteOnSelected(true), description: 'Vote', category: 'Selection Actions' },
+    { key: 'V', handler: () => voteOnSelected(false), description: 'Remove vote', category: 'Selection Actions' },
+    { key: 'dd', handler: deleteSelected, description: 'Delete problem', category: 'Selection Actions' },
+    { key: 'o', handler: () => openEditorForSelected('objective'), description: 'Open objective editor', category: 'Selection Actions' },
+    { key: 'p', handler: () => openEditorForSelected('problem'), description: 'Open problem editor', category: 'Selection Actions' },
+    { key: 'yy', handler: copyUrlForSelected, description: 'Copy problem URL', category: 'Selection Actions' },
+    {
+      key: 'i', handler: () => {
+        if (selectedProblemIndex >= 0 && selectedProblemIndex < visibleProblems.length) {
+          const problem = visibleProblems[selectedProblemIndex];
+          handleCreateProblem(problem.parentId, 'above', problem.id);
+        }
+      }, description: 'Add sibling above', category: 'Creation'
+    },
+    {
+      key: 'a', handler: () => {
+        if (selectedProblemIndex >= 0 && selectedProblemIndex < visibleProblems.length) {
+          const problem = visibleProblems[selectedProblemIndex];
+          handleCreateProblem(problem.parentId, 'below', problem.id);
+        }
+      }, description: 'Add sibling below', category: 'Creation'
+    },
+    {
+      key: 'c', handler: () => {
+        if (selectedProblemIndex >= 0 && selectedProblemIndex < visibleProblems.length) {
+          const problem = visibleProblems[selectedProblemIndex];
+          // Expand it first if it was collapsed to make the new child visible
+          if (collapsedIds.has(problem.id)) {
+            toggleCollapse(problem.id);
+          }
+          handleCreateProblem(problem.id, 'bottom');
+        }
+      }, description: 'Add subproblem', category: 'Creation'
+    },
+    { key: 'I', handler: () => handleCreateProblem(null, 'top'), description: 'Add root problem at top', category: 'Creation' },
+    { key: 'A', handler: () => handleCreateProblem(null, 'bottom'), description: 'Add root problem at bottom', category: 'Creation' },
+  ];
+
+  useKeyboardShortcuts(vimMotions);
+
+  // Auto-scroll selected row into view
+  useEffect(() => {
+    if (selectedProblemIndex >= 0 && selectedProblemIndex < visibleProblems.length) {
+      const problem = visibleProblems[selectedProblemIndex];
+      const rowElement = problemRowRefs.current.get(problem.id);
+      if (rowElement) {
+        const tableContainer = rowElement.closest('.table-container');
+        if (tableContainer) {
+          const rowTop = rowElement.offsetTop;
+          const containerHeight = tableContainer.clientHeight;
+          const scrollTop = tableContainer.scrollTop;
+
+          if (rowTop < scrollTop || rowTop + rowElement.clientHeight > scrollTop + containerHeight) {
+            tableContainer.scrollTo({
+              top: rowTop - containerHeight / 2,
+              behavior: 'smooth'
+            });
+          }
+        }
+      }
+    }
+  }, [selectedProblemIndex]);
+
+  // Synchronize selection with autoOpenEditor (when creating new problems)
+  useEffect(() => {
+    if (autoOpenEditor && autoOpenEditor.problemId) {
+      const index = visibleProblems.findIndex(p => p.id === autoOpenEditor.problemId);
+      if (index !== -1 && index !== selectedProblemIndex) {
+        setSelectedProblemIndex(index);
+      }
+    }
+  }, [autoOpenEditor, visibleProblems]);
+
+  if (loading) {
+    return <div className="loading">Loading problems...</div>;
+  }
+
+  if (error) {
+    return <div className="error">Error: {error}</div>;
+  }
 
   return (
     <div className="problems-list" data-tutorial="problems-list">
@@ -1654,14 +1847,14 @@ export function ProblemsList({
                     </button>
                   </div>
                   <div className="column-visibility-toggles" data-tutorial="column-visibility-toggles">
-                  <button
+                    <button
                       className={`column-toggle-button ${visibleColumns.votes ? 'active' : 'inactive'}`}
                       onClick={() => toggleColumn('votes')}
                       title={`${visibleColumns.votes ? 'Hide' : 'Show'} Votes column`}
                       aria-label={`${visibleColumns.votes ? 'Hide' : 'Show'} Votes column`}
                     >
                       V
-                    </button>                    
+                    </button>
                     <button
                       className={`column-toggle-button ${visibleColumns.labels ? 'active' : 'inactive'}`}
                       data-tutorial="toggle-column"
@@ -1784,7 +1977,7 @@ export function ProblemsList({
               const problemHasGrandchildren = hasGrandchildren(problem.id);
               const isCollapsed = collapsedIds.has(problem.id);
               const hasNestedCollapsed = hasCollapsedDescendants(problem.id);
-              
+
               // Determine drop indicator style
               let dropIndicatorStyle: React.CSSProperties = {};
               if (isDropTarget && dropPosition) {
@@ -1796,9 +1989,9 @@ export function ProblemsList({
                   dropIndicatorStyle = { backgroundColor: 'var(--bg-tertiary)' };
                 }
               }
-              
+
               return (
-                <tr 
+                <tr
                   key={problem.id}
                   ref={(el) => {
                     if (el) {
@@ -1807,7 +2000,7 @@ export function ProblemsList({
                       problemRowRefs.current.delete(problem.id);
                     }
                   }}
-                  className={`problem-row depth-${depth}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}${highlightedProblemId === problem.id ? ' highlighted' : ''}`}
+                  className={`problem-row depth-${depth}${isDragging ? ' dragging' : ''}${isDropTarget ? ' drop-target' : ''}${highlightedProblemId === problem.id ? ' highlighted' : ''}${selectedProblemIndex === index ? ' keyboard-selected' : ''}`}
                   data-depth={depth}
                   style={{
                     opacity: isDragging ? 0.5 : 1,
@@ -1821,8 +2014,8 @@ export function ProblemsList({
                   <td className="problem-id column-id">
                     <div className="row-handle-container">
                       <span className="row-handle-indicator">⋮</span>
-                      <div 
-                        className="row-handle" 
+                      <div
+                        className="row-handle"
                         title="Drag to reorder"
                         data-tutorial="row-actions-panel"
                         draggable
@@ -1909,12 +2102,12 @@ export function ProblemsList({
                       )}
                     </div>
                     <div className="id-content" style={{ position: 'relative' }}>
-                      <span 
+                      <span
                         className="id-path clickable"
                         data-tutorial="copy-problem-url"
                         onClick={() => handleCopyProblemUrl(problem.id)}
                         title={copiedId === problem.id ? "Copied!" : "Click to copy link"}
-                        style={{ 
+                        style={{
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -1924,7 +2117,7 @@ export function ProblemsList({
                         {problem.idPath}
                       </span>
                       {copiedId === problem.id && (
-                        <span 
+                        <span
                           className="copy-confirmation"
                           style={{
                             position: 'absolute',
@@ -1979,8 +2172,8 @@ export function ProblemsList({
                           {problemHasGrandchildren && (
                             <button
                               className="expand-toggle"
-                              onClick={(e) => { 
-                                e.stopPropagation(); 
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 if (isCollapsed || hasNestedCollapsed) {
                                   expandAll(problem.id);
                                 } else {
@@ -2032,11 +2225,11 @@ export function ProblemsList({
                         const hasUserVotes = userVoteCount > 0;
                         const isResolved = problem.status === Status.Resolved;
                         const isDisabled = isResolved && !hasUserVotes;
-                        
-                        const tooltipText = isResolved 
+
+                        const tooltipText = isResolved
                           ? (hasUserVotes ? 'Click to remove your votes' : 'Cannot vote on resolved problems')
                           : (hasUserVotes ? `Your votes: ${userVoteCount} — Click to adjust` : 'Click to vote');
-                        
+
                         return (
                           <button
                             onClick={() => !isDisabled && openVotingPopup(problem.id)}
@@ -2128,7 +2321,7 @@ export function ProblemsList({
               );
             })}
             {/* Insert button row at bottom for top-level insertion */}
-            <tr 
+            <tr
               className="insert-button-row"
               onDragOver={(e) => {
                 e.preventDefault();
@@ -2191,7 +2384,7 @@ export function ProblemsList({
                 className="vote-popup-btn"
                 onClick={() => handleAddVote(votingPopup.problemId)}
                 disabled={
-                  problems.find(p => p.id === votingPopup.problemId)?.status === Status.Resolved || 
+                  problems.find(p => p.id === votingPopup.problemId)?.status === Status.Resolved ||
                   availableVotes === 0
                 }
               >
@@ -2203,14 +2396,14 @@ export function ProblemsList({
                 ? 'Resolved — can only remove votes'
                 : `${availableVotes} vote${availableVotes !== 1 ? 's' : ''} remaining`}
             </p>
-            
+
             {votingPopup.voters && votingPopup.voters.length > 0 && (
               <div className="vote-popup-voters">
                 <h5>Who Voted</h5>
                 <div className="voters-list">
                   {votingPopup.voters.map((voter) => (
-                    <div 
-                      key={voter.userId} 
+                    <div
+                      key={voter.userId}
                       className={`voter-item ${voter.userName === 'You' ? 'current-user' : ''}`}
                     >
                       <div className="voter-info">
@@ -2228,7 +2421,7 @@ export function ProblemsList({
                 </div>
               </div>
             )}
-            
+
             <button className="vote-popup-close-btn" onClick={closeVotingPopup} title="Close">
               ×
             </button>
@@ -2241,7 +2434,7 @@ export function ProblemsList({
       {voteFilterDialogOpen && createPortal(
         <>
           <div className="vote-filter-dialog-backdrop" onClick={closeVoteFilterDialog} />
-          <div 
+          <div
             className="vote-filter-dialog"
             style={{
               top: `${voteFilterDialogPosition.top}px`,
@@ -2249,7 +2442,7 @@ export function ProblemsList({
             }}
           >
             <h4>Filter & Sort</h4>
-            
+
             <div className="vote-filter-options">
               <h5>Filter</h5>
               <label className="vote-filter-radio">

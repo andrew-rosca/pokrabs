@@ -349,6 +349,7 @@ This setup is designed to easily integrate with GitHub Actions:
 - `docs/implementation-progress.txt` - Implementation progress log
 - `docs/coder-instructions.md` - Instructions for coding agents
 - `docs/initializer-instructions.md` - Instructions for initializer agents
+- `docs/KEYBOARD_SHORTCUTS.md` - Keyboard shortcuts and VIM motions
 
 ## License
 
