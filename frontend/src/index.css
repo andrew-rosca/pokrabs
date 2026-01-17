@@ -311,7 +311,7 @@ code {
   border-collapse: collapse;
   background-color: var(--bg-primary);
   font-size: 0.75rem;
-  table-layout: fixed;
+  table-layout: fixed; /* JS calculates widths, fixed ensures content wraps */
   position: relative;
 }
 
@@ -1229,65 +1229,28 @@ code {
   overflow-wrap: break-word;
 }
 
-/* Column widths - apply to both th and td using class-based selectors */
-/* Using fixed pixel widths for small columns and flexible widths for content columns */
-.problems-table th.column-row-number,
-.problems-table td.column-row-number { 
-  width: 40px;
-}  /* Row number - small fixed width */
+/* Column widths are calculated and applied via JavaScript in ProblemsList.tsx
+ * This allows precise control over:
+ * - Fixed columns (row-number, ID, votes, status) with exact pixel widths
+ * - Flexible columns with proportional distribution and minimum widths
+ * 
+ * The JS hook useColumnWidths calculates widths based on container size,
+ * visible columns, and the share/minimum configuration.
+ */
 
-.problems-table th.column-id,
-.problems-table td.column-id { 
-  width: 120px;
-}  /* ID - fixed width */
+/* Column-specific styles (no width declarations - handled by JS) */
 
-.problems-table th.column-problem,
-.problems-table td.column-problem { 
-  width: 200px;
-  min-width: 150px;
-} /* Problem - fixed reasonable width to prevent wasting space */
-
-.problems-table th.column-labels,
-.problems-table td.column-labels { 
-  width: 120px;
-  min-width: 100px;
-} /* Labels - fixed medium width */
-
-.problems-table th.column-objective,
-.problems-table td.column-objective { 
-  width: 150px;
-  min-width: 120px;
-} /* Objective - fixed medium width */
-
-.problems-table th.column-key-results,
-.problems-table td.column-key-results { 
-  width: auto;
-  min-width: 180px;
-} /* Key Results - flexible width, gets remaining space */
-
-.problems-table th.column-actions,
-.problems-table td.column-actions { 
-  width: auto;
-  min-width: 180px;
-} /* Actions - flexible width, gets remaining space */
-
-.problems-table th.column-blockers,
-.problems-table td.column-blockers { 
-  width: auto;
-  min-width: 180px;
-} /* Blockers - flexible width, gets remaining space */
+/* Problem column header needs overflow visible to show all toggle buttons */
+.problems-table th.column-problem {
+  overflow: visible;
+  position: relative;
+  z-index: 1; /* Ensure toggle buttons aren't covered by adjacent columns */
+}
 
 .problems-table th.column-status,
 .problems-table td.column-status { 
-  width: 100px;
-  min-width: 90px;
   white-space: nowrap;
-}  /* Status - fixed width for dropdown */
-
-.problems-table th.column-votes,
-.problems-table td.column-votes { 
-  width: 60px;
-}  /* Votes - fixed small width */
+}
 
 .problem-votes {
   text-align: center;

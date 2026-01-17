@@ -6,7 +6,7 @@
  * all its children move with it.
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback, RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Problem, Status, CreateProblemRequest, ViewFilters } from '../../../shared/types';
@@ -19,6 +19,141 @@ import { ListCell } from './ListCell';
 import { StatusFilter } from './StatusFilter';
 import { LabelFilter } from './LabelFilter';
 import { LabelCell } from './LabelCell';
+
+// Type for visible columns configuration
+type VisibleColumns = {
+  labels: boolean;
+  objective: boolean;
+  keyResults: boolean;
+  actions: boolean;
+  blockers: boolean;
+  status: boolean;
+  votes: boolean;
+};
+
+// Hook to calculate column widths based on container size and visible columns
+function useColumnWidths(
+  containerRef: RefObject<HTMLDivElement>,
+  visibleColumns: VisibleColumns
+): Record<string, number> {
+  const [widths, setWidths] = useState<Record<string, number>>({});
+
+  const calculateWidths = useCallback(() => {
+    const containerWidth = containerRef.current?.clientWidth ?? 0;
+    if (containerWidth === 0) return;
+
+    // Fixed column widths (never change)
+    const fixed = {
+      rowNumber: 40,
+      id: 80,
+      votes: 65,
+      status: 100,
+    };
+
+    // Minimum widths for flexible columns
+    const minWidths = {
+      problem: 250,  // Must fit all header buttons (PROBLEM + 8 toggle buttons)
+      labels: 60,
+      objective: 80,
+      keyResults: 90,
+      actions: 60,
+      blockers: 70,
+    };
+
+    // Shares for proportional distribution
+    // Problem gets 2 shares which should give it enough extra space for all buttons
+    const shares = {
+      problem: 2,
+      labels: 0.25,
+      objective: 2,
+      keyResults: 1,
+      actions: 1,
+      blockers: 1,
+    };
+
+    // Calculate total fixed width (always-visible + conditionally visible fixed columns)
+    const fixedTotal =
+      fixed.rowNumber +
+      fixed.id +
+      (visibleColumns.votes ? fixed.votes : 0) +
+      (visibleColumns.status ? fixed.status : 0);
+
+    // Calculate total shares and minimum widths for visible flexible columns
+    let totalShares = shares.problem; // Problem is always visible
+    let totalMinWidth = minWidths.problem;
+
+    if (visibleColumns.labels) {
+      totalShares += shares.labels;
+      totalMinWidth += minWidths.labels;
+    }
+    if (visibleColumns.objective) {
+      totalShares += shares.objective;
+      totalMinWidth += minWidths.objective;
+    }
+    if (visibleColumns.keyResults) {
+      totalShares += shares.keyResults;
+      totalMinWidth += minWidths.keyResults;
+    }
+    if (visibleColumns.actions) {
+      totalShares += shares.actions;
+      totalMinWidth += minWidths.actions;
+    }
+    if (visibleColumns.blockers) {
+      totalShares += shares.blockers;
+      totalMinWidth += minWidths.blockers;
+    }
+
+    // Available space for flexible columns
+    const availableSpace = containerWidth - fixedTotal;
+
+    // Space remaining after minimum widths are satisfied
+    const extraSpace = Math.max(0, availableSpace - totalMinWidth);
+
+    // Calculate each flexible column's width
+    const calculateFlexWidth = (column: keyof typeof shares) => {
+      const min = minWidths[column];
+      const share = shares[column];
+      // Each column gets its minimum + proportional share of extra space
+      return Math.floor(min + (extraSpace * share) / totalShares);
+    };
+
+    // Set all widths
+    setWidths({
+      rowNumber: fixed.rowNumber,
+      id: fixed.id,
+      votes: fixed.votes,
+      status: fixed.status,
+      problem: calculateFlexWidth('problem'),
+      labels: visibleColumns.labels ? calculateFlexWidth('labels') : 0,
+      objective: visibleColumns.objective ? calculateFlexWidth('objective') : 0,
+      keyResults: visibleColumns.keyResults ? calculateFlexWidth('keyResults') : 0,
+      actions: visibleColumns.actions ? calculateFlexWidth('actions') : 0,
+      blockers: visibleColumns.blockers ? calculateFlexWidth('blockers') : 0,
+    });
+  }, [containerRef, visibleColumns]);
+
+  useEffect(() => {
+    // Initial calculation
+    calculateWidths();
+
+    // Recalculate on resize
+    const handleResize = () => calculateWidths();
+    window.addEventListener('resize', handleResize);
+
+    // Also observe the container for size changes (e.g., sidebar toggle)
+    const resizeObserver = new ResizeObserver(handleResize);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
+    };
+  }, [calculateWidths, containerRef]);
+
+  return widths;
+}
 
 interface ProblemsListProps {
   workspaceId: string;
@@ -58,6 +193,9 @@ export function ProblemsList({
   
   // Ref to track problem rows for scrolling
   const problemRowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+  
+  // Ref for table container (for measuring width)
+  const tableContainerRef = useRef<HTMLDivElement>(null);
   
   // Search/filter state - use external search if provided, otherwise use local state
   const [localSearchQuery] = useState<string>('');
@@ -144,6 +282,9 @@ export function ProblemsList({
     }
     return { labels: true, objective: true, keyResults: true, actions: true, blockers: true, status: true, votes: true };
   });
+
+  // Calculate column widths based on container size and visible columns
+  const columnWidths = useColumnWidths(tableContainerRef, visibleColumns);
 
   // Status filter state - use viewFilters if provided, otherwise fallback to localStorage
   const [selectedStatuses, setSelectedStatuses] = useState<Set<Status>>(() => {
@@ -1567,17 +1708,17 @@ export function ProblemsList({
         </>,
         document.body
       )}
-      <div className="table-container">
+      <div className="table-container" ref={tableContainerRef}>
         <table className="problems-table" data-tutorial="problems-table">
           <thead data-tutorial="problems-table-header">
             <tr>
-              <th className="column-row-number" title={`${visibleProblems.length} visible rows / ${problems.length} total rows`}>
+              <th className="column-row-number" style={{ width: columnWidths.rowNumber }} title={`${visibleProblems.length} visible rows / ${problems.length} total rows`}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1.2' }}>
                   <span>{visibleProblems.length}</span>
                   <span className="total-count">{problems.length}</span>
                 </div>
               </th>
-              <th className="column-id">
+              <th className="column-id" style={{ width: columnWidths.id }}>
                 <div className="header-with-action">
                   <span>ID</span>
                   {anyProblemsHaveChildren && (
@@ -1640,7 +1781,7 @@ export function ProblemsList({
                   )}
                 </div>
               </th>
-              <th className="column-problem" style={{ paddingLeft: 0 }}>
+              <th className="column-problem" style={{ width: columnWidths.problem, paddingLeft: 0 }}>
                 <div className="header-with-action" style={{ justifyContent: 'space-between' }}>
                   <div className="header-with-action">
                     <span>Problem</span>
@@ -1715,7 +1856,7 @@ export function ProblemsList({
                 </div>
               </th>
               {visibleColumns.votes && (
-                <th className="column-votes">
+                <th className="column-votes" style={{ width: columnWidths.votes }}>
                   <div className="header-with-action">
                     <button
                       ref={voteFilterButtonRef}
@@ -1730,7 +1871,7 @@ export function ProblemsList({
                 </th>
               )}
               {visibleColumns.labels && (
-                <th className="column-labels">
+                <th className="column-labels" style={{ width: columnWidths.labels }}>
                   <div className="header-with-action">
                     <span>Labels</span>
                     <LabelFilter
@@ -1741,12 +1882,12 @@ export function ProblemsList({
                   </div>
                 </th>
               )}
-              {visibleColumns.objective && <th className="column-objective">Objective</th>}
-              {visibleColumns.keyResults && <th className="column-key-results">Key Results</th>}
-              {visibleColumns.actions && <th className="column-actions">Actions</th>}
-              {visibleColumns.blockers && <th className="column-blockers">Blockers</th>}
+              {visibleColumns.objective && <th className="column-objective" style={{ width: columnWidths.objective }}>Objective</th>}
+              {visibleColumns.keyResults && <th className="column-key-results" style={{ width: columnWidths.keyResults }}>Key Results</th>}
+              {visibleColumns.actions && <th className="column-actions" style={{ width: columnWidths.actions }}>Actions</th>}
+              {visibleColumns.blockers && <th className="column-blockers" style={{ width: columnWidths.blockers }}>Blockers</th>}
               {visibleColumns.status && (
-                <th className="column-status">
+                <th className="column-status" style={{ width: columnWidths.status }}>
                   <div className="header-with-action">
                     <span>Status</span>
                     <StatusFilter
