@@ -1,0 +1,273 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90m/home/ayrton/projects/pokrabs/frontend[39m
+
+Error: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider
+    at useKeyboardShortcutsContext (/home/ayrton/projects/pokrabs/frontend/src/contexts/KeyboardShortcutsContext.tsx:57:15)
+    at useKeyboardShortcuts (/home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.ts:11:56)
+    at /home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.test.ts:24:26
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:330:27)
+    at renderWithHooks (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+Error: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider
+    at useKeyboardShortcutsContext (/home/ayrton/projects/pokrabs/frontend/src/contexts/KeyboardShortcutsContext.tsx:57:15)
+    at useKeyboardShortcuts (/home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.ts:11:56)
+    at /home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.test.ts:24:26
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:330:27)
+    at renderWithHooks (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+[90mstderr[2m | src/hooks/useKeyboardShortcuts.test.ts[2m > [22m[2museKeyboardShortcuts[2m > [22m[2mtriggers a simple shortcut
+[22m[39mThe above error occurred in the <TestComponent> component:
+
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:328:5)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+Error: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider
+    at useKeyboardShortcutsContext (/home/ayrton/projects/pokrabs/frontend/src/contexts/KeyboardShortcutsContext.tsx:57:15)
+    at useKeyboardShortcuts (/home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.ts:11:56)
+    at /home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.test.ts:36:26
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:330:27)
+    at renderWithHooks (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+Error: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider
+    at useKeyboardShortcutsContext (/home/ayrton/projects/pokrabs/frontend/src/contexts/KeyboardShortcutsContext.tsx:57:15)
+    at useKeyboardShortcuts (/home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.ts:11:56)
+    at /home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.test.ts:36:26
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:330:27)
+    at renderWithHooks (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+[90mstderr[2m | src/hooks/useKeyboardShortcuts.test.ts[2m > [22m[2museKeyboardShortcuts[2m > [22m[2mtriggers a combo shortcut
+[22m[39mThe above error occurred in the <TestComponent> component:
+
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:328:5)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+Error: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider
+    at useKeyboardShortcutsContext (/home/ayrton/projects/pokrabs/frontend/src/contexts/KeyboardShortcutsContext.tsx:57:15)
+    at useKeyboardShortcuts (/home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.ts:11:56)
+    at /home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.test.ts:51:26
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:330:27)
+    at renderWithHooks (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+Error: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider
+    at useKeyboardShortcutsContext (/home/ayrton/projects/pokrabs/frontend/src/contexts/KeyboardShortcutsContext.tsx:57:15)
+    at useKeyboardShortcuts (/home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.ts:11:56)
+    at /home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.test.ts:51:26
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:330:27)
+    at renderWithHooks (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+[90mstderr[2m | src/hooks/useKeyboardShortcuts.test.ts[2m > [22m[2museKeyboardShortcuts[2m > [22m[2mtriggers a VIM sequence
+[22m[39mThe above error occurred in the <TestComponent> component:
+
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:328:5)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+Error: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider
+    at useKeyboardShortcutsContext (/home/ayrton/projects/pokrabs/frontend/src/contexts/KeyboardShortcutsContext.tsx:57:15)
+    at useKeyboardShortcuts (/home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.ts:11:56)
+    at /home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.test.ts:66:26
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:330:27)
+    at renderWithHooks (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+Error: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider
+    at useKeyboardShortcutsContext (/home/ayrton/projects/pokrabs/frontend/src/contexts/KeyboardShortcutsContext.tsx:57:15)
+    at useKeyboardShortcuts (/home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.ts:11:56)
+    at /home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.test.ts:66:26
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:330:27)
+    at renderWithHooks (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+[90mstderr[2m | src/hooks/useKeyboardShortcuts.test.ts[2m > [22m[2museKeyboardShortcuts[2m > [22m[2mignores shortcuts in input fields
+[22m[39mThe above error occurred in the <TestComponent> component:
+
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:328:5)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+Error: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider
+    at useKeyboardShortcutsContext (/home/ayrton/projects/pokrabs/frontend/src/contexts/KeyboardShortcutsContext.tsx:57:15)
+    at useKeyboardShortcuts (/home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.ts:11:56)
+    at /home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.test.ts:85:26
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:330:27)
+    at renderWithHooks (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+Error: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider
+    at useKeyboardShortcutsContext (/home/ayrton/projects/pokrabs/frontend/src/contexts/KeyboardShortcutsContext.tsx:57:15)
+    at useKeyboardShortcuts (/home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.ts:11:56)
+    at /home/ayrton/projects/pokrabs/frontend/src/hooks/useKeyboardShortcuts.test.ts:85:26
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:330:27)
+    at renderWithHooks (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+    at beginWork (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:21626:16)
+    at HTMLUnknownElement.callCallback (/home/ayrton/projects/pokrabs/frontend/node_modules/react-dom/cjs/react-dom.development.js:4164:14)
+    at HTMLUnknownElement.callTheUserObjectsOperation (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/generated/EventListener.js:26:30)
+    at innerInvokeEventListeners (/home/ayrton/projects/pokrabs/frontend/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:360:16)
+[90mstderr[2m | src/hooks/useKeyboardShortcuts.test.ts[2m > [22m[2museKeyboardShortcuts[2m > [22m[2mallows global shortcuts in input fields
+[22m[39mThe above error occurred in the <TestComponent> component:
+
+    at TestComponent (/home/ayrton/projects/pokrabs/frontend/node_modules/@testing-library/react/dist/pure.js:328:5)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+ [31m❯[39m src/hooks/useKeyboardShortcuts.test.ts [2m([22m[2m5 tests[22m[2m | [22m[31m5 failed[39m[2m)[22m[32m 22[2mms[22m[39m
+[31m     [31m×[31m triggers a simple shortcut[39m[32m 13[2mms[22m[39m
+[31m     [31m×[31m triggers a combo shortcut[39m[32m 2[2mms[22m[39m
+[31m     [31m×[31m triggers a VIM sequence[39m[32m 2[2mms[22m[39m
+[31m     [31m×[31m ignores shortcuts in input fields[39m[32m 2[2mms[22m[39m
+[31m     [31m×[31m allows global shortcuts in input fields[39m[32m 2[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 5 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m src/hooks/useKeyboardShortcuts.test.ts[2m > [22museKeyboardShortcuts[2m > [22mtriggers a simple shortcut
+[31m[1mError[22m: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider[39m
+[36m [2m❯[22m useKeyboardShortcutsContext src/contexts/KeyboardShortcutsContext.tsx:[2m57:15[22m[39m
+    [90m 55| [39m    [35mconst[39m context [33m=[39m [34museContext[39m([33mKeyboardShortcutsContext[39m)[33m;[39m
+    [90m 56| [39m    [35mif[39m ([33m![39mcontext) {
+    [90m 57| [39m        throw new Error('useKeyboardShortcutsContext must be used with…
+    [90m   | [39m              [31m^[39m
+    [90m 58| [39m    }
+    [90m 59| [39m    [35mreturn[39m context[33m;[39m
+[90m [2m❯[22m useKeyboardShortcuts src/hooks/useKeyboardShortcuts.ts:[2m11:56[22m[39m
+[90m [2m❯[22m src/hooks/useKeyboardShortcuts.test.ts:[2m24:26[22m[39m
+[90m [2m❯[22m TestComponent node_modules/@testing-library/react/dist/pure.js:[2m330:27[22m[39m
+[90m [2m❯[22m renderWithHooks node_modules/react-dom/cjs/react-dom.development.js:[2m15486:18[22m[39m
+[90m [2m❯[22m mountIndeterminateComponent node_modules/react-dom/cjs/react-dom.development.js:[2m20103:13[22m[39m
+[90m [2m❯[22m beginWork node_modules/react-dom/cjs/react-dom.development.js:[2m21626:16[22m[39m
+[90m [2m❯[22m beginWork$1 node_modules/react-dom/cjs/react-dom.development.js:[2m27465:14[22m[39m
+[90m [2m❯[22m performUnitOfWork node_modules/react-dom/cjs/react-dom.development.js:[2m26599:12[22m[39m
+[90m [2m❯[22m workLoopSync node_modules/react-dom/cjs/react-dom.development.js:[2m26505:5[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/hooks/useKeyboardShortcuts.test.ts[2m > [22museKeyboardShortcuts[2m > [22mtriggers a combo shortcut
+[31m[1mError[22m: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider[39m
+[36m [2m❯[22m useKeyboardShortcutsContext src/contexts/KeyboardShortcutsContext.tsx:[2m57:15[22m[39m
+    [90m 55| [39m    [35mconst[39m context [33m=[39m [34museContext[39m([33mKeyboardShortcutsContext[39m)[33m;[39m
+    [90m 56| [39m    [35mif[39m ([33m![39mcontext) {
+    [90m 57| [39m        throw new Error('useKeyboardShortcutsContext must be used with…
+    [90m   | [39m              [31m^[39m
+    [90m 58| [39m    }
+    [90m 59| [39m    [35mreturn[39m context[33m;[39m
+[90m [2m❯[22m useKeyboardShortcuts src/hooks/useKeyboardShortcuts.ts:[2m11:56[22m[39m
+[90m [2m❯[22m src/hooks/useKeyboardShortcuts.test.ts:[2m36:26[22m[39m
+[90m [2m❯[22m TestComponent node_modules/@testing-library/react/dist/pure.js:[2m330:27[22m[39m
+[90m [2m❯[22m renderWithHooks node_modules/react-dom/cjs/react-dom.development.js:[2m15486:18[22m[39m
+[90m [2m❯[22m mountIndeterminateComponent node_modules/react-dom/cjs/react-dom.development.js:[2m20103:13[22m[39m
+[90m [2m❯[22m beginWork node_modules/react-dom/cjs/react-dom.development.js:[2m21626:16[22m[39m
+[90m [2m❯[22m beginWork$1 node_modules/react-dom/cjs/react-dom.development.js:[2m27465:14[22m[39m
+[90m [2m❯[22m performUnitOfWork node_modules/react-dom/cjs/react-dom.development.js:[2m26599:12[22m[39m
+[90m [2m❯[22m workLoopSync node_modules/react-dom/cjs/react-dom.development.js:[2m26505:5[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/hooks/useKeyboardShortcuts.test.ts[2m > [22museKeyboardShortcuts[2m > [22mtriggers a VIM sequence
+[31m[1mError[22m: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider[39m
+[36m [2m❯[22m useKeyboardShortcutsContext src/contexts/KeyboardShortcutsContext.tsx:[2m57:15[22m[39m
+    [90m 55| [39m    [35mconst[39m context [33m=[39m [34museContext[39m([33mKeyboardShortcutsContext[39m)[33m;[39m
+    [90m 56| [39m    [35mif[39m ([33m![39mcontext) {
+    [90m 57| [39m        throw new Error('useKeyboardShortcutsContext must be used with…
+    [90m   | [39m              [31m^[39m
+    [90m 58| [39m    }
+    [90m 59| [39m    [35mreturn[39m context[33m;[39m
+[90m [2m❯[22m useKeyboardShortcuts src/hooks/useKeyboardShortcuts.ts:[2m11:56[22m[39m
+[90m [2m❯[22m src/hooks/useKeyboardShortcuts.test.ts:[2m51:26[22m[39m
+[90m [2m❯[22m TestComponent node_modules/@testing-library/react/dist/pure.js:[2m330:27[22m[39m
+[90m [2m❯[22m renderWithHooks node_modules/react-dom/cjs/react-dom.development.js:[2m15486:18[22m[39m
+[90m [2m❯[22m mountIndeterminateComponent node_modules/react-dom/cjs/react-dom.development.js:[2m20103:13[22m[39m
+[90m [2m❯[22m beginWork node_modules/react-dom/cjs/react-dom.development.js:[2m21626:16[22m[39m
+[90m [2m❯[22m beginWork$1 node_modules/react-dom/cjs/react-dom.development.js:[2m27465:14[22m[39m
+[90m [2m❯[22m performUnitOfWork node_modules/react-dom/cjs/react-dom.development.js:[2m26599:12[22m[39m
+[90m [2m❯[22m workLoopSync node_modules/react-dom/cjs/react-dom.development.js:[2m26505:5[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/hooks/useKeyboardShortcuts.test.ts[2m > [22museKeyboardShortcuts[2m > [22mignores shortcuts in input fields
+[31m[1mError[22m: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider[39m
+[36m [2m❯[22m useKeyboardShortcutsContext src/contexts/KeyboardShortcutsContext.tsx:[2m57:15[22m[39m
+    [90m 55| [39m    [35mconst[39m context [33m=[39m [34museContext[39m([33mKeyboardShortcutsContext[39m)[33m;[39m
+    [90m 56| [39m    [35mif[39m ([33m![39mcontext) {
+    [90m 57| [39m        throw new Error('useKeyboardShortcutsContext must be used with…
+    [90m   | [39m              [31m^[39m
+    [90m 58| [39m    }
+    [90m 59| [39m    [35mreturn[39m context[33m;[39m
+[90m [2m❯[22m useKeyboardShortcuts src/hooks/useKeyboardShortcuts.ts:[2m11:56[22m[39m
+[90m [2m❯[22m src/hooks/useKeyboardShortcuts.test.ts:[2m66:26[22m[39m
+[90m [2m❯[22m TestComponent node_modules/@testing-library/react/dist/pure.js:[2m330:27[22m[39m
+[90m [2m❯[22m renderWithHooks node_modules/react-dom/cjs/react-dom.development.js:[2m15486:18[22m[39m
+[90m [2m❯[22m mountIndeterminateComponent node_modules/react-dom/cjs/react-dom.development.js:[2m20103:13[22m[39m
+[90m [2m❯[22m beginWork node_modules/react-dom/cjs/react-dom.development.js:[2m21626:16[22m[39m
+[90m [2m❯[22m beginWork$1 node_modules/react-dom/cjs/react-dom.development.js:[2m27465:14[22m[39m
+[90m [2m❯[22m performUnitOfWork node_modules/react-dom/cjs/react-dom.development.js:[2m26599:12[22m[39m
+[90m [2m❯[22m workLoopSync node_modules/react-dom/cjs/react-dom.development.js:[2m26505:5[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/hooks/useKeyboardShortcuts.test.ts[2m > [22museKeyboardShortcuts[2m > [22mallows global shortcuts in input fields
+[31m[1mError[22m: useKeyboardShortcutsContext must be used within a KeyboardShortcutsProvider[39m
+[36m [2m❯[22m useKeyboardShortcutsContext src/contexts/KeyboardShortcutsContext.tsx:[2m57:15[22m[39m
+    [90m 55| [39m    [35mconst[39m context [33m=[39m [34museContext[39m([33mKeyboardShortcutsContext[39m)[33m;[39m
+    [90m 56| [39m    [35mif[39m ([33m![39mcontext) {
+    [90m 57| [39m        throw new Error('useKeyboardShortcutsContext must be used with…
+    [90m   | [39m              [31m^[39m
+    [90m 58| [39m    }
+    [90m 59| [39m    [35mreturn[39m context[33m;[39m
+[90m [2m❯[22m useKeyboardShortcuts src/hooks/useKeyboardShortcuts.ts:[2m11:56[22m[39m
+[90m [2m❯[22m src/hooks/useKeyboardShortcuts.test.ts:[2m85:26[22m[39m
+[90m [2m❯[22m TestComponent node_modules/@testing-library/react/dist/pure.js:[2m330:27[22m[39m
+[90m [2m❯[22m renderWithHooks node_modules/react-dom/cjs/react-dom.development.js:[2m15486:18[22m[39m
+[90m [2m❯[22m mountIndeterminateComponent node_modules/react-dom/cjs/react-dom.development.js:[2m20103:13[22m[39m
+[90m [2m❯[22m beginWork node_modules/react-dom/cjs/react-dom.development.js:[2m21626:16[22m[39m
+[90m [2m❯[22m beginWork$1 node_modules/react-dom/cjs/react-dom.development.js:[2m27465:14[22m[39m
+[90m [2m❯[22m performUnitOfWork node_modules/react-dom/cjs/react-dom.development.js:[2m26599:12[22m[39m
+[90m [2m❯[22m workLoopSync node_modules/react-dom/cjs/react-dom.development.js:[2m26505:5[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m5 failed[39m[22m[90m (5)[39m
+[2m   Start at [22m 16:48:11
+[2m   Duration [22m 525ms[2m (transform 33ms, setup 85ms, import 20ms, tests 22ms, environment 305ms)[22m
+
