@@ -7,7 +7,6 @@ import fs from 'fs';
 import session from 'express-session';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { runMigrations } from './database/migrate';
 import { execSync } from 'child_process';
 import { seedDatabase } from './database/seed';
 import { getWorkspaceRepository } from './models/repository-factory';
@@ -168,33 +167,40 @@ app.use((req: Request, res: Response) => {
 // Initialize database and start server
 async function startServer() {
   try {
-    // Run database schema setup on startup
-    if (process.env.NODE_ENV === 'production') {
-      console.log('🔄 Setting up database schema...');
+    // Run Prisma migrations on startup (works for both dev and prod)
+    console.log('🔄 Running database migrations...');
+    try {
+      // Get the correct database URL for Prisma (must have file: protocol)
+      const dbUrl = getDatabaseUrl();
+      const backendDir = process.cwd().endsWith('backend') ? process.cwd() : path.join(process.cwd(), 'backend');
+      
+      // Use Prisma migrate deploy - applies pending migrations safely
+      // This works in both dev and prod, and is idempotent (safe to run multiple times)
+      execSync('npx prisma migrate deploy', {
+        cwd: backendDir,
+        stdio: 'pipe',
+        env: { ...process.env, DATABASE_URL: dbUrl }
+      });
+      console.log('✅ Migrations completed');
+    } catch (error: any) {
+      // If migrations fail, try db push as fallback (for development/testing)
+      console.warn('⚠️  Prisma migrate deploy failed, trying db push as fallback...');
       try {
-        // Get the correct database URL for Prisma (must have file: protocol)
         const dbUrl = getDatabaseUrl();
         const backendDir = process.cwd().endsWith('backend') ? process.cwd() : path.join(process.cwd(), 'backend');
         
-        // Use Prisma db push to sync schema (simpler and more reliable than migrations)
         execSync('npx prisma db push --accept-data-loss --skip-generate', {
           cwd: backendDir,
           stdio: 'pipe',
           env: { ...process.env, DATABASE_URL: dbUrl }
         });
-        console.log('✅ Database schema synced');
-      } catch (error: any) {
-        console.error('❌ Prisma db push failed:', error.message);
-        // Fallback to custom migrations
-        console.log('🔄 Falling back to custom migrations...');
-        runMigrations();
-        console.log('✅ Custom migrations completed');
+        console.log('✅ Database schema synced (using db push)');
+      } catch (fallbackError: any) {
+        console.error('❌ Database setup failed:', fallbackError.message);
+        // Don't throw - allow server to start even if migrations fail
+        // This allows for manual intervention
+        console.error('⚠️  Server will start, but database may be in an inconsistent state');
       }
-    } else {
-      // In development, use custom migrations
-      console.log('🔄 Running database migrations...');
-      runMigrations();
-      console.log('✅ Migrations completed');
     }
     
     // Seed database if empty

@@ -101,12 +101,16 @@ else
     echo "   .env file already exists"
 fi
 
-# Run database migrations/seeding if available
+# Run database migrations if available
 cd backend
-if [ -f "package.json" ] && grep -q "\"db:setup\"" package.json; then
-    echo "   Running database setup..."
+if [ -f "package.json" ] && grep -q "prisma" package.json; then
+    echo "   Running database migrations..."
     # Prisma requires file: protocol for SQLite
-    DATABASE_URL="file:./data/pokrabs.db" npm run db:setup || echo "   ⚠️  Database setup failed (this is okay if database already exists)"
+    # Use migrate deploy to apply pending migrations (idempotent, safe to run multiple times)
+    DATABASE_URL="file:./data/pokrabs.db" npx prisma migrate deploy || echo "   ⚠️  Migration failed (this is okay if database already exists or migrations will run on startup)"
+    # Generate Prisma client
+    echo "   Generating Prisma client..."
+    npx prisma generate || echo "   ⚠️  Prisma generate failed"
 fi
 cd ..
 

@@ -29,7 +29,7 @@ RUN ./backend/node_modules/.bin/tsc --project tsconfig.docker.json
 # Stage 2: Production image (without build tools)
 FROM node:20-alpine
 
-# Install only Prisma CLI (needed for db push at runtime)
+# Install only Prisma CLI (needed for migrations at runtime)
 RUN apk add --no-cache openssl
 
 # Create non-root user for security
@@ -46,8 +46,9 @@ COPY --from=builder /app/backend/node_modules ./node_modules
 COPY backend/dist ./dist
 COPY backend/migrations ./migrations
 
-# Copy only schema.prisma (not the entire prisma directory with all platform binaries)
+# Copy Prisma schema and migrations (needed for migrate deploy)
 COPY backend/prisma/schema.prisma ./prisma/schema.prisma
+COPY backend/prisma/migrations ./prisma/migrations
 
 # Copy compiled shared directory
 COPY shared ./node_modules/shared
